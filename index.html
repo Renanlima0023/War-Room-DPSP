@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
-        /* Reset e Tema escuro */
+        /* (mesmo CSS anterior - mantido) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -24,7 +24,6 @@
         .dark-select:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
         .dark-select option { background: #1a1d27; color: #e2e8f0; }
 
-        /* ===== LOGIN SCREEN ===== */
         #loginScreen {
             display: flex;
             align-items: center;
@@ -56,7 +55,6 @@
         .login-box .error-msg { color: #f87171; font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
         .login-box .login-footer { text-align: center; margin-top: 16px; font-size: 12px; color: #64748b; }
 
-        /* ===== APP CONTENT ===== */
         #appContent {
             display: none;
             flex-direction: column;
@@ -64,7 +62,6 @@
             overflow: hidden;
         }
 
-        /* ===== KANBAN CARDS ===== */
         .kanban-card {
             cursor: grab;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -265,13 +262,6 @@
             animation: slideUp 0.4s ease;
         }
 
-        #resetPasswordBtn {
-            display: none;
-        }
-        #resetPasswordBtn.visible {
-            display: inline-flex;
-        }
-
         .kanban-scroll {
             overflow-x: auto;
             overflow-y: auto;
@@ -291,7 +281,6 @@
             background: #4f46e5;
         }
 
-        /* Botões de ação do usuário */
         .user-actions {
             display: flex;
             gap: 4px;
@@ -330,6 +319,9 @@
         }
         .user-actions .btn-delete:hover {
             background: rgba(248, 113, 113, 0.2);
+        }
+        .user-item .role-badge {
+            font-size: 10px;
         }
     </style>
 </head>
@@ -670,7 +662,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- MODAL USUÁRIOS (com Reset de Senha por usuário) -->
+    <!-- MODAL USUÁRIOS -->
     <!-- ============================================================ -->
     <div id="userModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
         <div class="modal-content w-full max-w-2xl">
@@ -681,7 +673,6 @@
                 </button>
             </div>
             <div class="p-3 md:p-6">
-                <!-- Formulário para adicionar usuário -->
                 <div class="flex flex-wrap gap-2 mb-4">
                     <input type="text" id="newUserName" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="Nome do usuário" />
                     <input type="email" id="newUserEmail" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="E-mail" />
@@ -695,17 +686,15 @@
                         <i class="fas fa-plus mr-1"></i> Adicionar
                     </button>
                 </div>
-
-                <!-- Lista de usuários com botões de ação -->
                 <div class="space-y-2" id="userList">
-                    <!-- Os usuários serão renderizados aqui pelo JavaScript -->
+                    <!-- Renderizado pelo JavaScript -->
                 </div>
             </div>
         </div>
     </div>
 
     <!-- ============================================================ -->
-    <!-- MODAL RESET SENHA (pop-up para definir nova senha) -->
+    <!-- MODAL RESET SENHA -->
     <!-- ============================================================ -->
     <div id="resetPasswordModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
         <div class="modal-content w-full max-w-md">
@@ -843,6 +832,55 @@
     let currentCardId = null;
     let panelCollapsed = false;
     let addCardTargetStatus = 'agendada';
+    let isSaving = false;
+
+    // ============================================================
+    // CONFIGURAÇÃO DA API - CORRIGIDA
+    // ============================================================
+    // IMPORTANTE: Substitua SUA_API_KEY pela chave gerada no Neon
+    // Acesse: https://console.neon.tech/ > Settings > API > Generate API Key
+    const API_URL = 'https://ep-lively-lab-ah2ynjag.apirest.c-3.us-east-1.aws.neon.tech/neondb/rest/v1';
+    const API_KEY = 'npg_YOXlZEUaik19'; // <-- Substitua pela sua API Key do Neon
+
+    // ============================================================
+    // FUNÇÕES DA API - COM LOGS PARA DEBUG
+    // ============================================================
+    async function apiRequest(endpoint, options = {}) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'apikey': API_KEY,
+            'Authorization': `Bearer ${API_KEY}`
+        };
+
+        console.log(`📡 API Request: ${endpoint}`, options);
+
+        try {
+            const response = await fetch(`${API_URL}/${endpoint}`, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+
+            const responseText = await response.text();
+            console.log(`📡 API Response (${response.status}):`, responseText);
+
+            if (!response.ok) {
+                console.warn(`⚠️ API Error ${response.status}:`, responseText);
+                // Mostrar erro detalhado para o usuário
+                showNotification(`❌ Erro na API: ${response.status} - ${responseText.substring(0, 100)}`);
+                return null;
+            }
+
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                return responseText;
+            }
+        } catch (error) {
+            console.error('❌ Erro na API:', error);
+            showNotification(`❌ Erro de conexão: ${error.message}`);
+            return null;
+        }
+    }
 
     // ============================================================
     // FUNÇÕES DE AUTENTICAÇÃO
@@ -894,6 +932,9 @@
 
         initializeApp();
         showNotification(`👋 Bem-vindo, ${user.nome}!`);
+        
+        // Tentar carregar dados do banco
+        fetchLojasFromDB();
     }
 
     function handleLogout() {
@@ -910,7 +951,113 @@
     }
 
     // ============================================================
-    // GERENCIAMENTO DE USUÁRIOS (com Reset de Senha)
+    // BUSCAR LOJAS DO BANCO
+    // ============================================================
+    async function fetchLojasFromDB() {
+        showNotification('🔄 Carregando dados do banco...');
+        try {
+            const data = await apiRequest('lojas?select=*');
+            if (data && Array.isArray(data) && data.length > 0) {
+                initialCards = data.map(loja => ({
+                    id: loja.id || loja.codigo || `LJ-${Math.floor(Math.random() * 1000)}`,
+                    loja: loja.nome || `Loja ${loja.codigo || 'Nova'}`,
+                    responsavel: loja.responsavel || 'Não atribuído',
+                    status: loja.status || 'agendada',
+                    regional: loja.regional || 'N/A',
+                    pdvs: loja.quantidade_pdvs || 0,
+                    comentarios: loja.comentarios || 0,
+                    data: loja.data_agendada || 'Hoje',
+                    prioridade: loja.prioridade || null,
+                    subtipo: loja.subtipo || null
+                }));
+                renderCards();
+                showNotification(`✅ ${initialCards.length} lojas carregadas do banco!`);
+                return true;
+            } else {
+                showNotification('ℹ️ Nenhuma loja encontrada no banco. Usando dados locais.');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar lojas:', error);
+            showNotification('⚠️ Usando dados locais (fallback)');
+            return false;
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES CRUD COM BANCO
+    // ============================================================
+    async function saveLoja(lojaData) {
+        if (isSaving) return;
+        isSaving = true;
+        try {
+            showNotification('💾 Salvando loja no banco...');
+            const result = await apiRequest('lojas', {
+                method: 'POST',
+                body: JSON.stringify(lojaData)
+            });
+            if (result) {
+                showNotification('✅ Loja salva com sucesso!');
+                // Recarregar dados do banco
+                await fetchLojasFromDB();
+            }
+            return result;
+        } catch (error) {
+            console.error('Erro ao salvar:', error);
+            showNotification('❌ Erro ao salvar no banco');
+            return null;
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    async function updateLoja(id, dados) {
+        if (isSaving) return;
+        isSaving = true;
+        try {
+            showNotification('💾 Atualizando loja no banco...');
+            const result = await apiRequest(`lojas?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(dados)
+            });
+            if (result !== null) {
+                showNotification('✅ Loja atualizada!');
+                await fetchLojasFromDB();
+            }
+            return result;
+        } catch (error) {
+            console.error('Erro ao atualizar:', error);
+            showNotification('❌ Erro ao atualizar no banco');
+            return null;
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    async function deleteLoja(id) {
+        if (isSaving) return;
+        isSaving = true;
+        try {
+            showNotification('🗑️ Removendo loja do banco...');
+            const result = await apiRequest(`lojas?id=eq.${id}`, {
+                method: 'DELETE'
+            });
+            if (result !== null) {
+                showNotification('✅ Loja removida!');
+                await fetchLojasFromDB();
+            }
+            return result;
+        } catch (error) {
+            console.error('Erro ao deletar:', error);
+            showNotification('❌ Erro ao remover do banco');
+            return null;
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    // ============================================================
+    // GERENCIAMENTO DE USUÁRIOS
     // ============================================================
     
     function openUserManagement() {
@@ -1043,7 +1190,7 @@
     }
 
     // ============================================================
-    // RESET DE SENHA (dentro do gerenciamento de usuários)
+    // RESET DE SENHA
     // ============================================================
     
     function openResetPasswordForUser(userId) {
@@ -1089,57 +1236,6 @@
             closeResetPasswordModal();
         } else {
             showNotification('❌ Usuário não encontrado!');
-        }
-    }
-
-    // ============================================================
-    // CONFIGURAÇÃO DA API
-    // ============================================================
-    const API_URL = 'https://ep-lively-lab-ah2ynjag.apirest.c-3.us-east-1.aws.neon.tech/neondb/rest/v1';
-    const API_KEY = 'npg_YOXlZEUaik19';
-
-    // ============================================================
-    // FUNÇÕES DA API
-    // ============================================================
-    async function apiRequest(endpoint, options = {}) {
-        const headers = {
-            'Content-Type': 'application/json',
-            'apikey': API_KEY,
-            'Authorization': `Bearer ${API_KEY}`
-        };
-
-        try {
-            const response = await fetch(`${API_URL}/${endpoint}`, {
-                ...options,
-                headers: { ...headers, ...options.headers }
-            });
-
-            if (!response.ok) {
-                console.warn('API Error:', response.status);
-                return null;
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.warn('Erro na API, usando fallback:', error.message);
-            return null;
-        }
-    }
-
-    // ============================================================
-    // BUSCAR RESPONSÁVEIS
-    // ============================================================
-    async function fetchResponsaveis() {
-        try {
-            const data = await apiRequest('responsaveis?select=nome');
-            if (data && Array.isArray(data) && data.length > 0) {
-                responsaveisList = data.map(r => r.nome).filter(n => n);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.warn('Erro ao buscar responsáveis:', error);
-            return false;
         }
     }
 
@@ -1344,11 +1440,12 @@
             responsavel: responsavel,
             status: status,
             regional: regional,
-            pdvs: pdvs,
+            quantidade_pdvs: pdvs,
             comentarios: 0,
-            data: data || 'Hoje'
+            data_agendada: data || new Date().toISOString().split('T')[0]
         };
 
+        // Salvar no banco
         saveLoja({
             codigo: newCard.id,
             nome: newCard.loja,
@@ -1359,10 +1456,20 @@
             data_agendada: data || new Date().toISOString().split('T')[0]
         });
 
-        initialCards.push(newCard);
+        // Atualizar local
+        initialCards.push({
+            id: newCard.id,
+            loja: newCard.loja,
+            responsavel: responsavel,
+            status: status,
+            regional: regional,
+            pdvs: pdvs,
+            comentarios: 0,
+            data: data || 'Hoje'
+        });
         renderCards();
         closeAddCardModal();
-        showNotification(`🆕 Loja ${numero} adicionada com responsável ${responsavel}!`);
+        showNotification(`🆕 Loja ${numero} adicionada!`);
     }
 
     // ============================================================
@@ -1420,53 +1527,16 @@
 
         const cardData = initialCards.find(c => c.id === cardId);
         if (cardData && cardData.status !== targetStatus) {
+            const oldStatus = cardData.status;
             cardData.status = targetStatus;
+            
+            // Atualizar no banco
             updateLoja(cardId, { status: targetStatus });
+            
             renderCards();
-            showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+            showNotification(`📦 ${cardData.loja} movida de ${oldStatus} para ${targetStatus}`);
         }
         draggedCard = null;
-    }
-
-    // ============================================================
-    // FUNÇÕES CRUD
-    // ============================================================
-    async function saveLoja(lojaData) {
-        try {
-            const result = await apiRequest('lojas', {
-                method: 'POST',
-                body: JSON.stringify(lojaData)
-            });
-            return result;
-        } catch (error) {
-            console.warn('Erro ao salvar, modo local');
-            return null;
-        }
-    }
-
-    async function updateLoja(id, dados) {
-        try {
-            const result = await apiRequest(`lojas?id=eq.${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify(dados)
-            });
-            return result;
-        } catch (error) {
-            console.warn('Erro ao atualizar, modo local');
-            return null;
-        }
-    }
-
-    async function deleteLoja(id) {
-        try {
-            const result = await apiRequest(`lojas?id=eq.${id}`, {
-                method: 'DELETE'
-            });
-            return result;
-        } catch (error) {
-            console.warn('Erro ao deletar, modo local');
-            return null;
-        }
     }
 
     // ============================================================
@@ -1482,7 +1552,9 @@
         }
 
         if (confirm(`Deseja excluir ${card.loja}?`)) {
+            // Remover do banco
             deleteLoja(cardId);
+            // Remover local
             initialCards = initialCards.filter(c => c.id !== cardId);
             renderCards();
             showNotification(`🗑️ ${card.loja} excluída!`);
@@ -1788,7 +1860,7 @@
             </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+        setTimeout(() => toast.remove(), 5000);
     }
 
     // ============================================================
@@ -1806,7 +1878,6 @@
     // INICIALIZAÇÃO
     // ============================================================
     async function initializeApp() {
-        await fetchResponsaveis();
         renderCards();
         renderUserList();
 
@@ -1835,6 +1906,8 @@
                     `https://ui-avatars.com/api/?name=${user.nome}&background=${user.avatar || '4F46E5'}&color=fff&size=28&bold=true`;
                 
                 initializeApp();
+                // Tentar carregar dados do banco
+                setTimeout(fetchLojasFromDB, 500);
                 showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
             } catch (e) {
                 console.warn('Sessão inválida');
@@ -1873,6 +1946,12 @@
             }
         }
     });
+
+    console.log('🚀 ROCC - Roll Out Control Center');
+    console.log('📡 API URL:', API_URL);
+    console.log('🔑 API Key:', API_KEY ? 'Configurada' : 'NÃO CONFIGURADA');
+    console.log('💡 Se a API não estiver funcionando, gere uma nova chave no Neon:');
+    console.log('   https://console.neon.tech/ > Settings > API > Generate API Key');
 </script>
 
 </body>
