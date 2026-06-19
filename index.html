@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROCC · Roll Out Control Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* Reset e Tema escuro */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f1117;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .dark-card { background: #1a1d27; border-color: #2d313e; }
+        .dark-header { background: #14171f; border-color: #2d313e; }
+        .dark-input { background: #0f1117; border-color: #2d313e; color: #e2e8f0; }
+        .dark-input:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
+        .dark-select { background: #0f1117; border-color: #2d313e; color: #e2e8f0; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-position: right 8px center; background-repeat: no-repeat; background-size: 16px; padding-right: 32px; }
+        .dark-select:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
+        .dark-select option { background: #1a1d27; color: #e2e8f0; }
+
+        /* ===== LOGIN SCREEN ===== */
+        #loginScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1d27, #0f1117);
+        }
+        .login-box {
+            background: #1a1d27;
+            border: 1px solid #2d313e;
+            border-radius: 16px;
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .login-box .logo { text-align: center; margin-bottom: 32px; }
+        .login-box .logo h1 { font-size: 28px; font-weight: 700; color: #fff; }
+        .login-box .logo span { color: #818cf8; }
+        .login-box .logo p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+        .login-box .form-group { margin-bottom: 16px; }
+        .login-box .form-group label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .login-box .form-group input { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #2d313e; background: #0f1117; color: #e2e8f0; font-size: 14px; transition: all 0.2s ease; }
+        .login-box .form-group input:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
+        .login-box .form-group input::placeholder { color: #64748b; }
+        .login-box .btn-login { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #4f46e5; color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        .login-box .btn-login:hover { background: #6366f1; transform: translateY(-1px); }
+        .login-box .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+        .login-box .error-msg { color: #f87171; font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
+        .login-box .login-footer { text-align: center; margin-top: 16px; font-size: 12px; color: #64748b; }
+
+        /* ===== APP CONTENT ===== */
+        #appContent {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ===== KANBAN CARDS ===== */
+        .kanban-card {
+            cursor: grab;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 6px solid transparent;
+            position: relative;
+            user-select: none;
+            border-radius: 12px;
+            padding: 14px 16px !important;
+            background: linear-gradient(145deg, #1a1d27, #161923);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .kanban-card:active { cursor: grabbing; }
+        .kanban-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 30px rgba(79,70,229,0.15);
+        }
+        .kanban-card.dragging { opacity: 0.3; transform: scale(0.95); }
+
+        .status-agendada { border-left-color: #38bdf8; }
+        .status-execucao { border-left-color: #fbbf24; }
+        .status-bloqueada { border-left-color: #f87171; animation: pulse-blocked 2s ease-in-out infinite; }
+        .status-revisao { border-left-color: #a78bfa; }
+        .status-concluida { border-left-color: #34d399; }
+
+        @keyframes pulse-blocked {
+            0%, 100% { border-left-color: #f87171; }
+            50% { border-left-color: #ef4444; }
+        }
+
+        .kanban-card:hover.status-agendada { box-shadow: 0 8px 30px rgba(56,189,248,0.2); }
+        .kanban-card:hover.status-execucao { box-shadow: 0 8px 30px rgba(251,191,36,0.2); }
+        .kanban-card:hover.status-bloqueada { box-shadow: 0 8px 30px rgba(248,113,113,0.25); }
+        .kanban-card:hover.status-revisao { box-shadow: 0 8px 30px rgba(167,139,250,0.2); }
+        .kanban-card:hover.status-concluida { box-shadow: 0 8px 30px rgba(52,211,153,0.2); }
+
+        .delete-btn {
+            opacity: 0;
+            transition: all 0.2s ease;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f87171;
+            border: 1px solid #f87171;
+            cursor: pointer;
+            font-size: 11px;
+            z-index: 10;
+        }
+        .delete-btn:hover { background: #7f1d1d; color: white; }
+        .kanban-card:hover .delete-btn { opacity: 1; }
+
+        .kanban-column-inner {
+            min-height: 250px;
+            transition: background 0.2s ease;
+            border-radius: 8px;
+        }
+        .kanban-column-inner.drag-over {
+            background: rgba(79,70,229,0.08);
+            border: 2px dashed #4f46e5;
+        }
+
+        .bottom-panel {
+            background: #14171f;
+            border-top: 1px solid #2d313e;
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .bottom-panel.collapsed { max-height: 48px !important; overflow: hidden; }
+        .bottom-panel.collapsed .panel-content { opacity: 0; pointer-events: none; }
+
+        .toggle-btn {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1d27;
+            border: 1px solid #2d313e;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            color: #94a3b8;
+        }
+        .toggle-btn:hover { background: #2d313e; color: #e2e8f0; border-color: #4f46e5; }
+        .bottom-panel.collapsed .toggle-btn .fa-chevron-up { transform: rotate(180deg); }
+
+        .kanban-wrapper { flex: 1; overflow: hidden; min-height: 0; }
+        .kanban-scroll { height: 100%; overflow-x: auto; overflow-y: auto; padding: 16px 24px; }
+        .kanban-column { min-width: 200px; flex: 1; }
+
+        @media (max-width: 768px) {
+            .kanban-column { min-width: 160px; }
+            .kanban-scroll { padding: 12px; }
+            .kanban-card { padding: 10px 12px !important; }
+        }
+
+        .modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); animation: fadeIn 0.3s ease; }
+        .modal-content { animation: slideUp 0.4s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .tab-btn { transition: all 0.2s ease; border-bottom: 2px solid transparent; white-space: nowrap; }
+        .tab-btn.active { color: #818cf8; border-bottom-color: #818cf8; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+
+        .status-badge {
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-badge-agendada { background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+        .status-badge-execucao { background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+        .status-badge-bloqueada { background: rgba(248,113,113,0.2); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+        .status-badge-revisao { background: rgba(167,139,250,0.2); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+        .status-badge-concluida { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+
+        .priority-critical { background: linear-gradient(135deg, #7f1d1d, #991b1b); color: #fca5a5; border: 1px solid #ef4444; }
+        .priority-high { background: linear-gradient(135deg, #7c2d12, #9a3412); color: #fdba74; border: 1px solid #fb923c; }
+        .priority-medium { background: linear-gradient(135deg, #713f12, #854d0e); color: #fde047; border: 1px solid #fbbf24; }
+
+        .role-badge { padding: 2px 10px; border-radius: 12px; font-size: 10px; }
+        .role-admin { background: #4f46e5; color: white; }
+        .role-gerente { background: #8b5cf6; color: white; }
+        .role-tecnico { background: #0ea5e9; color: white; }
+        .role-visualizador { background: #64748b; color: white; }
+
+        .metric-edit { cursor: pointer; transition: all 0.2s ease; border: 2px solid transparent; border-radius: 4px; padding: 0 4px; }
+        .metric-edit:hover { border-color: #4f46e5; background: rgba(79,70,229,0.1); }
+
+        .toast-notification { animation: slideUp 0.3s ease; position: fixed; top: 80px; right: 16px; z-index: 9999; max-width: 360px; }
+        .fab { background: #4f46e5; box-shadow: 0 8px 30px rgba(79,70,229,0.4); transition: all 0.2s ease; }
+        .fab:hover { transform: scale(1.05); box-shadow: 0 12px 40px rgba(79,70,229,0.6); }
+
+        .store-name-agendada { color: #93c5fd; }
+        .store-name-execucao { color: #fcd34d; }
+        .store-name-bloqueada { color: #fca5a5; }
+        .store-name-revisao { color: #c4b5fd; }
+        .store-name-concluida { color: #6ee7b7; }
+
+        .bar-container { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+        .bar-label { width: 60px; font-size: 10px; color: #94a3b8; text-align: right; flex-shrink: 0; }
+        .bar-track { flex: 1; height: 16px; background: #2d313e; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; min-width: 2px; }
+        .bar-color-agendada { background: #38bdf8; }
+        .bar-color-execucao { background: #fbbf24; }
+        .bar-color-bloqueada { background: #f87171; }
+        .bar-color-revisao { background: #a78bfa; }
+        .bar-color-concluida { background: #34d399; }
+        .bar-value { font-size: 10px; color: #e2e8f0; min-width: 20px; text-align: center; }
+
+        .history-item { border-left: 2px solid #2d313e; padding-left: 12px; }
+        .history-item:hover { border-left-color: #4f46e5; }
+
+        .panel-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }
+        .panel-card { transition: all 0.2s ease; }
+        .panel-card:hover { border-color: #4f46e5; transform: translateY(-1px); }
+        @media (max-width: 768px) { .panel-title { font-size: 8px; } }
+
+        .hidden-content { display: none !important; }
+        .visible-content { display: flex !important; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+        }
+        .modal-content {
+            background: #1a1d27;
+            border: 1px solid #2d313e;
+            border-radius: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay .modal-content {
+            animation: slideUp 0.4s ease;
+        }
+
+        #resetPasswordBtn {
+            display: none;
+        }
+        #resetPasswordBtn.visible {
+            display: inline-flex;
+        }
+
+        .kanban-scroll {
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+        .kanban-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .kanban-scroll::-webkit-scrollbar-track {
+            background: #0f1117;
+        }
+        .kanban-scroll::-webkit-scrollbar-thumb {
+            background: #2d313e;
+            border-radius: 8px;
+        }
+        .kanban-scroll::-webkit-scrollbar-thumb:hover {
+            background: #4f46e5;
+        }
+
+        /* Botões de ação do usuário */
+        .user-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .user-actions button {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            background: transparent;
+        }
+        .user-actions .btn-edit {
+            color: #818cf8;
+            border-color: #818cf8;
+        }
+        .user-actions .btn-edit:hover {
+            background: rgba(129, 140, 248, 0.2);
+        }
+        .user-actions .btn-reset {
+            color: #fbbf24;
+            border-color: #fbbf24;
+        }
+        .user-actions .btn-reset:hover {
+            background: rgba(251, 191, 36, 0.2);
+        }
+        .user-actions .btn-delete {
+            color: #f87171;
+            border-color: #f87171;
+        }
+        .user-actions .btn-delete:hover {
+            background: rgba(248, 113, 113, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- TELA DE LOGIN -->
+<!-- ============================================================ -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="logo">
+            <h1>ROCC</h1>
+            <p>Roll Out Control Center</p>
+        </div>
+        <div id="loginError" class="error-msg"></div>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="loginEmail" placeholder="seu@email.com" value="admin@rocc.com" />
+        </div>
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" value="admin123" />
+        </div>
+        <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+            <i class="fas fa-sign-in-alt mr-2"></i> Entrar
+        </button>
+        <div class="login-footer">
+            <span>Credenciais: admin@rocc.com / admin123</span>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- APLICATIVO PRINCIPAL -->
+<!-- ============================================================ -->
+<div id="appContent">
+
+    <!-- TOP BAR -->
+    <header class="dark-header border-b px-3 md:px-6 py-2 md:py-3 flex flex-wrap items-center justify-between flex-shrink-0 z-50">
+        <div class="flex items-center gap-2 md:gap-3">
+            <div class="bg-indigo-600 text-white p-1.5 md:p-2 rounded-lg text-base md:text-lg font-bold">ROCC</div>
+            <h1 class="font-bold text-white text-sm md:text-base hidden sm:block">Kanban</h1>
+            <div class="flex items-center gap-1 md:gap-2">
+                <span class="bg-emerald-600/20 text-emerald-400 text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium border border-emerald-500/30 flex items-center gap-1">
+                    <i class="fas fa-circle text-[6px] md:text-[8px] text-emerald-400"></i>
+                    <span class="metric-edit" onclick="editMetric('total')" title="Clique para editar">
+                        <span id="totalLojasDisplay">0</span>
+                    </span>
+                </span>
+                <span class="bg-emerald-600/20 text-emerald-400 text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium border border-emerald-500/30 flex items-center gap-1">
+                    <i class="fas fa-check-circle text-[6px] md:text-[8px] text-emerald-400"></i>
+                    <span class="metric-edit" onclick="editMetric('concluidas')" title="Clique para editar">
+                        <span id="concluidasDisplay">0</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+            <div class="flex items-center gap-1 md:gap-2">
+                <input type="text" placeholder="🔍 Buscar..." class="dark-input px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm w-28 md:w-40 focus:w-36 md:focus:w-56 transition-all" id="searchStoreFilter" oninput="filterCards()" />
+                <select class="dark-select px-1 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm max-w-[80px] md:max-w-none" id="responsibleFilter" onchange="filterCards()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <button class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs transition border border-indigo-500/30 flex items-center gap-1" onclick="openTechDashboard()">
+                <i class="fas fa-chart-bar"></i>
+                <span class="hidden sm:inline">Técnicos</span>
+            </button>
+            <button class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs transition border border-indigo-500/30 flex items-center gap-1" onclick="openUserManagement()">
+                <i class="fas fa-users"></i>
+                <span class="hidden sm:inline">Usuários</span>
+            </button>
+            <button class="bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs transition border border-rose-500/30 flex items-center gap-1" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span class="hidden sm:inline">Sair</span>
+            </button>
+            <div class="flex items-center gap-2 border-l pl-2 md:pl-3 border-[#2d313e]">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=4F46E5&color=fff&size=28&bold=true" class="rounded-full border border-indigo-500/30 w-6 h-6 md:w-8 md:h-8" id="userAvatar" />
+                <div class="text-xs md:text-sm leading-tight hidden sm:block">
+                    <p class="font-semibold text-white" id="userNameDisplay">Administrador</p>
+                    <p class="text-[10px] md:text-xs text-indigo-400" id="userRoleDisplay">Administrador</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- KANBAN -->
+    <div class="kanban-wrapper">
+        <div class="kanban-scroll">
+            <div class="flex gap-3 md:gap-4 min-w-[700px] md:min-w-[900px] h-full">
+                <!-- Colunas -->
+                <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
+                    <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
+                        <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-calendar-alt text-sky-400 mr-1 md:mr-2"></i>Agendadas</h3>
+                        <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-agendada">0</span>
+                    </div>
+                    <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="agendada"></div>
+                    <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
+                        <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('agendada')">
+                            <i class="fas fa-plus mr-0.5"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
+                    <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
+                        <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-spinner text-amber-400 mr-1 md:mr-2"></i>Execução</h3>
+                        <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-execucao">0</span>
+                    </div>
+                    <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="execucao"></div>
+                    <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
+                        <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('execucao')">
+                            <i class="fas fa-plus mr-0.5"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
+                    <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
+                        <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-ban text-rose-400 mr-1 md:mr-2"></i>Bloqueadas</h3>
+                        <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-bloqueada">0</span>
+                    </div>
+                    <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="bloqueada"></div>
+                    <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
+                        <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('bloqueada')">
+                            <i class="fas fa-plus mr-0.5"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
+                    <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
+                        <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-check-double text-purple-400 mr-1 md:mr-2"></i>Revisão</h3>
+                        <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-revisao">0</span>
+                    </div>
+                    <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="revisao"></div>
+                    <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
+                        <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('revisao')">
+                            <i class="fas fa-plus mr-0.5"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
+                    <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
+                        <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-check-circle text-emerald-400 mr-1 md:mr-2"></i>Concluídas</h3>
+                        <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-concluida">0</span>
+                    </div>
+                    <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="concluida"></div>
+                    <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
+                        <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('concluida')">
+                            <i class="fas fa-plus mr-0.5"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL INFERIOR -->
+    <div class="bottom-panel px-3 md:px-6 py-2 md:py-3 flex-shrink-0" id="bottomPanel">
+        <div class="toggle-btn" onclick="togglePanel()">
+            <i class="fas fa-chevron-up text-xs md:text-sm"></i>
+        </div>
+        <div class="panel-content">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 max-w-7xl mx-auto">
+                <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
+                    <div class="flex justify-between items-center mb-1 md:mb-2">
+                        <h4 class="panel-title flex items-center gap-1 md:gap-2">
+                            <i class="fas fa-ticket-alt text-rose-400 text-[10px] md:text-xs"></i>
+                            <span class="hidden xs:inline">Tickets Abertos</span>
+                            <span class="xs:hidden">Tickets</span>
+                        </h4>
+                        <span class="text-[8px] md:text-xs bg-rose-600/20 text-rose-400 px-1.5 md:px-2 py-0.5 rounded-full border border-rose-500/30">4</span>
+                    </div>
+                    <div class="space-y-1 max-h-16 md:max-h-28 overflow-y-auto">
+                        <div class="ticket-item ticket-critical flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
+                            <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001245</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1023</span></div>
+                            <span class="priority-critical text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Crítico</span>
+                        </div>
+                        <div class="ticket-item ticket-high flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
+                            <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001239</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1008</span></div>
+                            <span class="priority-high text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Alta</span>
+                        </div>
+                        <div class="ticket-item ticket-medium flex items-center justify-between text-[10px] md:text-sm px-1">
+                            <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001231</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1015</span></div>
+                            <span class="priority-medium text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Média</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
+                    <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+                        <i class="fas fa-stream text-indigo-400 text-[10px] md:text-xs"></i>
+                        <span class="hidden xs:inline">Atividades Recentes</span>
+                        <span class="xs:hidden">Atividades</span>
+                    </h4>
+                    <div class="space-y-0.5 max-h-16 md:max-h-28 overflow-y-auto">
+                        <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5">
+                            <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 mt-1"></span>
+                            <div><span class="text-white text-[9px] md:text-xs">Loja 1004</span><span class="text-slate-400 text-[8px] md:text-xs"> concluída</span><span class="text-[8px] md:text-[10px] text-slate-500 block">10:28</span></div>
+                        </div>
+                        <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-t border-[#2d313e]">
+                            <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-rose-400 mt-1"></span>
+                            <div><span class="text-white text-[9px] md:text-xs">TK-001245</span><span class="text-slate-400 text-[8px] md:text-xs"> aberto</span><span class="text-[8px] md:text-[10px] text-slate-500 block">10:15</span></div>
+                        </div>
+                        <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-t border-[#2d313e]">
+                            <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-amber-400 mt-1"></span>
+                            <div><span class="text-white text-[9px] md:text-xs">Loja 1002</span><span class="text-slate-400 text-[8px] md:text-xs"> em execução</span><span class="text-[8px] md:text-[10px] text-slate-500 block">09:50</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
+                    <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+                        <i class="fas fa-chart-simple text-indigo-400 text-[10px] md:text-xs"></i>
+                        <span class="hidden xs:inline">Métricas do Dia</span>
+                        <span class="xs:hidden">Métricas</span>
+                    </h4>
+                    <div class="grid grid-cols-2 gap-1 md:gap-2">
+                        <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e]">
+                            <p class="text-[8px] md:text-[10px] text-slate-400">Meta</p>
+                            <p class="text-xs md:text-sm font-bold text-white metric-value">35 <span class="text-[8px] md:text-[10px] text-slate-400">/40</span></p>
+                            <div class="w-full bg-[#2d313e] h-1 rounded-full mt-0.5"><div class="bg-emerald-500 h-1 rounded-full" style="width:87%"></div></div>
+                        </div>
+                        <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e]">
+                            <p class="text-[8px] md:text-[10px] text-slate-400">Veloc.</p>
+                            <p class="text-xs md:text-sm font-bold text-white metric-value">4,2</p>
+                            <span class="text-[8px] md:text-[10px] text-emerald-400"><i class="fas fa-arrow-up mr-0.5"></i>+0.8</span>
+                        </div>
+                        <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e] col-span-2">
+                            <p class="text-[8px] md:text-[10px] text-slate-400">Produtividade</p>
+                            <p class="text-xs md:text-sm font-bold text-white metric-value">1,8 <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card dark-card rounded-xl border p-2 md:p-3 flex flex-col justify-between">
+                    <div>
+                        <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+                            <i class="fas fa-calendar-check text-emerald-400 text-[10px] md:text-xs"></i>
+                            <span class="hidden xs:inline">Previsão de Término</span>
+                            <span class="xs:hidden">Previsão</span>
+                        </h4>
+                        <div class="bg-[#0f1117] p-1.5 md:p-3 rounded-lg border border-[#2d313e] text-center">
+                            <p class="text-sm md:text-2xl font-bold text-indigo-400 metric-value">15/07</p>
+                            <p class="text-[8px] md:text-xs text-slate-400">2026</p>
+                            <div class="mt-0.5 md:mt-2 flex items-center justify-center gap-1 md:gap-4 text-[8px] md:text-[10px]">
+                                <span class="text-slate-400"><i class="fas fa-flag-checkered mr-0.5 text-emerald-400"></i> 1.007</span>
+                                <span class="text-slate-400"><i class="fas fa-clock mr-0.5 text-amber-400"></i> 4,2/dia</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-0.5 md:mt-1 flex gap-0.5 md:gap-1 justify-center">
+                        <span class="text-[8px] md:text-[10px] bg-emerald-600/20 text-emerald-400 px-1 md:px-2 py-0.5 rounded-full border border-emerald-500/30">✅ 61%</span>
+                        <span class="text-[8px] md:text-[10px] bg-amber-600/20 text-amber-400 px-1 md:px-2 py-0.5 rounded-full border border-amber-500/30">⏳ 39%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTÃO FLUTUANTE -->
+    <div class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-40">
+        <button class="fab text-white p-3 md:p-4 rounded-full shadow-lg transition flex items-center justify-center w-10 h-10 md:w-14 md:h-14" onclick="showQuickAction()">
+            <i class="fas fa-plus text-base md:text-xl"></i>
+        </button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL ADICIONAR LOJA -->
+    <!-- ============================================================ -->
+    <div id="addCardModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
+        <div class="modal-content w-full max-w-lg">
+            <div class="sticky top-0 bg-[#1a1d27] border-b border-[#2d313e] p-3 md:p-4 flex items-center justify-between rounded-t-2xl">
+                <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-plus-circle text-indigo-400 mr-2"></i>Nova Loja</h2>
+                <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#2d313e]" onclick="closeAddCardModal()">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-6 space-y-4">
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Número da Loja *</label>
+                    <input type="text" id="newLojaNumero" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: 1001" />
+                </div>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Responsável *</label>
+                    <select id="newLojaResponsavel" class="dark-select w-full px-3 py-2 rounded-lg text-sm">
+                        <option value="">Selecione um responsável...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Quantidade de PDVs</label>
+                    <input type="number" id="newLojaPdvs" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="0" min="0" value="0" />
+                </div>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Status</label>
+                    <select id="newLojaStatus" class="dark-select w-full px-3 py-2 rounded-lg text-sm">
+                        <option value="agendada">Agendada</option>
+                        <option value="execucao">Em Execução</option>
+                        <option value="bloqueada">Bloqueada</option>
+                        <option value="revisao">Revisão</option>
+                        <option value="concluida">Concluída</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Data Agendada</label>
+                    <input type="date" id="newLojaData" class="dark-input w-full px-3 py-2 rounded-lg text-sm" />
+                </div>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Regional</label>
+                    <input type="text" id="newLojaRegional" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: São Paulo" />
+                </div>
+                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium" onclick="confirmAddCard()">
+                    <i class="fas fa-check mr-2"></i> Criar Loja
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL TÉCNICOS -->
+    <!-- ============================================================ -->
+    <div id="techModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
+        <div class="modal-content w-full max-w-4xl">
+            <div class="sticky top-0 bg-[#1a1d27] border-b border-[#2d313e] p-3 md:p-4 flex items-center justify-between rounded-t-2xl">
+                <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-chart-bar text-indigo-400 mr-2"></i>Atendimento Técnicos</h2>
+                <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#2d313e]" onclick="closeTechDashboard()">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-3 md:p-6">
+                <div id="techChartsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="text-center text-slate-400 py-8 col-span-2">Carregando dados dos técnicos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL USUÁRIOS (com Reset de Senha por usuário) -->
+    <!-- ============================================================ -->
+    <div id="userModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
+        <div class="modal-content w-full max-w-2xl">
+            <div class="sticky top-0 bg-[#1a1d27] border-b border-[#2d313e] p-3 md:p-4 flex items-center justify-between rounded-t-2xl">
+                <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-users-cog text-indigo-400 mr-2"></i>Gerenciar Usuários</h2>
+                <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#2d313e]" onclick="closeUserManagement()">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-3 md:p-6">
+                <!-- Formulário para adicionar usuário -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <input type="text" id="newUserName" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="Nome do usuário" />
+                    <input type="email" id="newUserEmail" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="E-mail" />
+                    <select id="newUserRole" class="dark-select px-3 py-2 rounded-lg text-sm">
+                        <option value="admin">Administrador</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="tecnico" selected>Técnico</option>
+                        <option value="visualizador">Visualizador</option>
+                    </select>
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition text-sm" onclick="addUser()">
+                        <i class="fas fa-plus mr-1"></i> Adicionar
+                    </button>
+                </div>
+
+                <!-- Lista de usuários com botões de ação -->
+                <div class="space-y-2" id="userList">
+                    <!-- Os usuários serão renderizados aqui pelo JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL RESET SENHA (pop-up para definir nova senha) -->
+    <!-- ============================================================ -->
+    <div id="resetPasswordModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
+        <div class="modal-content w-full max-w-md">
+            <div class="sticky top-0 bg-[#1a1d27] border-b border-[#2d313e] p-3 md:p-4 flex items-center justify-between rounded-t-2xl">
+                <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-key text-amber-400 mr-2"></i>Resetar Senha</h2>
+                <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#2d313e]" onclick="closeResetPasswordModal()">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-6 space-y-4">
+                <p class="text-sm text-slate-400" id="resetUserInfo">Resetando senha para: <span class="text-white font-medium" id="resetUserName">Usuário</span></p>
+                <div>
+                    <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Nova Senha *</label>
+                    <input type="text" id="resetNewPassword" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Digite a nova senha" value="nova123" />
+                </div>
+                <button class="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium" onclick="confirmResetPassword()">
+                    <i class="fas fa-save mr-2"></i> Resetar Senha
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL DETALHADO DO CARD -->
+    <!-- ============================================================ -->
+    <div id="cardModal" class="modal-overlay hidden flex items-center justify-center p-2 md:p-4">
+        <div class="modal-content w-full max-w-4xl">
+            <div class="sticky top-0 bg-[#1a1d27] border-b border-[#2d313e] p-3 md:p-4 flex items-start justify-between rounded-t-2xl">
+                <div class="flex-1">
+                    <h2 class="text-base md:text-xl font-bold text-white" id="modalTitle">Loja</h2>
+                    <div class="flex items-center gap-2 mt-0.5 text-[10px] md:text-sm text-slate-400 flex-wrap">
+                        <span><i class="fas fa-tag mr-0.5"></i> <span id="modalID">LJ-001</span></span>
+                    </div>
+                </div>
+                <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#2d313e]" onclick="closeCardDetail()">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-3 md:p-6">
+                <div class="flex gap-3 border-b border-[#2d313e] mb-4 overflow-x-auto">
+                    <button class="tab-btn active px-1 py-1.5 text-[10px] md:text-sm font-medium text-slate-400" data-tab="detalhes" onclick="switchTab('detalhes')">
+                        <i class="fas fa-info-circle mr-1"></i>Detalhes
+                    </button>
+                    <button class="tab-btn px-1 py-1.5 text-[10px] md:text-sm font-medium text-slate-400" data-tab="historico" onclick="switchTab('historico')">
+                        <i class="fas fa-history mr-1"></i>Histórico
+                    </button>
+                </div>
+
+                <div id="tab-detalhes" class="tab-content active">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Responsável</label>
+                                <select id="responsibleInput" class="dark-select w-full px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm">
+                                    <option value="">Selecione um responsável...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Descrição</label>
+                                <textarea class="dark-input w-full px-2 md:px-3 py-1.5 rounded-lg resize-none text-xs md:text-sm" rows="2" id="modalDescription">Migração completa do sistema Linux para a loja.</textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="bg-[#0f1117] p-2 rounded-lg border border-[#2d313e]">
+                                    <span class="text-slate-400 text-[8px]">PDVs</span>
+                                    <p class="text-white font-medium text-sm" id="modalPdvs">5</p>
+                                </div>
+                                <div class="bg-[#0f1117] p-2 rounded-lg border border-[#2d313e]">
+                                    <span class="text-slate-400 text-[8px]">Data</span>
+                                    <p class="text-white font-medium text-sm" id="modalData">10/07/2026</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-[10px] md:text-sm font-medium text-slate-400">Ações</h4>
+                            <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition text-xs md:text-sm" onclick="startStoreFromModal()">
+                                <i class="fas fa-play mr-1"></i>Iniciar
+                            </button>
+                            <button class="w-full bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 px-3 py-1.5 rounded-lg transition border border-rose-500/30 text-xs md:text-sm" onclick="blockStoreFromModal()">
+                                <i class="fas fa-ban mr-1"></i>Bloquear
+                            </button>
+                            <button class="w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 px-3 py-1.5 rounded-lg transition border border-emerald-500/30 text-xs md:text-sm" onclick="completeStoreFromModal()">
+                                <i class="fas fa-check mr-1"></i>Concluir
+                            </button>
+                            <button class="w-full bg-[#2d313e] hover:bg-[#3d4150] text-slate-300 px-3 py-1.5 rounded-lg transition text-xs md:text-sm" onclick="updateResponsibleFromModal()">
+                                <i class="fas fa-save mr-1"></i>Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-historico" class="tab-content">
+                    <div class="space-y-2" id="historicoContainer">
+                        <div class="history-item p-1.5 border-l-2 border-indigo-500">
+                            <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                                <span class="text-white font-medium">Tarefa criada</span>
+                                <span class="text-slate-400">por Sistema</span>
+                                <span class="text-[8px] text-slate-500">07:30</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 ml-1">Loja criada com status "Agendada"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ============================================================
+    // SISTEMA DE AUTENTICAÇÃO
+    // ============================================================
+    
+    const USERS = [
+        { id: 1, nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin', avatar: '4F46E5' },
+        { id: 2, nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente', avatar: '8B5CF6' },
+        { id: 3, nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico', avatar: '0EA5E9' },
+        { id: 4, nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico', avatar: '0EA5E9' },
+        { id: 5, nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico', avatar: '0EA5E9' }
+    ];
+
+    let currentUser = null;
+    let responsaveisList = ['Renan', 'Camila', 'José', 'Mariana', 'Carlos'];
+    let resetTargetUserId = null;
+    let initialCards = [
+        { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 5, comentarios: 3, data: '10/07' },
+        { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
+        { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan', status: 'execucao', regional: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min', subtipo: 'Migração Linux' },
+        { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José', status: 'bloqueada', regional: 'SP', pdvs: 3, comentarios: 12, data: '32min', subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
+        { id: 'LJ-008', loja: 'Loja 1004', responsavel: 'Camila', status: 'revisao', regional: 'SP', pdvs: 5, comentarios: 4, data: 'Aguardando' },
+        { id: 'LJ-009', loja: 'Loja 0999', responsavel: 'José', status: 'concluida', regional: 'BA', pdvs: 6, comentarios: 2, data: '10/07' },
+        { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan', status: 'concluida', regional: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
+    ];
+
+    let currentCardId = null;
+    let panelCollapsed = false;
+    let addCardTargetStatus = 'agendada';
+
+    // ============================================================
+    // FUNÇÕES DE AUTENTICAÇÃO
+    // ============================================================
+    
+    function handleLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const senha = document.getElementById('loginPassword').value.trim();
+        const errorEl = document.getElementById('loginError');
+        const btn = document.getElementById('loginBtn');
+
+        if (!email || !senha) {
+            errorEl.textContent = '❌ Preencha todos os campos!';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Entrando...';
+
+        setTimeout(() => {
+            const user = USERS.find(u => u.email === email && u.senha === senha);
+            
+            if (user) {
+                currentUser = user;
+                errorEl.textContent = '';
+                loginSuccess(user);
+            } else {
+                errorEl.textContent = '❌ E-mail ou senha inválidos!';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+            }
+        }, 600);
+    }
+
+    function loginSuccess(user) {
+        sessionStorage.setItem('rocc_user', JSON.stringify(user));
+        
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appContent').style.display = 'flex';
+        
+        document.getElementById('userNameDisplay').textContent = user.nome;
+        document.getElementById('userRoleDisplay').textContent = 
+            user.role === 'admin' ? 'Administrador' :
+            user.role === 'gerente' ? 'Gerente' :
+            user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+        
+        document.getElementById('userAvatar').src = 
+            `https://ui-avatars.com/api/?name=${user.nome}&background=${user.avatar || '4F46E5'}&color=fff&size=28&bold=true`;
+
+        initializeApp();
+        showNotification(`👋 Bem-vindo, ${user.nome}!`);
+    }
+
+    function handleLogout() {
+        if (confirm('Deseja realmente sair?')) {
+            sessionStorage.removeItem('rocc_user');
+            currentUser = null;
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+        }
+    }
+
+    // ============================================================
+    // GERENCIAMENTO DE USUÁRIOS (com Reset de Senha)
+    // ============================================================
+    
+    function openUserManagement() {
+        if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+            showNotification('⛔ Apenas Administradores e Gerentes podem gerenciar usuários!');
+            return;
+        }
+        renderUserList();
+        document.getElementById('userModal').classList.remove('hidden');
+        document.getElementById('userModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeUserManagement() {
+        document.getElementById('userModal').classList.add('hidden');
+        document.getElementById('userModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function renderUserList() {
+        const list = document.getElementById('userList');
+        list.innerHTML = '';
+
+        USERS.forEach(user => {
+            const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador' };
+            const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador' };
+            const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
+
+            const item = document.createElement('div');
+            item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
+            item.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <img src="https://ui-avatars.com/api/?name=${user.nome}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
+                    <div>
+                        <p class="text-white font-medium text-sm">${user.nome}</p>
+                        <span class="role-badge ${roleColors[user.role]}">${roleLabels[user.role]}</span>
+                        <p class="text-[10px] text-slate-400">${user.email}</p>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <button class="btn-edit" onclick="editUser(${user.id})" title="Editar nome">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-reset" onclick="openResetPasswordForUser(${user.id})" title="Resetar senha">
+                        <i class="fas fa-key"></i>
+                    </button>
+                    <button class="btn-delete" onclick="removeUser(${user.id})" title="Remover usuário">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function addUser() {
+        const name = document.getElementById('newUserName').value.trim();
+        const email = document.getElementById('newUserEmail').value.trim();
+        const role = document.getElementById('newUserRole').value;
+        
+        if (!name || !email) {
+            showNotification('❌ Preencha nome e e-mail!');
+            return;
+        }
+
+        if (USERS.find(u => u.email === email)) {
+            showNotification('❌ Este e-mail já está cadastrado!');
+            return;
+        }
+
+        const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
+
+        USERS.push({
+            id: USERS.length + 1,
+            nome: name,
+            email: email,
+            senha: 'nova123',
+            role: role,
+            avatar: bgColors[role]
+        });
+
+        if (role === 'tecnico' || role === 'gerente') {
+            responsaveisList.push(name);
+        }
+
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserEmail').value = '';
+        renderUserList();
+        populateResponsavelSelects();
+        renderCards();
+        showNotification(`👤 Usuário ${name} adicionado!`);
+    }
+
+    function editUser(userId) {
+        const user = USERS.find(u => u.id === userId);
+        if (!user) return;
+        
+        const newName = prompt('Novo nome:', user.nome);
+        if (newName && newName.trim()) {
+            const oldName = user.nome;
+            user.nome = newName.trim();
+            
+            const index = responsaveisList.indexOf(oldName);
+            if (index !== -1) responsaveisList[index] = newName.trim();
+            
+            renderUserList();
+            populateResponsavelSelects();
+            renderCards();
+            showNotification(`✏️ Usuário atualizado para ${newName}`);
+        }
+    }
+
+    function removeUser(userId) {
+        const user = USERS.find(u => u.id === userId);
+        if (!user) return;
+
+        if (user.id === currentUser?.id) {
+            showNotification('❌ Você não pode remover seu próprio usuário!');
+            return;
+        }
+
+        if (confirm(`Remover ${user.nome}?`)) {
+            USERS.splice(USERS.indexOf(user), 1);
+            responsaveisList = responsaveisList.filter(r => r !== user.nome);
+            renderUserList();
+            populateResponsavelSelects();
+            renderCards();
+            showNotification(`🗑️ Usuário ${user.nome} removido`);
+        }
+    }
+
+    // ============================================================
+    // RESET DE SENHA (dentro do gerenciamento de usuários)
+    // ============================================================
+    
+    function openResetPasswordForUser(userId) {
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'gerente')) {
+            showNotification('⛔ Apenas Administradores e Gerentes podem resetar senhas!');
+            return;
+        }
+
+        const user = USERS.find(u => u.id === userId);
+        if (!user) {
+            showNotification('❌ Usuário não encontrado!');
+            return;
+        }
+
+        resetTargetUserId = userId;
+        document.getElementById('resetUserName').textContent = user.nome;
+        document.getElementById('resetNewPassword').value = 'nova123';
+        
+        document.getElementById('resetPasswordModal').classList.remove('hidden');
+        document.getElementById('resetPasswordModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeResetPasswordModal() {
+        document.getElementById('resetPasswordModal').classList.add('hidden');
+        document.getElementById('resetPasswordModal').style.display = 'none';
+        document.body.style.overflow = '';
+        resetTargetUserId = null;
+    }
+
+    function confirmResetPassword() {
+        const newPassword = document.getElementById('resetNewPassword').value.trim();
+        
+        if (!newPassword || newPassword.length < 4) {
+            showNotification('❌ Senha deve ter pelo menos 4 caracteres!');
+            return;
+        }
+        
+        const user = USERS.find(u => u.id === resetTargetUserId);
+        if (user) {
+            user.senha = newPassword;
+            showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword}`);
+            closeResetPasswordModal();
+        } else {
+            showNotification('❌ Usuário não encontrado!');
+        }
+    }
+
+    // ============================================================
+    // CONFIGURAÇÃO DA API
+    // ============================================================
+    const API_URL = 'https://ep-lively-lab-ah2ynjag.apirest.c-3.us-east-1.aws.neon.tech/neondb/rest/v1';
+    const API_KEY = 'npg_YOXlZEUaik19';
+
+    // ============================================================
+    // FUNÇÕES DA API
+    // ============================================================
+    async function apiRequest(endpoint, options = {}) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'apikey': API_KEY,
+            'Authorization': `Bearer ${API_KEY}`
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/${endpoint}`, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+
+            if (!response.ok) {
+                console.warn('API Error:', response.status);
+                return null;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn('Erro na API, usando fallback:', error.message);
+            return null;
+        }
+    }
+
+    // ============================================================
+    // BUSCAR RESPONSÁVEIS
+    // ============================================================
+    async function fetchResponsaveis() {
+        try {
+            const data = await apiRequest('responsaveis?select=nome');
+            if (data && Array.isArray(data) && data.length > 0) {
+                responsaveisList = data.map(r => r.nome).filter(n => n);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.warn('Erro ao buscar responsáveis:', error);
+            return false;
+        }
+    }
+
+    // ============================================================
+    // POPULAR SELECTS
+    // ============================================================
+    function populateResponsavelSelects() {
+        const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
+        selects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Selecione um responsável...</option>';
+            responsaveisList.forEach(nome => {
+                const option = document.createElement('option');
+                option.value = nome;
+                option.textContent = nome;
+                select.appendChild(option);
+            });
+            if (currentValue && responsaveisList.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        });
+    }
+
+    // ============================================================
+    // RENDER CARDS
+    // ============================================================
+    function renderCards() {
+        const columns = {
+            agendada: document.querySelector('[data-status="agendada"]'),
+            execucao: document.querySelector('[data-status="execucao"]'),
+            bloqueada: document.querySelector('[data-status="bloqueada"]'),
+            revisao: document.querySelector('[data-status="revisao"]'),
+            concluida: document.querySelector('[data-status="concluida"]')
+        };
+
+        Object.values(columns).forEach(col => col.innerHTML = '');
+
+        const select = document.getElementById('responsibleFilter');
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Todos</option>';
+        responsaveisList.forEach(r => {
+            const option = document.createElement('option');
+            option.value = r;
+            option.textContent = r;
+            select.appendChild(option);
+        });
+        if (currentValue) select.value = currentValue;
+
+        initialCards.forEach(card => {
+            const statusClass = `status-${card.status}`;
+            const prioridadeMap = {
+                'Crítico': 'priority-critical',
+                'Alta': 'priority-high',
+                'Média': 'priority-medium'
+            };
+            const prioridadeClass = card.prioridade ? prioridadeMap[card.prioridade] || '' : '';
+
+            const cardEl = document.createElement('div');
+            cardEl.className = `kanban-card ${statusClass} p-2 md:p-3 rounded-lg`;
+            cardEl.setAttribute('data-id', card.id);
+            cardEl.setAttribute('data-responsavel', card.responsavel);
+            cardEl.setAttribute('data-loja', card.loja);
+            cardEl.setAttribute('data-status', card.status);
+            cardEl.draggable = true;
+
+            const corResponsavel = {
+                'Renan': '4F46E5',
+                'Camila': '8B5CF6',
+                'José': 'DC2626',
+                'Mariana': 'EC4899',
+                'Carlos': 'F59E0B'
+            }[card.responsavel] || '64748b';
+
+            const statusLabel = {
+                'agendada': 'Agendada',
+                'execucao': 'Em Execução',
+                'bloqueada': 'Bloqueada',
+                'revisao': 'Revisão',
+                'concluida': 'Concluída'
+            }[card.status];
+
+            const statusBadgeClass = {
+                'agendada': 'status-badge-agendada',
+                'execucao': 'status-badge-execucao',
+                'bloqueada': 'status-badge-bloqueada',
+                'revisao': 'status-badge-revisao',
+                'concluida': 'status-badge-concluida'
+            }[card.status];
+
+            const storeNameClass = {
+                'agendada': 'store-name-agendada',
+                'execucao': 'store-name-execucao',
+                'bloqueada': 'store-name-bloqueada',
+                'revisao': 'store-name-revisao',
+                'concluida': 'store-name-concluida'
+            }[card.status];
+
+            const canDelete = (card.status !== 'concluida') || (currentUser && (currentUser.role === 'admin' || currentUser.role === 'gerente'));
+            const deleteBtn = canDelete ? `
+                <div class="delete-btn" onclick="event.stopPropagation(); deleteCard('${card.id}')" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </div>
+            ` : '';
+
+            const statusIcon = {
+                'agendada': 'fa-calendar-alt',
+                'execucao': 'fa-spinner',
+                'bloqueada': 'fa-ban',
+                'revisao': 'fa-check-double',
+                'concluida': 'fa-check-circle'
+            }[card.status];
+
+            const prioridadeIcon = card.prioridade === 'Crítico' || card.prioridade === 'Alta' ? 
+                `<i class="fas fa-exclamation-circle text-[8px]"></i>` : '';
+
+            cardEl.innerHTML = `
+                ${deleteBtn}
+                <div class="flex justify-between items-start">
+                    <span class="font-bold text-xs md:text-sm text-white ${storeNameClass}">${card.loja}</span>
+                    ${card.prioridade ? `<span class="${prioridadeClass} text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full flex items-center gap-0.5">${prioridadeIcon}${card.prioridade}</span>` : `<span class="text-[8px] md:text-[10px] dark-badge px-1.5 md:px-2 py-0.5 rounded-full">${card.regional}</span>`}
+                </div>
+                <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                    ${card.pdvs} PDVs · <span class="${card.status === 'bloqueada' ? 'text-rose-400' : card.status === 'execucao' ? 'text-amber-400' : 'text-indigo-400'}">${card.status === 'bloqueada' ? '⛔ Bloqueado' : card.status === 'execucao' ? '🔄 Andamento' : '⏳ Aguardando'}</span>
+                </p>
+                <div class="flex items-center gap-1 md:gap-2 mt-1 flex-wrap">
+                    <span class="status-badge ${statusBadgeClass} text-[8px] md:text-xs">
+                        <i class="fas ${statusIcon} text-[8px]"></i>
+                        ${statusLabel}
+                    </span>
+                    <span class="text-slate-500 text-[10px] md:text-xs">|</span>
+                    <span class="text-slate-400 text-[9px] md:text-xs"><i class="far fa-clock mr-0.5"></i>${card.data}</span>
+                </div>
+                <div class="mt-1.5 md:mt-2 flex items-center justify-between">
+                    <div class="flex items-center gap-1 md:gap-2">
+                        <img src="https://ui-avatars.com/api/?name=${card.responsavel}&background=${corResponsavel}&color=fff&size=20" class="w-4 h-4 md:w-6 md:h-6 rounded-full border border-${corResponsavel}/30" />
+                        <span class="text-[8px] md:text-xs text-slate-400 hidden xs:inline">${card.responsavel}</span>
+                    </div>
+                    <span class="text-[8px] md:text-[10px] text-slate-500"><i class="far fa-comment mr-0.5"></i>${card.comentarios}</span>
+                </div>
+            `;
+
+            cardEl.onclick = function(e) {
+                if (e.target.closest('.delete-btn')) return;
+                openCardDetail(card.id);
+            };
+
+            cardEl.addEventListener('dragstart', handleDragStart);
+            cardEl.addEventListener('dragend', handleDragEnd);
+
+            columns[card.status].appendChild(cardEl);
+        });
+
+        updateCounts();
+        updateMetricDisplay();
+        setupDragAndDrop();
+        populateResponsavelSelects();
+    }
+
+    // ============================================================
+    // MODAL ADICIONAR LOJA
+    // ============================================================
+    function openAddCardModal(status) {
+        addCardTargetStatus = status;
+        document.getElementById('addCardModal').classList.remove('hidden');
+        document.getElementById('addCardModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('newLojaData').value = today;
+        populateResponsavelSelects();
+        document.getElementById('newLojaNumero').value = '';
+        document.getElementById('newLojaPdvs').value = '0';
+        document.getElementById('newLojaRegional').value = '';
+        document.getElementById('newLojaStatus').value = status;
+    }
+
+    function closeAddCardModal() {
+        document.getElementById('addCardModal').classList.add('hidden');
+        document.getElementById('addCardModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function confirmAddCard() {
+        const numero = document.getElementById('newLojaNumero').value.trim();
+        const responsavel = document.getElementById('newLojaResponsavel').value;
+        const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 0;
+        const status = document.getElementById('newLojaStatus').value;
+        const data = document.getElementById('newLojaData').value;
+        const regional = document.getElementById('newLojaRegional').value.trim() || 'Nova';
+
+        if (!numero) {
+            showNotification('❌ Por favor, informe o número da loja!');
+            return;
+        }
+        if (!responsavel) {
+            showNotification('❌ Por favor, selecione um responsável!');
+            return;
+        }
+
+        const newCard = {
+            id: `LJ-${Math.floor(Math.random() * 1000)}`,
+            loja: `Loja ${numero}`,
+            responsavel: responsavel,
+            status: status,
+            regional: regional,
+            pdvs: pdvs,
+            comentarios: 0,
+            data: data || 'Hoje'
+        };
+
+        saveLoja({
+            codigo: newCard.id,
+            nome: newCard.loja,
+            responsavel: responsavel,
+            status: status,
+            regional: regional,
+            quantidade_pdvs: pdvs,
+            data_agendada: data || new Date().toISOString().split('T')[0]
+        });
+
+        initialCards.push(newCard);
+        renderCards();
+        closeAddCardModal();
+        showNotification(`🆕 Loja ${numero} adicionada com responsável ${responsavel}!`);
+    }
+
+    // ============================================================
+    // DRAG & DROP
+    // ============================================================
+    let draggedCard = null;
+
+    function setupDragAndDrop() {
+        const columns = document.querySelectorAll('.kanban-column-inner');
+        columns.forEach(col => {
+            col.removeEventListener('dragover', handleDragOver);
+            col.removeEventListener('dragenter', handleDragEnter);
+            col.removeEventListener('dragleave', handleDragLeave);
+            col.removeEventListener('drop', handleDrop);
+            col.addEventListener('dragover', handleDragOver);
+            col.addEventListener('dragenter', handleDragEnter);
+            col.addEventListener('dragleave', handleDragLeave);
+            col.addEventListener('drop', handleDrop);
+        });
+    }
+
+    function handleDragStart(e) {
+        draggedCard = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.id);
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.kanban-column-inner').forEach(col => col.classList.remove('drag-over'));
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragEnter(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+
+        if (!draggedCard) return;
+        const cardId = draggedCard.dataset.id;
+        const targetStatus = this.dataset.status;
+
+        const cardData = initialCards.find(c => c.id === cardId);
+        if (cardData && cardData.status !== targetStatus) {
+            cardData.status = targetStatus;
+            updateLoja(cardId, { status: targetStatus });
+            renderCards();
+            showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+        }
+        draggedCard = null;
+    }
+
+    // ============================================================
+    // FUNÇÕES CRUD
+    // ============================================================
+    async function saveLoja(lojaData) {
+        try {
+            const result = await apiRequest('lojas', {
+                method: 'POST',
+                body: JSON.stringify(lojaData)
+            });
+            return result;
+        } catch (error) {
+            console.warn('Erro ao salvar, modo local');
+            return null;
+        }
+    }
+
+    async function updateLoja(id, dados) {
+        try {
+            const result = await apiRequest(`lojas?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(dados)
+            });
+            return result;
+        } catch (error) {
+            console.warn('Erro ao atualizar, modo local');
+            return null;
+        }
+    }
+
+    async function deleteLoja(id) {
+        try {
+            const result = await apiRequest(`lojas?id=eq.${id}`, {
+                method: 'DELETE'
+            });
+            return result;
+        } catch (error) {
+            console.warn('Erro ao deletar, modo local');
+            return null;
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES DOS CARDS
+    // ============================================================
+    function deleteCard(cardId) {
+        const card = initialCards.find(c => c.id === cardId);
+        if (!card) return;
+
+        if (card.status === 'concluida' && currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+            showNotification('⛔ Apenas Administradores e Gerentes podem excluir lojas concluídas!');
+            return;
+        }
+
+        if (confirm(`Deseja excluir ${card.loja}?`)) {
+            deleteLoja(cardId);
+            initialCards = initialCards.filter(c => c.id !== cardId);
+            renderCards();
+            showNotification(`🗑️ ${card.loja} excluída!`);
+        }
+    }
+
+    // ============================================================
+    // MODAL DETALHADO DO CARD
+    // ============================================================
+    function openCardDetail(cardId) {
+        currentCardId = cardId;
+        const cardData = initialCards.find(c => c.id === cardId);
+        if (!cardData) return;
+
+        document.getElementById('modalTitle').textContent = cardData.loja;
+        document.getElementById('modalID').textContent = cardId;
+        document.getElementById('modalPdvs').textContent = cardData.pdvs;
+        document.getElementById('modalData').textContent = cardData.data;
+
+        populateResponsavelSelects();
+        const select = document.getElementById('responsibleInput');
+        if (cardData.responsavel && responsaveisList.includes(cardData.responsavel)) {
+            select.value = cardData.responsavel;
+        }
+
+        document.getElementById('modalDescription').value = cardData.descricao || 'Migração completa do sistema Linux para a loja.';
+
+        const historicoContainer = document.getElementById('historicoContainer');
+        historicoContainer.innerHTML = `
+            <div class="history-item p-1.5 border-l-2 border-indigo-500">
+                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                    <span class="text-white font-medium">Tarefa criada</span>
+                    <span class="text-slate-400">por Sistema</span>
+                    <span class="text-[8px] text-slate-500">${cardData.data || '07:30'}</span>
+                </div>
+                <p class="text-[10px] text-slate-400 ml-1">Loja criada com status "${cardData.status}"</p>
+            </div>
+            <div class="history-item p-1.5">
+                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                    <span class="text-white font-medium">Responsável atribuído</span>
+                    <span class="text-slate-400">por Sistema</span>
+                    <span class="text-[8px] text-slate-500">${cardData.data || '07:35'}</span>
+                </div>
+                <p class="text-[10px] text-slate-400 ml-1">Responsável: ${cardData.responsavel || 'Não atribuído'}</p>
+            </div>
+        `;
+
+        document.getElementById('cardModal').classList.remove('hidden');
+        document.getElementById('cardModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        switchTab('detalhes');
+    }
+
+    function closeCardDetail() {
+        document.getElementById('cardModal').classList.add('hidden');
+        document.getElementById('cardModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function updateResponsibleFromModal() {
+        if (!currentCardId) return;
+        const select = document.getElementById('responsibleInput');
+        const newResponsavel = select.value;
+        const card = initialCards.find(c => c.id === currentCardId);
+        if (card && newResponsavel) {
+            card.responsavel = newResponsavel;
+            updateLoja(currentCardId, { responsavel: newResponsavel });
+            renderCards();
+            showNotification(`✅ Responsável alterado para ${newResponsavel}`);
+            closeCardDetail();
+        } else {
+            showNotification('❌ Selecione um responsável válido!');
+        }
+    }
+
+    // ============================================================
+    // AÇÕES DO MODAL
+    // ============================================================
+    function startStoreFromModal() {
+        if (!currentCardId) return;
+        const card = initialCards.find(c => c.id === currentCardId);
+        if (card) {
+            card.status = 'execucao';
+            updateLoja(currentCardId, { status: 'execucao' });
+            renderCards();
+            closeCardDetail();
+            showNotification('🚀 Loja iniciada!');
+        }
+    }
+
+    function blockStoreFromModal() {
+        if (!currentCardId) return;
+        const card = initialCards.find(c => c.id === currentCardId);
+        if (card) {
+            card.status = 'bloqueada';
+            updateLoja(currentCardId, { status: 'bloqueada' });
+            renderCards();
+            closeCardDetail();
+            showNotification('⛔ Loja bloqueada!');
+        }
+    }
+
+    function completeStoreFromModal() {
+        if (!currentCardId) return;
+        const card = initialCards.find(c => c.id === currentCardId);
+        if (card) {
+            card.status = 'concluida';
+            updateLoja(currentCardId, { status: 'concluida' });
+            renderCards();
+            closeCardDetail();
+            showNotification('🎉 Loja concluída!');
+        }
+    }
+
+    // ============================================================
+    // MÉTRICAS
+    // ============================================================
+    function updateMetricDisplay() {
+        document.getElementById('totalLojasDisplay').textContent = initialCards.length;
+        const concluidas = initialCards.filter(c => c.status === 'concluida').length;
+        document.getElementById('concluidasDisplay').textContent = concluidas;
+    }
+
+    function editMetric(type) {
+        if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+            showNotification('⛔ Apenas Administradores e Gerentes podem editar as métricas!');
+            return;
+        }
+        const currentValue = type === 'total' ? initialCards.length : initialCards.filter(c => c.status === 'concluida').length;
+        const label = type === 'total' ? 'Total de Lojas' : 'Lojas Concluídas';
+        const newValue = prompt(`Editar ${label} (valor atual: ${currentValue}):`, currentValue);
+        if (newValue === null) return;
+        const parsed = parseInt(newValue);
+        if (isNaN(parsed) || parsed < 0) {
+            showNotification('❌ Valor inválido!');
+            return;
+        }
+        if (type === 'total') {
+            document.getElementById('totalLojasDisplay').textContent = parsed;
+        } else {
+            document.getElementById('concluidasDisplay').textContent = parsed;
+        }
+        showNotification(`✅ ${label} atualizado para ${parsed}`);
+    }
+
+    // ============================================================
+    // CONTAGENS E FILTROS
+    // ============================================================
+    function updateCounts() {
+        const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
+        statuses.forEach(status => {
+            const count = initialCards.filter(c => c.status === status).length;
+            const el = document.getElementById(`count-${status}`);
+            if (el) el.textContent = count;
+        });
+    }
+
+    function filterCards() {
+        const searchTerm = document.getElementById('searchStoreFilter').value.toLowerCase();
+        const responsible = document.getElementById('responsibleFilter').value;
+
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            const loja = card.dataset.loja?.toLowerCase() || '';
+            const resp = card.dataset.responsavel || '';
+            const matchSearch = !searchTerm || loja.includes(searchTerm);
+            const matchResp = !responsible || resp === responsible;
+            card.style.display = (matchSearch && matchResp) ? '' : 'none';
+        });
+    }
+
+    // ============================================================
+    // ABAS
+    // ============================================================
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+    }
+
+    // ============================================================
+    // TOGGLE PAINEL
+    // ============================================================
+    function togglePanel() {
+        const panel = document.getElementById('bottomPanel');
+        panelCollapsed = !panelCollapsed;
+        panel.classList.toggle('collapsed', panelCollapsed);
+        localStorage.setItem('panelCollapsed', panelCollapsed);
+    }
+
+    // ============================================================
+    // TÉCNICOS
+    // ============================================================
+    function openTechDashboard() {
+        document.getElementById('techModal').classList.remove('hidden');
+        document.getElementById('techModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        renderTechCharts();
+    }
+
+    function closeTechDashboard() {
+        document.getElementById('techModal').classList.add('hidden');
+        document.getElementById('techModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function renderTechCharts() {
+        const container = document.getElementById('techChartsContainer');
+        const tecnicos = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
+
+        if (tecnicos.length === 0) {
+            container.innerHTML = '<div class="col-span-2 text-center text-slate-400 py-8">Nenhum técnico encontrado</div>';
+            return;
+        }
+
+        container.innerHTML = tecnicos.map(tecnico => {
+            const cards = initialCards.filter(c => c.responsavel === tecnico);
+            const counts = {
+                agendada: cards.filter(c => c.status === 'agendada').length,
+                execucao: cards.filter(c => c.status === 'execucao').length,
+                bloqueada: cards.filter(c => c.status === 'bloqueada').length,
+                revisao: cards.filter(c => c.status === 'revisao').length,
+                concluida: cards.filter(c => c.status === 'concluida').length
+            };
+            const total = cards.length;
+            const maxValue = Math.max(1, ...Object.values(counts));
+
+            const barColors = {
+                agendada: 'bar-color-agendada',
+                execucao: 'bar-color-execucao',
+                bloqueada: 'bar-color-bloqueada',
+                revisao: 'bar-color-revisao',
+                concluida: 'bar-color-concluida'
+            };
+
+            const statusLabels = {
+                agendada: 'Agendadas',
+                execucao: 'Execução',
+                bloqueada: 'Bloqueadas',
+                revisao: 'Revisão',
+                concluida: 'Concluídas'
+            };
+
+            let bars = '';
+            ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'].forEach(status => {
+                const count = counts[status];
+                const percentage = maxValue > 0 ? (count / maxValue) * 100 : 0;
+                bars += `
+                    <div class="bar-container">
+                        <span class="bar-label">${statusLabels[status]}</span>
+                        <div class="bar-track">
+                            <div class="bar-fill ${barColors[status]}" style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="bar-value">${count}</span>
+                    </div>
+                `;
+            });
+
+            return `
+                <div class="tech-stat-card bg-[#0f1117] p-3 rounded-lg border border-[#2d313e]">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <img src="https://ui-avatars.com/api/?name=${tecnico}&background=4F46E5&color=fff&size=32" class="w-8 h-8 rounded-full" />
+                            <div>
+                                <p class="text-white font-medium text-sm">${tecnico}</p>
+                                <p class="text-[10px] text-slate-400">${total} lojas</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="text-[8px] bg-sky-400/20 text-sky-300 px-1.5 py-0.5 rounded-full">${counts.agendada} A</span>
+                            <span class="text-[8px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded-full">${counts.execucao} E</span>
+                            <span class="text-[8px] bg-rose-400/20 text-rose-300 px-1.5 py-0.5 rounded-full">${counts.bloqueada} B</span>
+                            <span class="text-[8px] bg-purple-400/20 text-purple-300 px-1.5 py-0.5 rounded-full">${counts.revisao} R</span>
+                            <span class="text-[8px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded-full">${counts.concluida} C</span>
+                        </div>
+                    </div>
+                    <div class="bar-chart-wrapper">${bars}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ============================================================
+    // NOTIFICAÇÕES
+    // ============================================================
+    function showNotification(message) {
+        const existing = document.querySelector('.toast-notification');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification bg-[#1a1d27] border border-indigo-500/30 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl shadow-2xl';
+        toast.innerHTML = `
+            <div class="flex items-start gap-3">
+                <i class="fas fa-bell text-indigo-400 mt-0.5 text-sm md:text-base"></i>
+                <div>
+                    <p class="text-sm font-medium">ROCC</p>
+                    <p class="text-sm text-slate-300">${message}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-slate-500 hover:text-white ml-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // ============================================================
+    // AÇÃO RÁPIDA
+    // ============================================================
+    function showQuickAction() {
+        const action = prompt('Ação rápida:\n1 - Nova Loja\n2 - Ticket\n3 - Relatório\n4 - Métricas');
+        if (action === '1') openAddCardModal('agendada');
+        else if (action === '2') showNotification('Abrindo ticket...');
+        else if (action === '3') showNotification('Gerando relatório...');
+        else if (action === '4') showNotification('Exibindo métricas...');
+    }
+
+    // ============================================================
+    // INICIALIZAÇÃO
+    // ============================================================
+    async function initializeApp() {
+        await fetchResponsaveis();
+        renderCards();
+        renderUserList();
+
+        const saved = localStorage.getItem('panelCollapsed');
+        if (saved === 'true') {
+            panelCollapsed = true;
+            document.getElementById('bottomPanel').classList.add('collapsed');
+        }
+    }
+
+    // Verificar sessão ao carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedUser = sessionStorage.getItem('rocc_user');
+        if (savedUser) {
+            try {
+                const user = JSON.parse(savedUser);
+                currentUser = user;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'flex';
+                document.getElementById('userNameDisplay').textContent = user.nome;
+                document.getElementById('userRoleDisplay').textContent = 
+                    user.role === 'admin' ? 'Administrador' :
+                    user.role === 'gerente' ? 'Gerente' :
+                    user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                document.getElementById('userAvatar').src = 
+                    `https://ui-avatars.com/api/?name=${user.nome}&background=${user.avatar || '4F46E5'}&color=fff&size=28&bold=true`;
+                
+                initializeApp();
+                showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+            } catch (e) {
+                console.warn('Sessão inválida');
+            }
+        }
+    });
+
+    // Fechar modais com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCardDetail();
+            closeUserManagement();
+            closeTechDashboard();
+            closeAddCardModal();
+            closeResetPasswordModal();
+        }
+    });
+
+    // Fechar modais clicando fora
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                this.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+
+    // Login com Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen.style.display !== 'none') {
+                handleLogin();
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
