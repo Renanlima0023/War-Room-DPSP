@@ -6,7 +6,6 @@
     <title>ROCC · Roll Out Control Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1050,19 +1049,7 @@
 
     <script>
         // ============================================================
-        // CONFIGURAÇÃO DO SUPABASE
-        // ============================================================
-        const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
-
-        // ============================================================
-        // INICIALIZAR SUPABASE
-        // ============================================================
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase configurado com sucesso!');
-
-        // ============================================================
-        // USUÁRIOS LOCAIS (FALLBACK PARA LOGIN)
+        // USUÁRIOS DO SISTEMA - 100% LOCAL
         // ============================================================
         const USERS = [
             { id: 1, nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
@@ -1076,7 +1063,6 @@
         let resetTargetUserId = null;
         let currentCardId = null;
 
-        // Dados locais (fallback)
         let initialCards = [
             { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 5, comentarios: 3, data: '10/07' },
             { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
@@ -1091,131 +1077,11 @@
         let checklistItems = [];
 
         // ============================================================
-        // FUNÇÕES DO SUPABASE - BUSCAR LOJAS
-        // ============================================================
-        async function fetchLojasFromSupabase() {
-            try {
-                const { data, error } = await supabase
-                    .from('lojas')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Erro ao buscar lojas:', error);
-                    showNotification('❌ Erro ao carregar dados do banco');
-                    return false;
-                }
-
-                if (data && data.length > 0) {
-                    initialCards = data.map(loja => ({
-                        id: loja.id || loja.codigo,
-                        loja: loja.nome || `Loja ${loja.codigo}`,
-                        responsavel: loja.responsavel || 'Não atribuído',
-                        status: loja.status || 'agendada',
-                        regional: loja.regional || 'N/A',
-                        pdvs: loja.quantidade_pdvs || 0,
-                        comentarios: loja.comentarios || 0,
-                        data: loja.data_agendada || 'Hoje',
-                        prioridade: loja.prioridade || null,
-                        subtipo: loja.subtipo || null,
-                        descricao: loja.descricao || ''
-                    }));
-                    renderCards();
-                    showNotification(`✅ ${initialCards.length} lojas carregadas do banco!`);
-                    return true;
-                } else {
-                    // Se não tiver dados no banco, usar dados locais
-                    renderCards();
-                    showNotification('ℹ️ Nenhuma loja encontrada no banco');
-                    return false;
-                }
-            } catch (error) {
-                console.error('Erro ao buscar lojas:', error);
-                renderCards();
-                return false;
-            }
-        }
-
-        // ============================================================
-        // FUNÇÕES DO SUPABASE - SALVAR/ATUALIZAR/DELETAR
-        // ============================================================
-        async function saveLojasSupabase(lojaData) {
-            try {
-                showNotification('💾 Salvando no banco...');
-                const { data, error } = await supabase
-                    .from('lojas')
-                    .insert([lojaData])
-                    .select();
-
-                if (error) {
-                    console.error('Erro ao salvar:', error);
-                    showNotification('❌ Erro ao salvar: ' + error.message);
-                    return null;
-                }
-
-                showNotification('✅ Loja salva com sucesso!');
-                await fetchLojasFromSupabase();
-                return data;
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                showNotification('❌ Erro ao salvar no banco');
-                return null;
-            }
-        }
-
-        async function updateLojasSupabase(id, dados) {
-            try {
-                showNotification('💾 Atualizando no banco...');
-                const { data, error } = await supabase
-                    .from('lojas')
-                    .update(dados)
-                    .eq('id', id)
-                    .select();
-
-                if (error) {
-                    console.error('Erro ao atualizar:', error);
-                    showNotification('❌ Erro ao atualizar: ' + error.message);
-                    return null;
-                }
-
-                showNotification('✅ Loja atualizada!');
-                await fetchLojasFromSupabase();
-                return data;
-            } catch (error) {
-                console.error('Erro ao atualizar:', error);
-                showNotification('❌ Erro ao atualizar no banco');
-                return null;
-            }
-        }
-
-        async function deleteLojasSupabase(id) {
-            try {
-                showNotification('🗑️ Removendo do banco...');
-                const { error } = await supabase
-                    .from('lojas')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) {
-                    console.error('Erro ao deletar:', error);
-                    showNotification('❌ Erro ao deletar: ' + error.message);
-                    return null;
-                }
-
-                showNotification('✅ Loja removida!');
-                await fetchLojasFromSupabase();
-                return true;
-            } catch (error) {
-                console.error('Erro ao deletar:', error);
-                showNotification('❌ Erro ao deletar do banco');
-                return null;
-            }
-        }
-
-        // ============================================================
-        // FUNÇÃO DE LOGIN
+        // FUNÇÃO DE LOGIN - 100% LOCAL
         // ============================================================
         function handleLogin() {
+            console.log('🔑 Tentando login...');
+            
             const email = document.getElementById('loginEmail').value.trim();
             const senha = document.getElementById('loginPassword').value.trim();
             const errorEl = document.getElementById('loginError');
@@ -1230,34 +1096,33 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verificando...';
             errorEl.textContent = '';
 
-            setTimeout(() => {
-                const user = USERS.find(u => u.email === email && u.senha === senha);
+            // Verificar usuário
+            const user = USERS.find(u => u.email === email && u.senha === senha);
 
-                if (user) {
-                    currentUser = user;
-                    errorEl.textContent = '';
-                    sessionStorage.setItem('rocc_user', JSON.stringify(user));
+            if (user) {
+                currentUser = user;
+                errorEl.textContent = '';
+                sessionStorage.setItem('rocc_user', JSON.stringify(user));
 
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'flex';
 
-                    document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' : 'Técnico';
+                document.getElementById('userNameDisplay').textContent = user.nome;
+                document.getElementById('userRoleDisplay').textContent =
+                    user.role === 'admin' ? 'Administrador' :
+                    user.role === 'gerente' ? 'Gerente' : 'Técnico';
 
-                    renderCards();
-                    renderUserList();
-                    showNotification(`👋 Bem-vindo, ${user.nome}!`);
-
-                    // Carregar dados do Supabase
-                    setTimeout(fetchLojasFromSupabase, 500);
-                } else {
-                    errorEl.textContent = '❌ E-mail ou senha inválidos!';
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
-                }
-            }, 600);
+                renderCards();
+                renderUserList();
+                showNotification(`👋 Bem-vindo, ${user.nome}!`);
+                
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+            } else {
+                errorEl.textContent = '❌ E-mail ou senha inválidos!';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+            }
         }
 
         function handleLogout() {
@@ -1460,14 +1325,9 @@
 
             const cardData = initialCards.find(c => c.id === cardId);
             if (cardData && cardData.status !== targetStatus) {
-                const oldStatus = cardData.status;
                 cardData.status = targetStatus;
-                
-                // Salvar no Supabase
-                updateLojasSupabase(cardId, { status: targetStatus });
-                
                 renderCards();
-                showNotification(`📦 ${cardData.loja} movida de ${oldStatus} para ${targetStatus}`);
+                showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
             }
             draggedCard = null;
         }
@@ -1485,9 +1345,6 @@
             }
 
             if (confirm(`Deseja excluir ${card.loja}?`)) {
-                // Deletar do Supabase
-                deleteLojasSupabase(cardId);
-                // Remover local
                 initialCards = initialCards.filter(c => c.id !== cardId);
                 renderCards();
                 showNotification(`🗑️ ${card.loja} excluída!`);
@@ -1679,7 +1536,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card && newResponsavel) {
                 card.responsavel = newResponsavel;
-                updateLojasSupabase(currentCardId, { responsavel: newResponsavel });
                 renderCards();
                 showNotification(`✅ Responsável alterado para ${newResponsavel}`);
                 closeCardDetail();
@@ -1693,7 +1549,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'execucao';
-                updateLojasSupabase(currentCardId, { status: 'execucao' });
                 renderCards();
                 closeCardDetail();
                 showNotification('🚀 Loja iniciada!');
@@ -1705,7 +1560,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'bloqueada';
-                updateLojasSupabase(currentCardId, { status: 'bloqueada' });
                 renderCards();
                 closeCardDetail();
                 showNotification('⛔ Loja bloqueada!');
@@ -1717,7 +1571,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'concluida';
-                updateLojasSupabase(currentCardId, { status: 'concluida' });
                 renderCards();
                 closeCardDetail();
                 showNotification('🎉 Loja concluída!');
@@ -1792,23 +1645,8 @@
             }
 
             const newCard = {
-                codigo: `LJ-${Math.floor(Math.random() * 1000)}`,
-                nome: `Loja ${numero}`,
-                responsavel: responsavel,
-                status: status,
-                regional: regional,
-                quantidade_pdvs: pdvs,
-                data_agendada: data || new Date().toISOString().split('T')[0],
-                descricao: ''
-            };
-
-            // Salvar no Supabase
-            saveLojasSupabase(newCard);
-
-            // Adicionar localmente
-            const localCard = {
-                id: newCard.codigo,
-                loja: newCard.nome,
+                id: `LJ-${Math.floor(Math.random() * 1000)}`,
+                loja: `Loja ${numero}`,
                 responsavel: responsavel,
                 status: status,
                 regional: regional,
@@ -1817,7 +1655,7 @@
                 data: data || 'Hoje'
             };
 
-            initialCards.push(localCard);
+            initialCards.push(newCard);
             renderCards();
             closeAddCardModal();
             showNotification(`🆕 Loja ${numero} adicionada!`);
@@ -2180,6 +2018,12 @@
         // VERIFICAR SESSÃO
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 ROCC carregado!');
+            console.log('📌 Credenciais:');
+            console.log('  👑 admin@rocc.com / admin123');
+            console.log('  📊 gerente@rocc.com / gerente123');
+            console.log('  🔧 renan@rocc.com / tecnico123');
+
             const savedUser = sessionStorage.getItem('rocc_user');
             if (savedUser) {
                 try {
@@ -2194,7 +2038,6 @@
                     renderCards();
                     renderUserList();
                     showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
-                    setTimeout(fetchLojasFromSupabase, 500);
                 } catch (e) {
                     console.warn('Sessão inválida');
                 }
@@ -2232,12 +2075,7 @@
             }
         });
 
-        console.log('🚀 ROCC - Roll Out Control Center');
-        console.log('🔌 Supabase: Conectado');
-        console.log('📌 Credenciais:');
-        console.log('  👑 admin@rocc.com / admin123');
-        console.log('  📊 gerente@rocc.com / gerente123');
-        console.log('  🔧 renan@rocc.com / tecnico123');
+        console.log('✅ Sistema pronto!');
     </script>
 
 </body>
