@@ -1068,6 +1068,7 @@
     </div>
 
     <script>
+    try {
         // ============================================================
         // CONEXÃO SUPABASE
         // ============================================================
@@ -2394,6 +2395,58 @@
         });
 
         console.log('✅ Sistema pronto!');
+
+        // ============================================================
+        // EXPOSIÇÃO GLOBAL EXPLÍCITA
+        // Garante que todas as funções usadas em onclick="..." no HTML
+        // fiquem acessíveis em window, independentemente de como o
+        // navegador trata o escopo de "function" dentro de blocos.
+        // ============================================================
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.openCardDetail = openCardDetail;
+        window.closeCardDetail = closeCardDetail;
+        window.deleteCard = deleteCard;
+        window.addChecklistItem = addChecklistItem;
+        window.toggleChecklistItem = toggleChecklistItem;
+        window.removeChecklistItem = removeChecklistItem;
+        window.handleFileUpload = handleFileUpload;
+        window.sendMessage = sendMessage;
+        window.updateResponsibleFromModal = updateResponsibleFromModal;
+        window.startStoreFromModal = startStoreFromModal;
+        window.blockStoreFromModal = blockStoreFromModal;
+        window.completeStoreFromModal = completeStoreFromModal;
+        window.notifyResponsible = notifyResponsible;
+        window.notifyPlatform = notifyPlatform;
+        window.openAddCardModal = openAddCardModal;
+        window.closeAddCardModal = closeAddCardModal;
+        window.confirmAddCard = confirmAddCard;
+        window.updateMetricDisplay = updateMetricDisplay;
+        window.updateCounts = updateCounts;
+        window.filterCards = filterCards;
+        window.editMetric = editMetric;
+        window.togglePanel = togglePanel;
+        window.openUserManagement = openUserManagement;
+        window.closeUserManagement = closeUserManagement;
+        window.addUser = addUser;
+        window.editUser = editUser;
+        window.removeUser = removeUser;
+        window.openResetPasswordForUser = openResetPasswordForUser;
+        window.closeResetPasswordModal = closeResetPasswordModal;
+        window.confirmResetPassword = confirmResetPassword;
+        window.openTechDashboard = openTechDashboard;
+        window.closeTechDashboard = closeTechDashboard;
+        window.switchTab = switchTab;
+        window.showQuickAction = showQuickAction;
+        window.editMetric = editMetric;
+    } catch (erroFatal) {
+        console.error('❌ ERRO FATAL no script principal do ROCC:', erroFatal);
+        console.error('Stack:', erroFatal.stack);
+        const errEl = document.getElementById('loginError');
+        if (errEl) {
+            errEl.textContent = '❌ Erro ao carregar o sistema. Veja o console (F12) para detalhes técnicos.';
+        }
+    }
     </script>
 
 </body>
