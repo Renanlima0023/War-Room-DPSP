@@ -6,6 +6,26 @@
     <title>ROCC · Roll Out Control Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script>
+        // Fallback: se o CDN principal do Supabase não carregar (bloqueio, instabilidade, etc.),
+        // tenta um CDN alternativo antes de desistir.
+        window.addEventListener('DOMContentLoaded', function () {
+            if (!window.supabase) {
+                console.warn('⚠️ SDK do Supabase não carregou pelo jsdelivr. Tentando unpkg como alternativa...');
+                const fallback = document.createElement('script');
+                fallback.src = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';
+                fallback.onload = function () {
+                    console.log('✅ SDK do Supabase carregado via unpkg (fallback).');
+                    if (typeof window.iniciarSupabase === 'function') window.iniciarSupabase();
+                };
+                fallback.onerror = function () {
+                    console.error('❌ Não foi possível carregar o SDK do Supabase por nenhum CDN. Verifique sua conexão com a internet.');
+                };
+                document.head.appendChild(fallback);
+            }
+        });
+    </script>
     <style>
         /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1049,43 +1069,122 @@
 
     <script>
         // ============================================================
-        // USUÁRIOS DO SISTEMA - 100% LOCAL
+        // CONEXÃO SUPABASE
         // ============================================================
-        const USERS = [
-            { id: 1, nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
-            { id: 2, nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
-            { id: 3, nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { id: 4, nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { id: 5, nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
-        ];
+        const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
+
+        let supabase = null;
+
+        function iniciarSupabase() {
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Conectado ao Supabase.');
+                return true;
+            }
+            console.error('❌ SDK do Supabase não carregou. Verifique sua conexão com a internet ou se o arquivo está sendo aberto via http(s):// e não file://.');
+            return false;
+        }
+        window.iniciarSupabase = iniciarSupabase;
+        iniciarSupabase();
 
         let currentUser = null;
         let resetTargetUserId = null;
         let currentCardId = null;
 
-        let initialCards = [
-            { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 5, comentarios: 3, data: '10/07' },
-            { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
-            { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan', status: 'execucao', regional: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min', subtipo: 'Migração Linux' },
-            { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José', status: 'bloqueada', regional: 'SP', pdvs: 3, comentarios: 12, data: '32min', subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
-            { id: 'LJ-008', loja: 'Loja 1004', responsavel: 'Camila', status: 'revisao', regional: 'SP', pdvs: 5, comentarios: 4, data: 'Aguardando' },
-            { id: 'LJ-009', loja: 'Loja 0999', responsavel: 'José', status: 'concluida', regional: 'BA', pdvs: 6, comentarios: 2, data: '10/07' },
-            { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan', status: 'concluida', regional: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
-        ];
+        // Cache local em memória, sempre sincronizado com o banco
+        let USERS = [];
+        let RESPONSAVEIS = [];
+        let initialCards = [];
 
         let currentCardData = null;
         let checklistItems = [];
 
         // ============================================================
-        // FUNÇÃO DE LOGIN - 100% LOCAL
+        // CARREGAMENTO INICIAL DOS DADOS (Supabase)
         // ============================================================
-        function handleLogin() {
+        async function loadUsuarios() {
+            const { data, error } = await supabase.from('usuarios').select('*').order('nome');
+            if (error) {
+                console.error('Erro ao carregar usuários:', error);
+                showNotification('❌ Erro ao carregar usuários do banco');
+                return [];
+            }
+            USERS = data || [];
+            return USERS;
+        }
+
+        async function loadResponsaveis() {
+            const { data, error } = await supabase.from('responsaveis').select('*').order('nome');
+            if (error) {
+                console.error('Erro ao carregar responsáveis:', error);
+                return [];
+            }
+            RESPONSAVEIS = data || [];
+            return RESPONSAVEIS;
+        }
+
+        async function loadLojas() {
+            const { data, error } = await supabase
+                .from('lojas')
+                .select('*, responsaveis(id, nome)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Erro ao carregar lojas:', error);
+                showNotification('❌ Erro ao carregar lojas do banco');
+                return [];
+            }
+
+            // Adapta o formato do banco para o formato usado pela UI (card.loja, card.responsavel, etc.)
+            initialCards = (data || []).map(row => ({
+                id: row.id,
+                loja: row.nome,
+                codigo: row.codigo,
+                responsavel: row.responsaveis ? row.responsaveis.nome : 'Não atribuído',
+                responsavel_id: row.responsavel_id,
+                status: row.status,
+                regional: row.regional,
+                cidade: row.cidade,
+                endereco: row.endereco,
+                pdvs: row.pdvs,
+                comentarios: row.comentarios || 0,
+                data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                data_agendada: row.data_agendada,
+                prioridade: row.prioridade,
+                subtipo: row.subtipo,
+                descricao: row.descricao
+            }));
+            return initialCards;
+        }
+
+        function formatarDataBR(isoDate) {
+            if (!isoDate) return '';
+            const [ano, mes, dia] = isoDate.split('-');
+            return `${dia}/${mes}`;
+        }
+
+        async function carregarTudo() {
+            await Promise.all([loadUsuarios(), loadResponsaveis(), loadLojas()]);
+            renderCards();
+            renderUserList();
+        }
+
+        // ============================================================
+        // FUNÇÃO DE LOGIN - via Supabase (tabela usuarios)
+        // ============================================================
+        async function handleLogin() {
             console.log('🔑 Tentando login...');
-            
+
             const email = document.getElementById('loginEmail').value.trim();
             const senha = document.getElementById('loginPassword').value.trim();
             const errorEl = document.getElementById('loginError');
             const btn = document.getElementById('loginBtn');
+
+            if (!supabase) {
+                errorEl.textContent = '❌ Não foi possível conectar ao banco. Abra este arquivo por um servidor (http/https), não com duplo clique, e verifique sua internet.';
+                return;
+            }
 
             if (!email || !senha) {
                 errorEl.textContent = '❌ Preencha todos os campos!';
@@ -1096,30 +1195,42 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verificando...';
             errorEl.textContent = '';
 
-            // Verificar usuário
-            const user = USERS.find(u => u.email === email && u.senha === senha);
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('senha', senha)
+                    .maybeSingle();
 
-            if (user) {
-                currentUser = user;
-                errorEl.textContent = '';
-                sessionStorage.setItem('rocc_user', JSON.stringify(user));
+                if (error) throw error;
 
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContent').style.display = 'flex';
+                if (data) {
+                    currentUser = data;
+                    errorEl.textContent = '';
+                    sessionStorage.setItem('rocc_user', JSON.stringify(data));
 
-                document.getElementById('userNameDisplay').textContent = user.nome;
-                document.getElementById('userRoleDisplay').textContent =
-                    user.role === 'admin' ? 'Administrador' :
-                    user.role === 'gerente' ? 'Gerente' : 'Técnico';
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
 
-                renderCards();
-                renderUserList();
-                showNotification(`👋 Bem-vindo, ${user.nome}!`);
-                
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
-            } else {
-                errorEl.textContent = '❌ E-mail ou senha inválidos!';
+                    document.getElementById('userNameDisplay').textContent = data.nome;
+                    document.getElementById('userRoleDisplay').textContent =
+                        data.role === 'admin' ? 'Administrador' :
+                        data.role === 'gerente' ? 'Gerente' : 'Técnico';
+
+                    await carregarTudo();
+                    showNotification(`👋 Bem-vindo, ${data.nome}!`);
+
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+                } else {
+                    errorEl.textContent = '❌ E-mail ou senha inválidos!';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+                }
+            } catch (err) {
+                console.error('Erro no login:', err);
+                errorEl.textContent = '❌ Erro ao conectar com o banco. Tente novamente.';
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
             }
@@ -1315,7 +1426,7 @@
             this.classList.remove('drag-over');
         }
 
-        function handleDrop(e) {
+        async function handleDrop(e) {
             e.preventDefault();
             this.classList.remove('drag-over');
 
@@ -1325,9 +1436,24 @@
 
             const cardData = initialCards.find(c => c.id === cardId);
             if (cardData && cardData.status !== targetStatus) {
+                const statusAnterior = cardData.status;
                 cardData.status = targetStatus;
                 renderCards();
-                showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+
+                const { error } = await supabase
+                    .from('lojas')
+                    .update({ status: targetStatus, updated_at: new Date().toISOString() })
+                    .eq('id', cardId);
+
+                if (error) {
+                    console.error('Erro ao atualizar status:', error);
+                    cardData.status = statusAnterior;
+                    renderCards();
+                    showNotification('❌ Erro ao salvar no banco. Alteração desfeita.');
+                } else {
+                    await registrarHistorico(cardId, 'Status alterado', `Movida para ${targetStatus}`);
+                    showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+                }
             }
             draggedCard = null;
         }
@@ -1335,7 +1461,7 @@
         // ============================================================
         // FUNÇÕES DOS CARDS
         // ============================================================
-        function deleteCard(cardId) {
+        async function deleteCard(cardId) {
             const card = initialCards.find(c => c.id === cardId);
             if (!card) return;
 
@@ -1345,6 +1471,12 @@
             }
 
             if (confirm(`Deseja excluir ${card.loja}?`)) {
+                const { error } = await supabase.from('lojas').delete().eq('id', cardId);
+                if (error) {
+                    console.error('Erro ao excluir loja:', error);
+                    showNotification('❌ Erro ao excluir no banco!');
+                    return;
+                }
                 initialCards = initialCards.filter(c => c.id !== cardId);
                 renderCards();
                 showNotification(`🗑️ ${card.loja} excluída!`);
@@ -1354,7 +1486,7 @@
         // ============================================================
         // MODAL DETALHADO DO CARD
         // ============================================================
-        function openCardDetail(cardId) {
+        async function openCardDetail(cardId) {
             currentCardId = cardId;
             const cardData = initialCards.find(c => c.id === cardId);
             if (!cardData) return;
@@ -1384,24 +1516,21 @@
 
             populateResponsavelSelects();
             const select = document.getElementById('responsibleInput');
-            if (cardData.responsavel) {
-                select.value = cardData.responsavel;
+            if (cardData.responsavel_id) {
+                select.value = cardData.responsavel_id;
             }
 
             document.getElementById('modalDescription').value = cardData.descricao || '';
 
-            checklistItems = [
-                { id: 1, text: 'Configurar rede dos PDVs', completed: true },
-                { id: 2, text: 'Instalar Linux nos terminais', completed: true },
-                { id: 3, text: 'Instalar It Lean', completed: false },
-                { id: 4, text: 'Realizar venda teste', completed: false },
-                { id: 5, text: 'Assinar termo de aceite', completed: false }
-            ];
-            renderChecklist();
-
             document.getElementById('cardModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             switchTab('detalhes');
+
+            await Promise.all([
+                loadChecklist(cardId),
+                loadHistorico(cardId),
+                loadChatMensagens(cardId)
+            ]);
         }
 
         function closeCardDetail() {
@@ -1412,8 +1541,24 @@
         }
 
         // ============================================================
-        // CHECKLIST
+        // CHECKLIST (persistido na tabela checklist_items)
         // ============================================================
+        async function loadChecklist(lojaId) {
+            const { data, error } = await supabase
+                .from('checklist_items')
+                .select('*')
+                .eq('loja_id', lojaId)
+                .order('created_at');
+
+            if (error) {
+                console.error('Erro ao carregar checklist:', error);
+                checklistItems = [];
+            } else {
+                checklistItems = (data || []).map(i => ({ id: i.id, text: i.texto, completed: i.completed }));
+            }
+            renderChecklist();
+        }
+
         function renderChecklist() {
             const container = document.getElementById('checklistContainer');
             container.innerHTML = '';
@@ -1426,12 +1571,12 @@
                 const div = document.createElement('div');
                 div.className = `checklist-item flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition ${item.completed ? 'completed' : ''}`;
                 div.innerHTML = `
-                    <input type="checkbox" ${item.completed ? 'checked' : ''} class="w-4 h-4 accent-indigo-600" onchange="toggleChecklistItem(${item.id})" />
+                    <input type="checkbox" ${item.completed ? 'checked' : ''} class="w-4 h-4 accent-indigo-600" onchange="toggleChecklistItem('${item.id}')" />
                     <span class="checklist-text text-white flex-1 text-sm">${item.text}</span>
                     <span class="text-xs ${item.completed ? 'text-emerald-400' : 'text-slate-400'}">
                         ${item.completed ? '<i class="fas fa-check-circle"></i> Concluído' : '<i class="far fa-circle"></i> Pendente'}
                     </span>
-                    <button class="text-rose-400 hover:text-rose-300 text-xs" onclick="removeChecklistItem(${item.id})">
+                    <button class="text-rose-400 hover:text-rose-300 text-xs" onclick="removeChecklistItem('${item.id}')">
                         <i class="fas fa-times"></i>
                     </button>
                 `;
@@ -1439,27 +1584,56 @@
             });
         }
 
-        function addChecklistItem() {
+        async function addChecklistItem() {
             const text = prompt('Digite o novo item do checklist:');
-            if (text && text.trim()) {
-                const newId = Math.max(0, ...checklistItems.map(i => i.id)) + 1;
-                checklistItems.push({ id: newId, text: text.trim(), completed: false });
+            if (text && text.trim() && currentCardId) {
+                const { data, error } = await supabase
+                    .from('checklist_items')
+                    .insert({ loja_id: currentCardId, texto: text.trim(), completed: false })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao adicionar item:', error);
+                    showNotification('❌ Erro ao salvar item no banco!');
+                    return;
+                }
+
+                checklistItems.push({ id: data.id, text: data.texto, completed: data.completed });
                 renderChecklist();
                 showNotification('✅ Novo item adicionado ao checklist!');
             }
         }
 
-        function toggleChecklistItem(id) {
+        async function toggleChecklistItem(id) {
             const item = checklistItems.find(i => i.id === id);
             if (item) {
-                item.completed = !item.completed;
+                const novoStatus = !item.completed;
+                const { error } = await supabase
+                    .from('checklist_items')
+                    .update({ completed: novoStatus })
+                    .eq('id', id);
+
+                if (error) {
+                    console.error('Erro ao atualizar item:', error);
+                    showNotification('❌ Erro ao salvar no banco!');
+                    return;
+                }
+
+                item.completed = novoStatus;
                 renderChecklist();
                 showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
             }
         }
 
-        function removeChecklistItem(id) {
+        async function removeChecklistItem(id) {
             if (confirm('Remover este item do checklist?')) {
+                const { error } = await supabase.from('checklist_items').delete().eq('id', id);
+                if (error) {
+                    console.error('Erro ao remover item:', error);
+                    showNotification('❌ Erro ao remover no banco!');
+                    return;
+                }
                 checklistItems = checklistItems.filter(i => i.id !== id);
                 renderChecklist();
                 showNotification('🗑️ Item removido');
@@ -1499,92 +1673,187 @@
         }
 
         // ============================================================
-        // CHAT
+        // CHAT (persistido na tabela chat_mensagens)
         // ============================================================
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
+        async function loadChatMensagens(lojaId) {
+            const { data, error } = await supabase
+                .from('chat_mensagens')
+                .select('*')
+                .eq('loja_id', lojaId)
+                .order('created_at');
 
             const container = document.getElementById('chatMessages');
-            const newMsg = document.createElement('div');
-            newMsg.className = 'chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg';
-            newMsg.innerHTML = `
-                <img src="https://ui-avatars.com/api/?name=${currentUser?.nome || 'Admin'}&background=4F46E5&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" />
-                <div class="flex-1">
-                    <div class="flex items-center gap-1 md:gap-2">
-                        <span class="font-medium text-white text-[10px] md:text-sm">${currentUser?.nome || 'Admin'}</span>
-                        <span class="text-[8px] md:text-xs text-slate-500">${new Date().toLocaleTimeString()}</span>
-                        <span class="text-[8px] md:text-[10px] bg-emerald-600/20 text-emerald-400 px-1.5 md:px-2 py-0.5 rounded-full">Agora</span>
+            container.innerHTML = '';
+
+            if (error) {
+                console.error('Erro ao carregar chat:', error);
+                return;
+            }
+
+            (data || []).forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg';
+                const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                div.innerHTML = `
+                    <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(msg.autor)}&background=4F46E5&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" />
+                    <div class="flex-1">
+                        <div class="flex items-center gap-1 md:gap-2">
+                            <span class="font-medium text-white text-[10px] md:text-sm">${msg.autor}</span>
+                            <span class="text-[8px] md:text-xs text-slate-500">${hora}</span>
+                        </div>
+                        <p class="text-[10px] md:text-sm text-slate-300">${msg.mensagem}</p>
                     </div>
-                    <p class="text-[10px] md:text-sm text-slate-300">${message}</p>
-                </div>
-            `;
-            container.appendChild(newMsg);
-            input.value = '';
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('chatCount').textContent = (data || []).length;
             container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message || !currentCardId) return;
+
+            const autor = currentUser?.nome || 'Admin';
+
+            const { error } = await supabase
+                .from('chat_mensagens')
+                .insert({ loja_id: currentCardId, autor: autor, mensagem: message });
+
+            if (error) {
+                console.error('Erro ao enviar mensagem:', error);
+                showNotification('❌ Erro ao salvar mensagem no banco!');
+                return;
+            }
+
+            input.value = '';
+            await loadChatMensagens(currentCardId);
             showNotification('💬 Mensagem enviada!');
+        }
+
+        // ============================================================
+        // HISTÓRICO (persistido na tabela historico)
+        // ============================================================
+        async function loadHistorico(lojaId) {
+            const { data, error } = await supabase
+                .from('historico')
+                .select('*')
+                .eq('loja_id', lojaId)
+                .order('created_at', { ascending: false });
+
+            const container = document.getElementById('historicoContainer');
+            container.innerHTML = '';
+
+            if (error) {
+                console.error('Erro ao carregar histórico:', error);
+                return;
+            }
+
+            (data || []).forEach(item => {
+                const dataHora = new Date(item.created_at).toLocaleString('pt-BR', {
+                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+                });
+                const div = document.createElement('div');
+                div.className = 'history-item p-1.5';
+                div.innerHTML = `
+                    <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                        <span class="text-white font-medium">${item.acao}</span>
+                        <span class="text-slate-400">por ${item.autor || 'Sistema'}</span>
+                        <span class="text-[8px] text-slate-500">${dataHora}</span>
+                    </div>
+                    ${item.detalhe ? `<p class="text-[10px] text-slate-400 ml-1">${item.detalhe}</p>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function registrarHistorico(lojaId, acao, detalhe) {
+            const autor = currentUser?.nome || 'Sistema';
+            const { error } = await supabase
+                .from('historico')
+                .insert({ loja_id: lojaId, acao: acao, autor: autor, detalhe: detalhe || null });
+            if (error) console.error('Erro ao registrar histórico:', error);
         }
 
         // ============================================================
         // AÇÕES DO MODAL
         // ============================================================
-        function updateResponsibleFromModal() {
+        async function updateResponsibleFromModal() {
             if (!currentCardId) return;
             const select = document.getElementById('responsibleInput');
-            const newResponsavel = select.value;
+            const newResponsavelId = select.value;
             const card = initialCards.find(c => c.id === currentCardId);
-            if (card && newResponsavel) {
-                card.responsavel = newResponsavel;
+            if (card && newResponsavelId) {
+                const resp = RESPONSAVEIS.find(r => r.id === newResponsavelId);
+                const { error } = await supabase
+                    .from('lojas')
+                    .update({ responsavel_id: newResponsavelId, updated_at: new Date().toISOString() })
+                    .eq('id', currentCardId);
+
+                if (error) {
+                    console.error('Erro ao salvar responsável:', error);
+                    showNotification('❌ Erro ao salvar no banco!');
+                    return;
+                }
+
+                card.responsavel_id = newResponsavelId;
+                card.responsavel = resp ? resp.nome : 'Não atribuído';
+                await registrarHistorico(currentCardId, 'Responsável alterado', `Atribuído a ${card.responsavel}`);
                 renderCards();
-                showNotification(`✅ Responsável alterado para ${newResponsavel}`);
+                showNotification(`✅ Responsável alterado para ${card.responsavel}`);
                 closeCardDetail();
             } else {
                 showNotification('❌ Selecione um responsável válido!');
             }
         }
 
-        function startStoreFromModal() {
+        async function atualizarStatusCard(novoStatus, mensagemSucesso, acaoHistorico) {
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                card.status = 'execucao';
-                renderCards();
-                closeCardDetail();
-                showNotification('🚀 Loja iniciada!');
+            if (!card) return;
+
+            const { error } = await supabase
+                .from('lojas')
+                .update({ status: novoStatus, updated_at: new Date().toISOString() })
+                .eq('id', currentCardId);
+
+            if (error) {
+                console.error('Erro ao atualizar status:', error);
+                showNotification('❌ Erro ao salvar no banco!');
+                return;
             }
+
+            card.status = novoStatus;
+            await registrarHistorico(currentCardId, acaoHistorico);
+            renderCards();
+            closeCardDetail();
+            showNotification(mensagemSucesso);
+        }
+
+        function startStoreFromModal() {
+            atualizarStatusCard('execucao', '🚀 Loja iniciada!', 'Execução iniciada');
         }
 
         function blockStoreFromModal() {
-            if (!currentCardId) return;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                card.status = 'bloqueada';
-                renderCards();
-                closeCardDetail();
-                showNotification('⛔ Loja bloqueada!');
-            }
+            atualizarStatusCard('bloqueada', '⛔ Loja bloqueada!', 'Loja bloqueada');
         }
 
         function completeStoreFromModal() {
-            if (!currentCardId) return;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                card.status = 'concluida';
-                renderCards();
-                closeCardDetail();
-                showNotification('🎉 Loja concluída!');
-            }
+            atualizarStatusCard('concluida', '🎉 Loja concluída!', 'Loja concluída');
         }
 
         function notifyResponsible() {
-            const name = document.getElementById('responsibleInput').value;
-            showNotification(`📧 E-mail enviado para ${name}`);
+            const id = document.getElementById('responsibleInput').value;
+            const resp = RESPONSAVEIS.find(r => r.id === id);
+            showNotification(`📧 E-mail enviado para ${resp ? resp.nome : 'responsável'}`);
         }
 
         function notifyPlatform() {
-            const name = document.getElementById('responsibleInput').value;
-            showNotification(`🔔 Notificação enviada para ${name} na plataforma`);
+            const id = document.getElementById('responsibleInput').value;
+            const resp = RESPONSAVEIS.find(r => r.id === id);
+            showNotification(`🔔 Notificação enviada para ${resp ? resp.nome : 'responsável'} na plataforma`);
         }
 
         // ============================================================
@@ -1595,17 +1864,21 @@
             selects.forEach(select => {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Selecione um responsável...</option>';
-                const responsaveis = [...new Set(initialCards.map(c => c.responsavel))];
-                responsaveis.forEach(nome => {
+                RESPONSAVEIS.forEach(resp => {
                     const option = document.createElement('option');
-                    option.value = nome;
-                    option.textContent = nome;
+                    option.value = resp.id;
+                    option.textContent = resp.nome;
                     select.appendChild(option);
                 });
                 if (currentValue) {
                     select.value = currentValue;
                 }
             });
+
+            if (currentCardData && currentCardData.responsavel_id) {
+                const input = document.getElementById('responsibleInput');
+                if (input) input.value = currentCardData.responsavel_id;
+            }
         }
 
         // ============================================================
@@ -1627,9 +1900,9 @@
             document.body.style.overflow = '';
         }
 
-        function confirmAddCard() {
+        async function confirmAddCard() {
             const numero = document.getElementById('newLojaNumero').value.trim();
-            const responsavel = document.getElementById('newLojaResponsavel').value;
+            const responsavelId = document.getElementById('newLojaResponsavel').value;
             const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 0;
             const status = document.getElementById('newLojaStatus').value;
             const data = document.getElementById('newLojaData').value;
@@ -1639,23 +1912,39 @@
                 showNotification('❌ Por favor, informe o número da loja!');
                 return;
             }
-            if (!responsavel) {
+            if (!responsavelId) {
                 showNotification('❌ Por favor, selecione um responsável!');
                 return;
             }
 
-            const newCard = {
-                id: `LJ-${Math.floor(Math.random() * 1000)}`,
-                loja: `Loja ${numero}`,
-                responsavel: responsavel,
-                status: status,
-                regional: regional,
-                pdvs: pdvs,
-                comentarios: 0,
-                data: data || 'Hoje'
-            };
+            const btn = document.querySelector('#addCardModal .btn-login, #addCardModal button[onclick="confirmAddCard()"]');
+            if (btn) btn.disabled = true;
 
-            initialCards.push(newCard);
+            const { data: novaLoja, error } = await supabase
+                .from('lojas')
+                .insert({
+                    codigo: numero,
+                    nome: `Loja ${numero}`,
+                    regional: regional,
+                    status: status,
+                    pdvs: pdvs,
+                    data_agendada: data || null,
+                    responsavel_id: responsavelId,
+                    comentarios: 0
+                })
+                .select()
+                .single();
+
+            if (btn) btn.disabled = false;
+
+            if (error) {
+                console.error('Erro ao criar loja:', error);
+                showNotification('❌ Erro ao salvar nova loja no banco!');
+                return;
+            }
+
+            await registrarHistorico(novaLoja.id, 'Tarefa criada', `Loja criada com status "${status}"`);
+            await loadLojas();
             renderCards();
             closeAddCardModal();
             showNotification(`🆕 Loja ${numero} adicionada!`);
@@ -1750,7 +2039,7 @@
                 item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <img src="https://ui-avatars.com/api/?name=${user.nome}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
+                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
                         <div>
                             <p class="text-white font-medium text-sm">${user.nome}</p>
                             <span class="role-badge ${roleColors[user.role]}">${roleLabels[user.role]}</span>
@@ -1758,13 +2047,13 @@
                         </div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-edit" onclick="editUser(${user.id})" title="Editar nome">
+                        <button class="btn-edit" onclick="editUser('${user.id}')" title="Editar nome">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-reset" onclick="openResetPasswordForUser(${user.id})" title="Resetar senha">
+                        <button class="btn-reset" onclick="openResetPasswordForUser('${user.id}')" title="Resetar senha">
                             <i class="fas fa-key"></i>
                         </button>
-                        <button class="btn-delete" onclick="removeUser(${user.id})" title="Remover usuário">
+                        <button class="btn-delete" onclick="removeUser('${user.id}')" title="Remover usuário">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -1773,7 +2062,7 @@
             });
         }
 
-        function addUser() {
+        async function addUser() {
             const name = document.getElementById('newUserName').value.trim();
             const email = document.getElementById('newUserEmail').value.trim();
             const role = document.getElementById('newUserRole').value;
@@ -1788,36 +2077,49 @@
                 return;
             }
 
-            const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
+            const { data, error } = await supabase
+                .from('usuarios')
+                .insert({ nome: name, email: email, senha: 'nova123', role: role })
+                .select()
+                .single();
 
-            USERS.push({
-                id: USERS.length + 1,
-                nome: name,
-                email: email,
-                senha: 'nova123',
-                role: role,
-                avatar: bgColors[role]
-            });
+            if (error) {
+                console.error('Erro ao adicionar usuário:', error);
+                showNotification('❌ Erro ao salvar usuário no banco!');
+                return;
+            }
 
+            USERS.push(data);
             document.getElementById('newUserName').value = '';
             document.getElementById('newUserEmail').value = '';
             renderUserList();
             showNotification(`👤 Usuário ${name} adicionado!`);
         }
 
-        function editUser(userId) {
+        async function editUser(userId) {
             const user = USERS.find(u => u.id === userId);
             if (!user) return;
 
             const newName = prompt('Novo nome:', user.nome);
             if (newName && newName.trim()) {
+                const { error } = await supabase
+                    .from('usuarios')
+                    .update({ nome: newName.trim() })
+                    .eq('id', userId);
+
+                if (error) {
+                    console.error('Erro ao editar usuário:', error);
+                    showNotification('❌ Erro ao salvar no banco!');
+                    return;
+                }
+
                 user.nome = newName.trim();
                 renderUserList();
                 showNotification(`✏️ Usuário atualizado para ${newName}`);
             }
         }
 
-        function removeUser(userId) {
+        async function removeUser(userId) {
             const user = USERS.find(u => u.id === userId);
             if (!user) return;
 
@@ -1827,7 +2129,13 @@
             }
 
             if (confirm(`Remover ${user.nome}?`)) {
-                USERS.splice(USERS.indexOf(user), 1);
+                const { error } = await supabase.from('usuarios').delete().eq('id', userId);
+                if (error) {
+                    console.error('Erro ao remover usuário:', error);
+                    showNotification('❌ Erro ao remover no banco!');
+                    return;
+                }
+                USERS = USERS.filter(u => u.id !== userId);
                 renderUserList();
                 showNotification(`🗑️ Usuário ${user.nome} removido`);
             }
@@ -1862,7 +2170,7 @@
             resetTargetUserId = null;
         }
 
-        function confirmResetPassword() {
+        async function confirmResetPassword() {
             const newPassword = document.getElementById('resetNewPassword').value.trim();
 
             if (!newPassword || newPassword.length < 4) {
@@ -1872,6 +2180,17 @@
 
             const user = USERS.find(u => u.id === resetTargetUserId);
             if (user) {
+                const { error } = await supabase
+                    .from('usuarios')
+                    .update({ senha: newPassword })
+                    .eq('id', resetTargetUserId);
+
+                if (error) {
+                    console.error('Erro ao resetar senha:', error);
+                    showNotification('❌ Erro ao salvar no banco!');
+                    return;
+                }
+
                 user.senha = newPassword;
                 showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword}`);
                 closeResetPasswordModal();
@@ -2017,7 +2336,7 @@
         // ============================================================
         // VERIFICAR SESSÃO
         // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 ROCC carregado!');
             console.log('📌 Credenciais:');
             console.log('  👑 admin@rocc.com / admin123');
@@ -2035,11 +2354,10 @@
                     document.getElementById('userRoleDisplay').textContent =
                         user.role === 'admin' ? 'Administrador' :
                         user.role === 'gerente' ? 'Gerente' : 'Técnico';
-                    renderCards();
-                    renderUserList();
+                    await carregarTudo();
                     showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
                 } catch (e) {
-                    console.warn('Sessão inválida');
+                    console.warn('Sessão inválida', e);
                 }
             }
         });
