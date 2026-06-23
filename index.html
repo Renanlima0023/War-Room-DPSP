@@ -1997,7 +1997,7 @@
                         ${card.prioridade ? `<span class="${prioridadeClass} text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full">${card.prioridade}</span>` : `<span class="text-[8px] md:text-[10px] dark-badge px-1.5 md:px-2 py-0.5 rounded-full">${card.regional}</span>`}
                     </div>
                     <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">
-                        ${card.pdvs} PDVs · <span class="${card.status === 'bloqueada' ? 'text-rose-400' : card.status === 'execucao' ? 'text-amber-400' : 'text-indigo-400'}">${card.status === 'bloqueada' ? '⛔ Bloqueado' : card.status === 'execucao' ? '🔄 Andamento' : '⏳ Aguardando'}</span>
+                        ${totalPdvs} PDVs · <span class="${card.status === 'bloqueada' ? 'text-rose-400' : card.status === 'execucao' ? 'text-amber-400' : 'text-indigo-400'}">${card.status === 'bloqueada' ? '⛔ Bloqueado' : card.status === 'execucao' ? '🔄 Andamento' : '⏳ Aguardando'}</span>
                     </p>
                     <div class="flex items-center gap-1 md:gap-2 mt-1 flex-wrap">
                         <span class="status-badge ${statusBadgeClass} text-[8px] md:text-xs">
@@ -2183,6 +2183,8 @@
             if (!pdvSectionTitles[cardId]) {
                 pdvSectionTitles[cardId] = `PDVs da Loja ${cardData.loja}`;
             }
+            // Agora que os PDVs reais foram carregados, corrige a contagem exibida
+            document.getElementById('modalPdvs').textContent = (pdvsPorLoja[cardId] || []).length;
 
             // Atualizar título da seção
             document.getElementById('pdvSectionTitle').textContent = pdvSectionTitles[cardId] || `PDVs da Loja ${cardData.loja}`;
@@ -3111,13 +3113,14 @@
                 // três colunas em branco.
                 const lojasData = [];
                 initialCards.forEach(card => {
+                    const pdvsDaLojaCount = (pdvsPorLoja[card.id] || []).length;
                     const baseRow = {
                         'ID': card.id,
                         'Loja': card.loja,
                         'Responsável': card.responsavel,
                         'Status': card.status.charAt(0).toUpperCase() + card.status.slice(1),
                         'Regional': card.regional || 'N/A',
-                        'PDVs Total': card.pdvs || 0,
+                        'PDVs Total': pdvsDaLojaCount,
                         'PDVs Concluídos': (pdvsPorLoja[card.id] || []).filter(p => p.status === 'concluido').length,
                         'Data': card.data || 'N/A',
                         'Prioridade': card.prioridade || 'Normal',
