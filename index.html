@@ -516,19 +516,6 @@
             font-size: 11px;
             color: #94a3b8;
         }
-        .pdv-item .pdv-serial input {
-            background: transparent;
-            border-bottom: 1px solid #2d313e;
-            color: #e2e8f0;
-            font-size: 11px;
-            padding: 2px 4px;
-            width: 90px;
-            outline: none;
-            transition: border-color 0.2s ease;
-        }
-        .pdv-item .pdv-serial input:focus {
-            border-color: #4f46e5;
-        }
         .pdv-item .pdv-status {
             width: 10px;
             height: 10px;
@@ -700,41 +687,9 @@
             padding: 2px;
         }
         .pdv-item .pdv-actions button:hover { color: #f87171; }
-
-        /* Loading */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #2d313e;
-            border-radius: 50%;
-            border-top-color: #4f46e5;
-            animation: spin 0.8s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15,17,23,0.8);
-            z-index: 999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .loading-overlay.active { display: flex; }
     </style>
 </head>
 <body>
-
-    <!-- LOADING -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <span class="text-slate-300 text-sm">Carregando...</span>
-    </div>
 
     <!-- ============================================================ -->
     <!-- TELA DE LOGIN -->
@@ -1142,7 +1097,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- TAB 2: PDVs - COM PDV ANTIGO E PDV ATUALIZADO -->
+                    <!-- TAB 2: PDVs - COM PDV ANTIGO E PDV ATUALIZADO (AMBOS EDITÁVEIS) -->
                     <!-- ============================================================ -->
                     <div id="tab-pdvs" class="tab-content">
                         <div class="space-y-4">
@@ -1467,28 +1422,13 @@
     <script>
     try {
         // ============================================================
-        // CONFIGURAÇÃO SUPABASE
+        // CONEXÃO SUPABASE
         // ============================================================
         const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
 
         let supabase = null;
-        let currentUser = null;
-        let resetTargetUserId = null;
-        let currentCardId = null;
 
-        // Cache local para dados carregados do banco
-        let USERS = [];
-        let RESPONSAVEIS = [];
-        let initialCards = [];
-        let pdvsPorLoja = {};
-        let pdvSectionTitles = {};
-        let checklistItems = [];
-        let editingCardId = null;
-
-        // ============================================================
-        // INICIALIZAR SUPABASE
-        // ============================================================
         function iniciarSupabase() {
             if (window.supabase && typeof window.supabase.createClient === 'function') {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1501,44 +1441,275 @@
         window.iniciarSupabase = iniciarSupabase;
         iniciarSupabase();
 
-        // ============================================================
-        // FUNÇÕES DE LOADING
-        // ============================================================
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('active');
-        }
+        let currentUser = null;
+        let resetTargetUserId = null;
+        let currentCardId = null;
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
-        }
+        // Cache local
+        let USERS = [];
+        let RESPONSAVEIS = [];
+        let initialCards = [];
+
+        // Dados locais (fallback)
+        let localCards = [
+            { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
+            { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 2, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
+            { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan', status: 'execucao', regional: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min', subtipo: 'Migração Linux' },
+            { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José', status: 'bloqueada', regional: 'SP', pdvs: 3, comentarios: 12, data: '32min', subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
+            { id: 'LJ-008', loja: 'Loja 1004', responsavel: 'Camila', status: 'revisao', regional: 'SP', pdvs: 5, comentarios: 4, data: 'Aguardando' },
+            { id: 'LJ-009', loja: 'Loja 0999', responsavel: 'José', status: 'concluida', regional: 'BA', pdvs: 6, comentarios: 2, data: '10/07' },
+            { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan', status: 'concluida', regional: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
+        ];
+
+        // Estrutura de PDVs por loja
+        let pdvsPorLoja = {};
+        // Título da seção de PDVs por loja
+        let pdvSectionTitles = {};
+
+        let checklistItems = [];
 
         // ============================================================
-        // CARREGAR DADOS DO SUPABASE
+        // USUÁRIOS PADRÃO
         // ============================================================
-        async function loadUsuarios() {
+        const DEFAULT_USERS = [
+            { nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
+            { nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
+            { nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
+            { nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
+            { nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
+        ];
+
+        // ============================================================
+        // CARREGAMENTO DOS DADOS
+        // ============================================================
+        async function loadLojas() {
             if (!supabase) {
-                USERS = [
-                    { id: 'local-1', nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
-                    { id: 'local-2', nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
-                    { id: 'local-3', nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-                    { id: 'local-4', nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-                    { id: 'local-5', nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
-                ];
-                return USERS;
+                initialCards = [...localCards];
+                // Inicializar PDVs para lojas existentes (modo local, sem banco)
+                initialCards.forEach(card => {
+                    if (!pdvsPorLoja[card.id]) {
+                        pdvsPorLoja[card.id] = gerarPdvsParaLoja(card.id, card.pdvs || 3);
+                    }
+                    if (!pdvSectionTitles[card.id]) {
+                        pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
+                    }
+                });
+                return initialCards;
             }
 
             try {
-                const { data, error } = await supabase.from('usuarios').select('*').order('nome');
+                const { data, error } = await supabase
+                    .from('lojas')
+                    .select('*, responsaveis(id, nome)')
+                    .order('created_at', { ascending: false });
+
                 if (error) {
-                    console.warn('Erro ao carregar usuários:', error);
-                    return USERS;
+                    console.warn('Erro ao carregar lojas do Supabase:', error);
+                    initialCards = [...localCards];
+                    return initialCards;
                 }
-                USERS = data || [];
-                return USERS;
+
+                if (data && data.length > 0) {
+                    initialCards = (data || []).map(row => ({
+                        id: row.id,
+                        loja: row.nome,
+                        codigo: row.codigo,
+                        responsavel: row.responsaveis ? row.responsaveis.nome : 'Não atribuído',
+                        responsavel_id: row.responsavel_id,
+                        status: row.status,
+                        regional: row.regional,
+                        cidade: row.cidade,
+                        endereco: row.endereco,
+                        pdvs: row.pdvs || 0,
+                        comentarios: row.comentarios || 0,
+                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                        data_agendada: row.data_agendada,
+                        prioridade: row.prioridade,
+                        subtipo: row.subtipo,
+                        descricao: row.descricao
+                    }));
+                } else {
+                    initialCards = [...localCards];
+                }
+
+                // Carrega os PDVs (todas as lojas de uma vez) direto do Supabase
+                await loadPdvsDoSupabase();
+
+                return initialCards;
             } catch (error) {
-                console.warn('Erro ao carregar usuários:', error);
-                return USERS;
+                console.warn('Erro ao carregar lojas:', error);
+                initialCards = [...localCards];
+                return initialCards;
             }
+        }
+
+        // ============================================================
+        // PDVs - PERSISTÊNCIA NO SUPABASE
+        // ============================================================
+
+        // Carrega TODOS os PDVs de uma vez (uma única query) e organiza por loja
+        async function loadPdvsDoSupabase() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase
+                    .from('pdvs')
+                    .select('*')
+                    .order('numero', { ascending: true });
+
+                if (error) {
+                    console.warn('Erro ao carregar PDVs do Supabase:', error);
+                    return;
+                }
+
+                // Reseta a estrutura e repopula a partir do banco
+                pdvsPorLoja = {};
+                (data || []).forEach(row => {
+                    const pdv = mapPdvFromRow(row);
+                    if (!pdvsPorLoja[pdv.lojaId]) pdvsPorLoja[pdv.lojaId] = [];
+                    pdvsPorLoja[pdv.lojaId].push(pdv);
+                });
+
+                // Lojas sem nenhum PDV no banco recebem um título padrão
+                initialCards.forEach(card => {
+                    if (!pdvSectionTitles[card.id]) {
+                        pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
+                    }
+                    if (!pdvsPorLoja[card.id]) {
+                        pdvsPorLoja[card.id] = [];
+                    }
+                });
+            } catch (error) {
+                console.warn('Erro ao carregar PDVs:', error);
+            }
+        }
+
+        // Converte uma linha da tabela 'pdvs' do Supabase para o formato usado no app
+        function mapPdvFromRow(row) {
+            return {
+                id: row.id,
+                numero: row.numero,
+                nomeAntigo: row.nome_antigo || `PDV ${String(row.numero).padStart(2, '0')}`,
+                nomeAtualizado: row.nome_atualizado || '',
+                numeroSerie: row.numero_serie || '',
+                status: row.status || 'pendente',
+                observacao: row.observacao || '',
+                lojaId: row.loja_id
+            };
+        }
+
+        // Garante que os PDVs de uma loja existam no banco (busca ou cria os padrões)
+        async function garantirPdvsDaLoja(lojaId, quantidadePadrao) {
+            if (!supabase) {
+                if (!pdvsPorLoja[lojaId]) {
+                    pdvsPorLoja[lojaId] = gerarPdvsParaLoja(lojaId, quantidadePadrao || 3);
+                }
+                return pdvsPorLoja[lojaId];
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('pdvs')
+                    .select('*')
+                    .eq('loja_id', lojaId)
+                    .order('numero', { ascending: true });
+
+                if (error) {
+                    console.warn('Erro ao buscar PDVs da loja:', error);
+                    if (!pdvsPorLoja[lojaId]) pdvsPorLoja[lojaId] = [];
+                    return pdvsPorLoja[lojaId];
+                }
+
+                if (data && data.length > 0) {
+                    pdvsPorLoja[lojaId] = data.map(mapPdvFromRow);
+                } else {
+                    // Loja ainda sem PDVs no banco: cria os PDVs padrão e grava
+                    const novos = gerarPdvsParaLoja(lojaId, quantidadePadrao || 3);
+                    const linhas = novos.map(pdv => pdvParaLinha(pdv));
+                    const { data: inserted, error: insertError } = await supabase
+                        .from('pdvs')
+                        .insert(linhas)
+                        .select();
+
+                    if (insertError) {
+                        console.warn('Erro ao criar PDVs padrão no Supabase:', insertError);
+                        pdvsPorLoja[lojaId] = novos;
+                    } else {
+                        pdvsPorLoja[lojaId] = (inserted || []).map(mapPdvFromRow);
+                    }
+                }
+                return pdvsPorLoja[lojaId];
+            } catch (error) {
+                console.warn('Erro ao garantir PDVs da loja:', error);
+                if (!pdvsPorLoja[lojaId]) pdvsPorLoja[lojaId] = [];
+                return pdvsPorLoja[lojaId];
+            }
+        }
+
+        // Converte um objeto PDV (formato do app) para o formato de linha da tabela
+        function pdvParaLinha(pdv) {
+            return {
+                id: pdv.id,
+                loja_id: pdv.lojaId,
+                numero: pdv.numero,
+                nome_antigo: pdv.nomeAntigo,
+                nome_atualizado: pdv.nomeAtualizado || null,
+                numero_serie: pdv.numeroSerie || null,
+                status: pdv.status,
+                observacao: pdv.observacao || null
+            };
+        }
+
+        // Salva (upsert) um único PDV no Supabase
+        async function salvarPdvNoSupabase(pdv) {
+            if (!supabase) return;
+            try {
+                const { error } = await supabase
+                    .from('pdvs')
+                    .upsert(pdvParaLinha(pdv), { onConflict: 'id' });
+                if (error) {
+                    console.warn('Erro ao salvar PDV no Supabase:', error);
+                    showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
+                }
+            } catch (error) {
+                console.warn('Erro ao salvar PDV:', error);
+            }
+        }
+
+        // Remove um PDV do Supabase
+        async function removerPdvDoSupabase(pdvId) {
+            if (!supabase) return;
+            try {
+                const { error } = await supabase.from('pdvs').delete().eq('id', pdvId);
+                if (error) {
+                    console.warn('Erro ao remover PDV do Supabase:', error);
+                }
+            } catch (error) {
+                console.warn('Erro ao remover PDV:', error);
+            }
+        }
+
+        function gerarPdvsParaLoja(lojaId, quantidade) {
+            const pdvs = [];
+            for (let i = 1; i <= quantidade; i++) {
+                const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                pdvs.push({
+                    id: `pdv-${lojaId}-${i}-${Date.now()}-${Math.random()}`,
+                    numero: i,
+                    nomeAntigo: `PDV ${String(i).padStart(2, '0')}`,
+                    nomeAtualizado: '',
+                    numeroSerie: `SN-${randomSerial}`,
+                    status: i === 1 ? 'andamento' : 'pendente',
+                    observacao: '',
+                    lojaId: lojaId
+                });
+            }
+            return pdvs;
+        }
+
+        function formatarDataBR(isoDate) {
+            if (!isoDate) return '';
+            const [ano, mes, dia] = isoDate.split('-');
+            return `${dia}/${mes}`;
         }
 
         async function loadResponsaveis() {
@@ -1567,331 +1738,34 @@
             }
         }
 
-        async function loadLojas() {
+        async function loadUsuarios() {
             if (!supabase) {
-                // Dados locais de fallback
-                const localCards = [
-                    { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
-                    { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 2, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
-                    { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan', status: 'execucao', regional: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min', subtipo: 'Migração Linux' },
-                    { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José', status: 'bloqueada', regional: 'SP', pdvs: 3, comentarios: 12, data: '32min', subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
-                    { id: 'LJ-008', loja: 'Loja 1004', responsavel: 'Camila', status: 'revisao', regional: 'SP', pdvs: 5, comentarios: 4, data: 'Aguardando' },
-                    { id: 'LJ-009', loja: 'Loja 0999', responsavel: 'José', status: 'concluida', regional: 'BA', pdvs: 6, comentarios: 2, data: '10/07' },
-                    { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan', status: 'concluida', regional: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
-                ];
-                initialCards = localCards;
-                
-                // Inicializar PDVs para lojas locais
-                initialCards.forEach(card => {
-                    if (!pdvsPorLoja[card.id]) {
-                        pdvsPorLoja[card.id] = gerarPdvsLocais(card.id, card.pdvs || 3);
-                    }
-                    if (!pdvSectionTitles[card.id]) {
-                        pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
-                    }
-                });
-                return initialCards;
+                USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                return USERS;
             }
 
             try {
-                const { data, error } = await supabase
-                    .from('lojas')
-                    .select('*, responsaveis(id, nome)')
-                    .order('created_at', { ascending: false });
-
+                const { data, error } = await supabase.from('usuarios').select('*').order('nome');
                 if (error) {
-                    console.warn('Erro ao carregar lojas do Supabase:', error);
-                    return initialCards;
+                    console.warn('Erro ao carregar usuários:', error);
+                    USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                    return USERS;
                 }
-
-                if (data && data.length > 0) {
-                    initialCards = data.map(row => ({
-                        id: row.id,
-                        loja: row.nome,
-                        codigo: row.codigo,
-                        responsavel: row.responsaveis ? row.responsaveis.nome : 'Não atribuído',
-                        responsavel_id: row.responsavel_id,
-                        status: row.status,
-                        regional: row.regional,
-                        cidade: row.cidade,
-                        endereco: row.endereco,
-                        pdvs: row.pdvs || 0,
-                        comentarios: row.comentarios || 0,
-                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
-                        data_agendada: row.data_agendada,
-                        prioridade: row.prioridade,
-                        subtipo: row.subtipo,
-                        descricao: row.descricao
-                    }));
-
-                    // Carregar PDVs para cada loja
-                    for (const card of initialCards) {
-                        const pdvsData = await loadPdvs(card.id);
-                        pdvsPorLoja[card.id] = pdvsData;
-                        if (!pdvSectionTitles[card.id]) {
-                            pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
-                        }
-                    }
-                } else {
-                    // Se não houver dados, usar fallback
-                    const localCards = [
-                        { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' }
-                    ];
-                    initialCards = localCards;
-                    localCards.forEach(card => {
-                        if (!pdvsPorLoja[card.id]) {
-                            pdvsPorLoja[card.id] = gerarPdvsLocais(card.id, card.pdvs || 3);
-                        }
-                        if (!pdvSectionTitles[card.id]) {
-                            pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
-                        }
-                    });
-                }
-                return initialCards;
+                USERS = data || [];
+                return USERS;
             } catch (error) {
-                console.warn('Erro ao carregar lojas:', error);
-                return initialCards;
+                console.warn('Erro ao carregar usuários:', error);
+                USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                return USERS;
             }
         }
 
-        // ============================================================
-        // FUNÇÕES DE PDVs NO SUPABASE
-        // ============================================================
-        async function loadPdvs(lojaId) {
-            if (!supabase) {
-                return pdvsPorLoja[lojaId] || [];
-            }
-
-            try {
-                const { data, error } = await supabase
-                    .from('pdvs')
-                    .select('*')
-                    .eq('loja_id', lojaId)
-                    .order('numero', { ascending: true });
-
-                if (error) {
-                    console.warn('Erro ao carregar PDVs:', error);
-                    return [];
-                }
-
-                return data || [];
-            } catch (error) {
-                console.warn('Erro ao carregar PDVs:', error);
-                return [];
-            }
-        }
-
-        async function salvarPdv(lojaId, pdv) {
-            if (!supabase) {
-                // Modo local - apenas atualizar o cache
-                const pdvs = pdvsPorLoja[lojaId] || [];
-                const index = pdvs.findIndex(p => p.id === pdv.id);
-                if (index >= 0) {
-                    pdvs[index] = pdv;
-                } else {
-                    pdvs.push(pdv);
-                }
-                pdvsPorLoja[lojaId] = pdvs;
-                return pdv;
-            }
-
-            try {
-                const payload = {
-                    loja_id: lojaId,
-                    numero: pdv.numero,
-                    nome_antigo: pdv.nomeAntigo || null,
-                    nome_atualizado: pdv.nomeAtualizado || null,
-                    numero_serie: pdv.numeroSerie || null,
-                    status: pdv.status || 'pendente',
-                    observacao: pdv.observacao || null
-                };
-
-                if (pdv.id && !pdv.id.startsWith('local-')) {
-                    // Update
-                    const { data, error } = await supabase
-                        .from('pdvs')
-                        .update(payload)
-                        .eq('id', pdv.id)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    
-                    // Atualizar cache
-                    const pdvs = pdvsPorLoja[lojaId] || [];
-                    const index = pdvs.findIndex(p => p.id === pdv.id);
-                    if (index >= 0) {
-                        pdvs[index] = { ...pdv, ...data };
-                    }
-                    pdvsPorLoja[lojaId] = pdvs;
-                    return data;
-                } else {
-                    // Insert
-                    const { data, error } = await supabase
-                        .from('pdvs')
-                        .insert(payload)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-
-                    // Atualizar cache
-                    const pdvs = pdvsPorLoja[lojaId] || [];
-                    pdvs.push(data);
-                    pdvsPorLoja[lojaId] = pdvs;
-                    return data;
-                }
-            } catch (error) {
-                console.error('Erro ao salvar PDV:', error);
-                showNotification('❌ Erro ao salvar PDV no banco');
-                throw error;
-            }
-        }
-
-        async function deletarPdv(lojaId, pdvId) {
-            if (!supabase) {
-                pdvsPorLoja[lojaId] = (pdvsPorLoja[lojaId] || []).filter(p => p.id !== pdvId);
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('pdvs')
-                    .delete()
-                    .eq('id', pdvId);
-
-                if (error) throw error;
-
-                pdvsPorLoja[lojaId] = (pdvsPorLoja[lojaId] || []).filter(p => p.id !== pdvId);
-            } catch (error) {
-                console.error('Erro ao deletar PDV:', error);
-                showNotification('❌ Erro ao deletar PDV');
-                throw error;
-            }
-        }
-
-        async function sincronizarPdvs(lojaId, pdvs) {
-            if (!supabase) {
-                pdvsPorLoja[lojaId] = pdvs;
-                return;
-            }
-
-            try {
-                // Para cada PDV, salvar individualmente
-                for (const pdv of pdvs) {
-                    await salvarPdv(lojaId, pdv);
-                }
-            } catch (error) {
-                console.error('Erro ao sincronizar PDVs:', error);
-                showNotification('❌ Erro ao sincronizar PDVs');
-            }
-        }
-
-        // ============================================================
-        // FUNÇÕES DE LOJA NO SUPABASE
-        // ============================================================
-        async function salvarLoja(loja) {
-            if (!supabase) {
-                const existing = initialCards.find(c => c.id === loja.id);
-                if (existing) {
-                    Object.assign(existing, loja);
-                } else {
-                    initialCards.push(loja);
-                }
-                return loja;
-            }
-
-            try {
-                const payload = {
-                    nome: loja.loja,
-                    codigo: loja.codigo || null,
-                    responsavel_id: loja.responsavel_id || null,
-                    status: loja.status || 'agendada',
-                    regional: loja.regional || null,
-                    cidade: loja.cidade || null,
-                    endereco: loja.endereco || null,
-                    pdvs: loja.pdvs || 0,
-                    comentarios: loja.comentarios || 0,
-                    data_agendada: loja.data_agendada || null,
-                    prioridade: loja.prioridade || null,
-                    subtipo: loja.subtipo || null,
-                    descricao: loja.descricao || null
-                };
-
-                if (loja.id && !loja.id.startsWith('local-')) {
-                    const { data, error } = await supabase
-                        .from('lojas')
-                        .update(payload)
-                        .eq('id', loja.id)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    const updated = { ...loja, ...data };
-                    const index = initialCards.findIndex(c => c.id === loja.id);
-                    if (index >= 0) initialCards[index] = updated;
-                    return updated;
-                } else {
-                    const { data, error } = await supabase
-                        .from('lojas')
-                        .insert(payload)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    const newLoja = { ...loja, ...data };
-                    initialCards.push(newLoja);
-                    return newLoja;
-                }
-            } catch (error) {
-                console.error('Erro ao salvar loja:', error);
-                showNotification('❌ Erro ao salvar loja no banco');
-                throw error;
-            }
-        }
-
-        async function deletarLoja(lojaId) {
-            if (!supabase) {
-                initialCards = initialCards.filter(c => c.id !== lojaId);
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('lojas')
-                    .delete()
-                    .eq('id', lojaId);
-
-                if (error) throw error;
-
-                initialCards = initialCards.filter(c => c.id !== lojaId);
-                delete pdvsPorLoja[lojaId];
-            } catch (error) {
-                console.error('Erro ao deletar loja:', error);
-                showNotification('❌ Erro ao deletar loja');
-                throw error;
-            }
-        }
-
-        // ============================================================
-        // GERADOR DE PDVs LOCAIS
-        // ============================================================
-        function gerarPdvsLocais(lojaId, quantidade) {
-            const pdvs = [];
-            for (let i = 1; i <= quantidade; i++) {
-                const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-                pdvs.push({
-                    id: `local-${lojaId}-${i}-${Date.now()}-${Math.random()}`,
-                    numero: i,
-                    nome_antigo: `PDV ${String(i).padStart(2, '0')}`,
-                    nome_atualizado: '',
-                    numero_serie: `SN-${randomSerial}`,
-                    status: i === 1 ? 'andamento' : 'pendente',
-                    observacao: '',
-                    loja_id: lojaId
-                });
-            }
-            return pdvs;
+        async function carregarTudo() {
+            await Promise.all([loadUsuarios(), loadResponsaveis(), loadLojas()]);
+            renderCards();
+            renderUserList();
+            updateResponsavelFilter();
+            console.log('✅ Todos os dados carregados!');
         }
 
         // ============================================================
@@ -1917,7 +1791,6 @@
             try {
                 let user = null;
 
-                // Tentar no Supabase
                 if (supabase) {
                     try {
                         const { data, error } = await supabase
@@ -1935,23 +1808,15 @@
                     }
                 }
 
-                // Fallback local
                 if (!user) {
-                    const localUsers = [
-                        { nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
-                        { nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
-                        { nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-                        { nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-                        { nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
-                    ];
-                    const found = localUsers.find(u => u.email === email && u.senha === senha);
-                    if (found) {
+                    user = DEFAULT_USERS.find(u => u.email === email && u.senha === senha);
+                    if (user) {
                         user = {
                             id: 'local-' + Date.now(),
-                            nome: found.nome,
-                            email: found.email,
-                            senha: found.senha,
-                            role: found.role
+                            nome: user.nome,
+                            email: user.email,
+                            senha: user.senha,
+                            role: user.role
                         };
                     }
                 }
@@ -1969,9 +1834,7 @@
                         user.role === 'admin' ? 'Administrador' :
                         user.role === 'gerente' ? 'Gerente' : 'Técnico';
 
-                    showLoading();
                     await carregarTudo();
-                    hideLoading();
                     showNotification(`👋 Bem-vindo, ${user.nome}!`);
 
                     btn.disabled = false;
@@ -2000,23 +1863,6 @@
                 document.getElementById('loginBtn').disabled = false;
                 document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
             }
-        }
-
-        // ============================================================
-        // CARREGAR TUDO
-        // ============================================================
-        async function carregarTudo() {
-            await Promise.all([loadUsuarios(), loadResponsaveis(), loadLojas()]);
-            renderCards();
-            renderUserList();
-            updateResponsavelFilter();
-            console.log('✅ Todos os dados carregados!');
-        }
-
-        function formatarDataBR(isoDate) {
-            if (!isoDate) return '';
-            const [ano, mes, dia] = isoDate.split('-');
-            return `${dia}/${mes}`;
         }
 
         // ============================================================
@@ -2103,6 +1949,7 @@
                     'concluida': 'fa-check-circle'
                 }[card.status];
 
+                // Barra de progresso dos PDVs no card
                 const progressBar = totalPdvs > 0 ? `
                     <div class="mt-2 flex items-center gap-2">
                         <div class="flex-1 bg-[#2d313e] h-1.5 rounded-full overflow-hidden">
@@ -2158,7 +2005,26 @@
         }
 
         // ============================================================
-        // FUNÇÕES DE DRAG & DROP
+        // ATUALIZAR FILTRO DE RESPONSÁVEIS
+        // ============================================================
+        function updateResponsavelFilter() {
+            const select = document.getElementById('responsibleFilter');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Todos</option>';
+            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
+            responsaveis.forEach(r => {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = r;
+                select.appendChild(option);
+            });
+            if (currentValue && responsaveis.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // ============================================================
+        // DRAG & DROP
         // ============================================================
         let draggedCard = null;
 
@@ -2212,21 +2078,9 @@
 
             const cardData = initialCards.find(c => c.id === cardId);
             if (cardData && cardData.status !== targetStatus) {
-                const statusAnterior = cardData.status;
                 cardData.status = targetStatus;
-                
-                // Salvar no banco
-                showLoading();
-                try {
-                    await salvarLoja(cardData);
-                    renderCards();
-                    showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
-                } catch (error) {
-                    cardData.status = statusAnterior;
-                    renderCards();
-                    showNotification('❌ Erro ao mover loja');
-                }
-                hideLoading();
+                renderCards();
+                showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
             }
             draggedCard = null;
         }
@@ -2244,98 +2098,19 @@
             }
 
             if (confirm(`Deseja excluir ${card.loja}?`)) {
-                showLoading();
-                try {
-                    await deletarLoja(cardId);
-                    renderCards();
-                    showNotification(`🗑️ ${card.loja} excluída!`);
-                } catch (error) {
-                    showNotification('❌ Erro ao excluir loja');
-                }
-                hideLoading();
+                initialCards = initialCards.filter(c => c.id !== cardId);
+                delete pdvsPorLoja[cardId];
+                delete pdvSectionTitles[cardId];
+                renderCards();
+                showNotification(`🗑️ ${card.loja} excluída!`);
             }
         }
 
         // ============================================================
-        // FUNÇÕES DE FILTRO E ATUALIZAÇÃO
-        // ============================================================
-        function updateResponsavelFilter() {
-            const select = document.getElementById('responsibleFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Todos</option>';
-            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
-            responsaveis.forEach(r => {
-                const option = document.createElement('option');
-                option.value = r;
-                option.textContent = r;
-                select.appendChild(option);
-            });
-            if (currentValue && responsaveis.includes(currentValue)) {
-                select.value = currentValue;
-            }
-        }
-
-        function filterCards() {
-            const searchTerm = document.getElementById('searchStoreFilter').value.toLowerCase();
-            const responsible = document.getElementById('responsibleFilter').value;
-
-            document.querySelectorAll('.kanban-card').forEach(card => {
-                const loja = card.dataset.loja?.toLowerCase() || '';
-                const resp = card.dataset.responsavel || '';
-                const matchSearch = !searchTerm || loja.includes(searchTerm);
-                const matchResp = !responsible || resp === responsible;
-                card.style.display = (matchSearch && matchResp) ? '' : 'none';
-            });
-        }
-
-        function updateCounts() {
-            const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
-            statuses.forEach(status => {
-                const count = initialCards.filter(c => c.status === status).length;
-                const el = document.getElementById(`count-${status}`);
-                if (el) el.textContent = count;
-            });
-        }
-
-        function updateMetricDisplay() {
-            document.getElementById('totalLojasDisplay').textContent = initialCards.length;
-            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
-            document.getElementById('concluidasDisplay').textContent = concluidas;
-        }
-
-        function editMetric(type) {
-            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
-                showNotification('⛔ Apenas Administradores e Gerentes podem editar as métricas!');
-                return;
-            }
-            const currentValue = type === 'total' ? initialCards.length : initialCards.filter(c => c.status === 'concluida').length;
-            const label = type === 'total' ? 'Total de Lojas' : 'Lojas Concluídas';
-            const newValue = prompt(`Editar ${label} (valor atual: ${currentValue}):`, currentValue);
-            if (newValue === null) return;
-            const parsed = parseInt(newValue);
-            if (isNaN(parsed) || parsed < 0) {
-                showNotification('❌ Valor inválido!');
-                return;
-            }
-            if (type === 'total') {
-                document.getElementById('totalLojasDisplay').textContent = parsed;
-            } else {
-                document.getElementById('concluidasDisplay').textContent = parsed;
-            }
-            showNotification(`✅ ${label} atualizado para ${parsed}`);
-        }
-
-        function togglePanel() {
-            const panel = document.getElementById('bottomPanel');
-            panel.classList.toggle('collapsed');
-        }
-
-        // ============================================================
-        // MODAL DETALHADO DO CARD
+        // MODAL DETALHADO DO CARD - COMPLETO
         // ============================================================
         async function openCardDetail(cardId) {
             currentCardId = cardId;
-            editingCardId = cardId;
             const cardData = initialCards.find(c => c.id === cardId);
             if (!cardData) return;
 
@@ -2373,19 +2148,14 @@
             // Descrição
             document.getElementById('modalDescription').value = cardData.descricao || '';
 
-            // Carregar PDVs do banco
-            if (supabase) {
-                const pdvsData = await loadPdvs(cardId);
-                pdvsPorLoja[cardId] = pdvsData;
-            } else if (!pdvsPorLoja[cardId]) {
-                pdvsPorLoja[cardId] = gerarPdvsLocais(cardId, cardData.pdvs || 3);
-            }
-
+            // Carregar/garantir PDVs da loja (busca no Supabase; cria os padrão na 1ª vez)
+            await garantirPdvsDaLoja(cardId, cardData.pdvs || 3);
             if (!pdvSectionTitles[cardId]) {
                 pdvSectionTitles[cardId] = `PDVs da Loja ${cardData.loja}`;
             }
 
-            document.getElementById('pdvSectionTitle').textContent = pdvSectionTitles[cardId];
+            // Atualizar título da seção
+            document.getElementById('pdvSectionTitle').textContent = pdvSectionTitles[cardId] || `PDVs da Loja ${cardData.loja}`;
 
             // Renderizar PDVs
             renderPdvs(cardId);
@@ -2401,9 +2171,8 @@
             renderChecklist();
 
             // Atualizar totais
-            const pdvs = pdvsPorLoja[cardId] || [];
-            document.getElementById('modalTotalPdvs').textContent = pdvs.length;
-            const concluidos = pdvs.filter(p => p.status === 'concluido').length;
+            document.getElementById('modalTotalPdvs').textContent = pdvsPorLoja[cardId].length;
+            const concluidos = pdvsPorLoja[cardId].filter(p => p.status === 'concluido').length;
             document.getElementById('modalPdvsConcluidos').textContent = concluidos;
 
             document.getElementById('cardModal').classList.add('active');
@@ -2415,128 +2184,6 @@
             document.getElementById('cardModal').classList.remove('active');
             document.body.style.overflow = '';
             currentCardId = null;
-            editingCardId = null;
-        }
-
-        // ============================================================
-        // FUNÇÕES DE RESPONSÁVEIS
-        // ============================================================
-        function populateResponsavelSelects() {
-            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
-            selects.forEach(select => {
-                const currentValue = select.value;
-                select.innerHTML = '<option value="">Selecione um responsável...</option>';
-                RESPONSAVEIS.forEach(resp => {
-                    const option = document.createElement('option');
-                    option.value = resp.id;
-                    option.textContent = resp.nome;
-                    select.appendChild(option);
-                });
-                if (currentValue) {
-                    select.value = currentValue;
-                }
-            });
-        }
-
-        async function updateResponsibleFromModal() {
-            if (!currentCardId) return;
-            const select = document.getElementById('responsibleInput');
-            const newResponsavelId = select.value;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card && newResponsavelId) {
-                const resp = RESPONSAVEIS.find(r => r.id === newResponsavelId);
-                card.responsavel = resp ? resp.nome : 'Não atribuído';
-                card.responsavel_id = newResponsavelId;
-                
-                showLoading();
-                try {
-                    await salvarLoja(card);
-                    renderCards();
-                    showNotification(`✅ Responsável alterado para ${card.responsavel}`);
-                    closeCardDetail();
-                } catch (error) {
-                    showNotification('❌ Erro ao alterar responsável');
-                }
-                hideLoading();
-            } else {
-                showNotification('❌ Selecione um responsável válido!');
-            }
-        }
-
-        // ============================================================
-        // AÇÕES RÁPIDAS DO MODAL
-        // ============================================================
-        async function startStoreFromModal() {
-            if (!currentCardId) return;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                card.status = 'execucao';
-                showLoading();
-                try {
-                    await salvarLoja(card);
-                    renderCards();
-                    closeCardDetail();
-                    showNotification('🚀 Loja iniciada!');
-                } catch (error) {
-                    showNotification('❌ Erro ao iniciar loja');
-                }
-                hideLoading();
-            }
-        }
-
-        async function blockStoreFromModal() {
-            if (!currentCardId) return;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                card.status = 'bloqueada';
-                showLoading();
-                try {
-                    await salvarLoja(card);
-                    renderCards();
-                    closeCardDetail();
-                    showNotification('⛔ Loja bloqueada!');
-                } catch (error) {
-                    showNotification('❌ Erro ao bloquear loja');
-                }
-                hideLoading();
-            }
-        }
-
-        async function completeStoreFromModal() {
-            if (!currentCardId) return;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (card) {
-                const pdvs = pdvsPorLoja[currentCardId] || [];
-                const allDone = pdvs.every(p => p.status === 'concluido');
-                if (pdvs.length > 0 && !allDone) {
-                    if (!confirm('Ainda há PDVs pendentes. Deseja concluir a loja mesmo assim?')) {
-                        return;
-                    }
-                }
-                card.status = 'concluida';
-                showLoading();
-                try {
-                    await salvarLoja(card);
-                    renderCards();
-                    closeCardDetail();
-                    showNotification('🎉 Loja concluída!');
-                } catch (error) {
-                    showNotification('❌ Erro ao concluir loja');
-                }
-                hideLoading();
-            }
-        }
-
-        function notifyResponsible() {
-            const id = document.getElementById('responsibleInput').value;
-            const resp = RESPONSAVEIS.find(r => r.id === id);
-            showNotification(`📧 E-mail enviado para ${resp ? resp.nome : 'responsável'}`);
-        }
-
-        function notifyPlatform() {
-            const id = document.getElementById('responsibleInput').value;
-            const resp = RESPONSAVEIS.find(r => r.id === id);
-            showNotification(`🔔 Notificação enviada para ${resp ? resp.nome : 'responsável'} na plataforma`);
         }
 
         // ============================================================
@@ -2608,7 +2255,7 @@
         }
 
         // ============================================================
-        // PDVs - FUNÇÕES CRIATIVAS COM BANCO DE DADOS
+        // PDVs - COM PDV ANTIGO E PDV ATUALIZADO (AMBOS EDITÁVEIS)
         // ============================================================
         function renderPdvs(lojaId) {
             const container = document.getElementById('pdvListContainer');
@@ -2670,37 +2317,36 @@
                     'bloqueado': 'pdv-status-bloqueado'
                 };
 
-                const nomeAtualizado = pdv.nome_atualizado || '';
-                const nomeAntigo = pdv.nome_antigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
-                const pdvId = pdv.id;
+                const nomeAtualizado = pdv.nomeAtualizado || '';
+                const nomeAntigo = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
 
                 return `
-                    <div class="pdv-item" data-pdv-id="${pdvId}">
-                        <div class="pdv-old" onclick="editPdvAntigo('${lojaId}', '${pdvId}')" title="Clique para editar o PDV antigo">
+                    <div class="pdv-item" data-pdv-id="${pdv.id}">
+                        <div class="pdv-old" onclick="editPdvAntigo('${lojaId}', '${pdv.id}')" title="Clique para editar o PDV antigo">
                             <span class="pdv-old-label">Antigo</span>
                             ${nomeAntigo}
                         </div>
                         <span class="pdv-divider">→</span>
-                        <div class="pdv-new" onclick="editPdvAtualizado('${lojaId}', '${pdvId}')" title="Clique para editar o PDV atualizado">
+                        <div class="pdv-new" onclick="editPdvAtualizado('${lojaId}', '${pdv.id}')" title="Clique para editar o PDV atualizado">
                             <span class="pdv-new-label">Atualizado</span>
                             ${nomeAtualizado || '__________'}
                         </div>
                         <span class="pdv-serial">
                             <i class="fas fa-barcode text-slate-500 mr-1"></i>
-                            <input type="text" 
-                                   value="${pdv.numero_serie || ''}" 
-                                   onchange="updatePdvSerial('${lojaId}', '${pdvId}', this.value)"
+                            <input type="text" class="bg-transparent border-b border-[#2d313e] focus:border-indigo-500 outline-none text-xs text-slate-300 w-28" 
+                                   value="${pdv.numeroSerie}" 
+                                   onchange="updatePdvSerial('${lojaId}', '${pdv.id}', this.value)"
                                    placeholder="Nº Série" />
                         </span>
                         <span class="pdv-status ${statusColors[pdv.status]}" title="${statusLabels[pdv.status]}"></span>
                         <select class="bg-transparent text-xs text-slate-300 border border-[#2d313e] rounded px-2 py-0.5 focus:border-indigo-500 outline-none" 
-                                onchange="updatePdvStatus('${lojaId}', '${pdvId}', this.value)">
+                                onchange="updatePdvStatus('${lojaId}', '${pdv.id}', this.value)">
                             <option value="pendente" ${pdv.status === 'pendente' ? 'selected' : ''}>⏳ Pendente</option>
                             <option value="andamento" ${pdv.status === 'andamento' ? 'selected' : ''}>🔄 Andamento</option>
                             <option value="concluido" ${pdv.status === 'concluido' ? 'selected' : ''}>✅ Concluído</option>
                             <option value="bloqueado" ${pdv.status === 'bloqueado' ? 'selected' : ''}>⛔ Bloqueado</option>
                         </select>
-                        <button class="text-rose-400 hover:text-rose-300 text-xs transition ml-1" onclick="removePdv('${lojaId}', '${pdvId}')" title="Remover PDV">
+                        <button class="text-rose-400 hover:text-rose-300 text-xs transition ml-1" onclick="removePdv('${lojaId}', '${pdv.id}')" title="Remover PDV">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -2708,84 +2354,35 @@
             }).join('');
         }
 
-        // ============================================================
-        // FUNÇÕES DE EDIÇÃO DE PDVs (COM SALVAMENTO NO BANCO)
-        // ============================================================
+        // Função para editar o PDV Antigo (com dois cliques)
         async function editPdvAntigo(lojaId, pdvId) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (!pdv) return;
 
-            const currentValue = pdv.nome_antigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
+            const currentValue = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
             const newValue = prompt('Editar PDV Antigo:', currentValue);
             if (newValue !== null && newValue.trim() !== '') {
-                pdv.nome_antigo = newValue.trim();
-                showLoading();
-                try {
-                    await salvarPdv(lojaId, pdv);
-                    renderPdvs(lojaId);
-                    showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
-                } catch (error) {
-                    showNotification('❌ Erro ao atualizar PDV');
-                }
-                hideLoading();
+                pdv.nomeAntigo = newValue.trim();
+                renderPdvs(lojaId);
+                await salvarPdvNoSupabase(pdv);
+                showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
             }
         }
 
+        // Função para editar o PDV Atualizado (com dois cliques)
         async function editPdvAtualizado(lojaId, pdvId) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (!pdv) return;
 
-            const currentValue = pdv.nome_atualizado || '';
+            const currentValue = pdv.nomeAtualizado || '';
             const newValue = prompt('Informe o número do PDV atualizado:', currentValue);
             if (newValue !== null) {
-                pdv.nome_atualizado = newValue.trim();
-                showLoading();
-                try {
-                    await salvarPdv(lojaId, pdv);
-                    renderPdvs(lojaId);
-                    showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
-                } catch (error) {
-                    showNotification('❌ Erro ao atualizar PDV');
-                }
-                hideLoading();
-            }
-        }
-
-        async function updatePdvStatus(lojaId, pdvId, status) {
-            const pdvs = pdvsPorLoja[lojaId] || [];
-            const pdv = pdvs.find(p => p.id === pdvId);
-            if (pdv) {
-                pdv.status = status;
-                showLoading();
-                try {
-                    await salvarPdv(lojaId, pdv);
-                    renderPdvs(lojaId);
-                    const allDone = pdvs.every(p => p.status === 'concluido');
-                    if (allDone && pdvs.length > 0) {
-                        showNotification('🎉 Todos os PDVs concluídos!');
-                    }
-                } catch (error) {
-                    showNotification('❌ Erro ao atualizar status');
-                }
-                hideLoading();
-            }
-        }
-
-        async function updatePdvSerial(lojaId, pdvId, value) {
-            const pdvs = pdvsPorLoja[lojaId] || [];
-            const pdv = pdvs.find(p => p.id === pdvId);
-            if (pdv) {
-                pdv.numero_serie = value;
-                showLoading();
-                try {
-                    await salvarPdv(lojaId, pdv);
-                    showNotification('✅ Número de série atualizado');
-                } catch (error) {
-                    showNotification('❌ Erro ao atualizar série');
-                }
-                hideLoading();
+                pdv.nomeAtualizado = newValue.trim();
+                renderPdvs(lojaId);
+                await salvarPdvNoSupabase(pdv);
+                showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
             }
         }
 
@@ -2794,41 +2391,55 @@
             const pdvs = pdvsPorLoja[currentCardId] || [];
             const nextNum = pdvs.length + 1;
             const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-            
             const newPdv = {
+                id: `pdv-${currentCardId}-${nextNum}-${Date.now()}-${Math.random()}`,
                 numero: nextNum,
-                nome_antigo: `PDV ${String(nextNum).padStart(2, '0')}`,
-                nome_atualizado: '',
-                numero_serie: `SN-${randomSerial}`,
+                nomeAntigo: `PDV ${String(nextNum).padStart(2, '0')}`,
+                nomeAtualizado: '',
+                numeroSerie: `SN-${randomSerial}`,
                 status: 'pendente',
                 observacao: '',
-                loja_id: currentCardId
+                lojaId: currentCardId
             };
-
-            showLoading();
-            try {
-                const saved = await salvarPdv(currentCardId, newPdv);
-                pdvs.push(saved);
-                pdvsPorLoja[currentCardId] = pdvs;
-                renderPdvs(currentCardId);
-                showNotification(`✅ ${saved.nome_antigo} adicionado!`);
-            } catch (error) {
-                showNotification('❌ Erro ao adicionar PDV');
-            }
-            hideLoading();
+            pdvs.push(newPdv);
+            pdvsPorLoja[currentCardId] = pdvs;
+            renderPdvs(currentCardId);
+            await salvarPdvNoSupabase(newPdv);
+            showNotification(`✅ ${newPdv.nomeAntigo} adicionado!`);
         }
 
         async function removePdv(lojaId, pdvId) {
             if (!confirm('Remover este PDV?')) return;
-            showLoading();
-            try {
-                await deletarPdv(lojaId, pdvId);
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const removed = pdvs.find(p => p.id === pdvId);
+            pdvsPorLoja[lojaId] = pdvs.filter(p => p.id !== pdvId);
+            renderPdvs(lojaId);
+            await removerPdvDoSupabase(pdvId);
+            showNotification(`🗑️ ${removed?.nomeAntigo || 'PDV'} removido`);
+        }
+
+        async function updatePdvStatus(lojaId, pdvId, status) {
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const pdv = pdvs.find(p => p.id === pdvId);
+            if (pdv) {
+                pdv.status = status;
                 renderPdvs(lojaId);
-                showNotification('🗑️ PDV removido');
-            } catch (error) {
-                showNotification('❌ Erro ao remover PDV');
+                await salvarPdvNoSupabase(pdv);
+                const allDone = pdvs.every(p => p.status === 'concluido');
+                if (allDone && pdvs.length > 0) {
+                    showNotification('🎉 Todos os PDVs concluídos!');
+                }
             }
-            hideLoading();
+        }
+
+        async function updatePdvSerial(lojaId, pdvId, value) {
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const pdv = pdvs.find(p => p.id === pdvId);
+            if (pdv) {
+                pdv.numeroSerie = value;
+                await salvarPdvNoSupabase(pdv);
+                showNotification('✅ Número de série atualizado');
+            }
         }
 
         async function setAllPdvsStatus(status) {
@@ -2841,18 +2452,10 @@
                 'bloqueado': 'Bloqueado'
             };
             if (confirm(`Definir todos os PDVs como "${labels[status]}"?`)) {
-                showLoading();
-                try {
-                    for (const pdv of pdvs) {
-                        pdv.status = status;
-                        await salvarPdv(currentCardId, pdv);
-                    }
-                    renderPdvs(currentCardId);
-                    showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
-                } catch (error) {
-                    showNotification('❌ Erro ao atualizar PDVs');
-                }
-                hideLoading();
+                pdvs.forEach(p => p.status = status);
+                renderPdvs(currentCardId);
+                await Promise.all(pdvs.map(p => salvarPdvNoSupabase(p)));
+                showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
             }
         }
 
@@ -2972,6 +2575,94 @@
         }
 
         // ============================================================
+        // AÇÕES DO MODAL
+        // ============================================================
+        function populateResponsavelSelects() {
+            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Selecione um responsável...</option>';
+                RESPONSAVEIS.forEach(resp => {
+                    const option = document.createElement('option');
+                    option.value = resp.id;
+                    option.textContent = resp.nome;
+                    select.appendChild(option);
+                });
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        async function updateResponsibleFromModal() {
+            if (!currentCardId) return;
+            const select = document.getElementById('responsibleInput');
+            const newResponsavelId = select.value;
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (card && newResponsavelId) {
+                const resp = RESPONSAVEIS.find(r => r.id === newResponsavelId);
+                card.responsavel = resp ? resp.nome : 'Não atribuído';
+                renderCards();
+                showNotification(`✅ Responsável alterado para ${card.responsavel}`);
+                closeCardDetail();
+            } else {
+                showNotification('❌ Selecione um responsável válido!');
+            }
+        }
+
+        function startStoreFromModal() {
+            if (!currentCardId) return;
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (card) {
+                card.status = 'execucao';
+                renderCards();
+                closeCardDetail();
+                showNotification('🚀 Loja iniciada!');
+            }
+        }
+
+        function blockStoreFromModal() {
+            if (!currentCardId) return;
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (card) {
+                card.status = 'bloqueada';
+                renderCards();
+                closeCardDetail();
+                showNotification('⛔ Loja bloqueada!');
+            }
+        }
+
+        function completeStoreFromModal() {
+            if (!currentCardId) return;
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (card) {
+                const pdvs = pdvsPorLoja[currentCardId] || [];
+                const allDone = pdvs.every(p => p.status === 'concluido');
+                if (pdvs.length > 0 && !allDone) {
+                    if (!confirm('Ainda há PDVs pendentes. Deseja concluir a loja mesmo assim?')) {
+                        return;
+                    }
+                }
+                card.status = 'concluida';
+                renderCards();
+                closeCardDetail();
+                showNotification('🎉 Loja concluída!');
+            }
+        }
+
+        function notifyResponsible() {
+            const id = document.getElementById('responsibleInput').value;
+            const resp = RESPONSAVEIS.find(r => r.id === id);
+            showNotification(`📧 E-mail enviado para ${resp ? resp.nome : 'responsável'}`);
+        }
+
+        function notifyPlatform() {
+            const id = document.getElementById('responsibleInput').value;
+            const resp = RESPONSAVEIS.find(r => r.id === id);
+            showNotification(`🔔 Notificação enviada para ${resp ? resp.nome : 'responsável'} na plataforma`);
+        }
+
+        // ============================================================
         // TÉCNICOS
         // ============================================================
         function openTechDashboard() {
@@ -3067,6 +2758,64 @@
         }
 
         // ============================================================
+        // FUNÇÕES ADICIONAIS
+        // ============================================================
+        function filterCards() {
+            const searchTerm = document.getElementById('searchStoreFilter').value.toLowerCase();
+            const responsible = document.getElementById('responsibleFilter').value;
+
+            document.querySelectorAll('.kanban-card').forEach(card => {
+                const loja = card.dataset.loja?.toLowerCase() || '';
+                const resp = card.dataset.responsavel || '';
+                const matchSearch = !searchTerm || loja.includes(searchTerm);
+                const matchResp = !responsible || resp === responsible;
+                card.style.display = (matchSearch && matchResp) ? '' : 'none';
+            });
+        }
+
+        function updateCounts() {
+            const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
+            statuses.forEach(status => {
+                const count = initialCards.filter(c => c.status === status).length;
+                const el = document.getElementById(`count-${status}`);
+                if (el) el.textContent = count;
+            });
+        }
+
+        function updateMetricDisplay() {
+            document.getElementById('totalLojasDisplay').textContent = initialCards.length;
+            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
+            document.getElementById('concluidasDisplay').textContent = concluidas;
+        }
+
+        function editMetric(type) {
+            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+                showNotification('⛔ Apenas Administradores e Gerentes podem editar as métricas!');
+                return;
+            }
+            const currentValue = type === 'total' ? initialCards.length : initialCards.filter(c => c.status === 'concluida').length;
+            const label = type === 'total' ? 'Total de Lojas' : 'Lojas Concluídas';
+            const newValue = prompt(`Editar ${label} (valor atual: ${currentValue}):`, currentValue);
+            if (newValue === null) return;
+            const parsed = parseInt(newValue);
+            if (isNaN(parsed) || parsed < 0) {
+                showNotification('❌ Valor inválido!');
+                return;
+            }
+            if (type === 'total') {
+                document.getElementById('totalLojasDisplay').textContent = parsed;
+            } else {
+                document.getElementById('concluidasDisplay').textContent = parsed;
+            }
+            showNotification(`✅ ${label} atualizado para ${parsed}`);
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('bottomPanel');
+            panel.classList.toggle('collapsed');
+        }
+
+        // ============================================================
         // GERENCIAR USUÁRIOS
         // ============================================================
         function openUserManagement() {
@@ -3129,35 +2878,8 @@
                 return;
             }
 
-            const newUser = { 
-                id: 'local-' + Date.now(), 
-                nome: name, 
-                email: email, 
-                senha: 'nova123', 
-                role: role 
-            };
-            
+            const newUser = { id: 'local-' + Date.now(), nome: name, email: email, senha: 'nova123', role: role };
             USERS.push(newUser);
-            
-            if (supabase) {
-                showLoading();
-                try {
-                    const { data, error } = await supabase
-                        .from('usuarios')
-                        .insert({ nome: name, email: email, senha: 'nova123', role: role })
-                        .select()
-                        .single();
-                    if (error) throw error;
-                    // Atualizar com o ID do banco
-                    const idx = USERS.findIndex(u => u.id === newUser.id);
-                    if (idx >= 0) USERS[idx] = data;
-                } catch (error) {
-                    console.error('Erro ao adicionar usuário:', error);
-                    showNotification('❌ Erro ao adicionar usuário no banco');
-                }
-                hideLoading();
-            }
-            
             document.getElementById('newUserName').value = '';
             document.getElementById('newUserEmail').value = '';
             renderUserList();
@@ -3170,18 +2892,6 @@
             const newName = prompt('Novo nome:', user.nome);
             if (newName && newName.trim()) {
                 user.nome = newName.trim();
-                
-                if (supabase && !user.id.startsWith('local-')) {
-                    try {
-                        await supabase
-                            .from('usuarios')
-                            .update({ nome: user.nome })
-                            .eq('id', user.id);
-                    } catch (error) {
-                        console.error('Erro ao editar usuário:', error);
-                    }
-                }
-                
                 renderUserList();
                 showNotification(`✏️ Usuário atualizado para ${newName}`);
             }
@@ -3196,18 +2906,6 @@
             }
             if (confirm(`Remover ${user.nome}?`)) {
                 USERS = USERS.filter(u => u.id !== userId);
-                
-                if (supabase && !user.id.startsWith('local-')) {
-                    try {
-                        await supabase
-                            .from('usuarios')
-                            .delete()
-                            .eq('id', user.id);
-                    } catch (error) {
-                        console.error('Erro ao remover usuário:', error);
-                    }
-                }
-                
                 renderUserList();
                 showNotification(`🗑️ Usuário ${user.nome} removido`);
             }
@@ -3237,18 +2935,6 @@
             const user = USERS.find(u => u.id === resetTargetUserId);
             if (user) {
                 user.senha = newPassword;
-                
-                if (supabase && !user.id.startsWith('local-')) {
-                    try {
-                        await supabase
-                            .from('usuarios')
-                            .update({ senha: newPassword })
-                            .eq('id', user.id);
-                    } catch (error) {
-                        console.error('Erro ao resetar senha:', error);
-                    }
-                }
-                
                 showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword}`);
                 closeResetPasswordModal();
             }
@@ -3287,56 +2973,91 @@
             }
 
             const resp = RESPONSAVEIS.find(r => r.id === responsavelId);
-            
+            let newId = `LJ-${Math.floor(Math.random() * 1000)}`;
+            const nomeLoja = `Loja ${numero}`;
+
+            let lojaSalvaNoSupabase = false;
+
+            if (supabase) {
+                try {
+                    const { data: inserted, error } = await supabase
+                        .from('lojas')
+                        .insert({
+                            nome: nomeLoja,
+                            responsavel_id: resp ? resp.id : null,
+                            status: status,
+                            regional: regional,
+                            pdvs: pdvs,
+                            comentarios: 0,
+                            data_agendada: data || null
+                        })
+                        .select()
+                        .single();
+
+                    if (error) {
+                        console.warn('Erro ao salvar loja no Supabase, usando fallback local:', error);
+                    } else if (inserted) {
+                        newId = inserted.id;
+                        lojaSalvaNoSupabase = true;
+                    }
+                } catch (error) {
+                    console.warn('Erro ao salvar loja no Supabase:', error);
+                }
+            }
+
             const newCard = {
-                loja: `Loja ${numero}`,
+                id: newId,
+                loja: nomeLoja,
                 responsavel: resp ? resp.nome : 'Não atribuído',
-                responsavel_id: responsavelId || null,
                 status: status,
                 regional: regional,
                 pdvs: pdvs,
                 comentarios: 0,
-                data_agendada: data || null,
-                data: data ? formatarDataBR(data) : 'Hoje'
+                data: data || 'Hoje'
             };
 
-            showLoading();
-            try {
-                const saved = await salvarLoja(newCard);
-                const lojaId = saved.id || saved.id;
-                
-                // Gerar PDVs para a nova loja
-                const pdvsGerados = gerarPdvsLocais(lojaId, pdvs);
-                pdvsPorLoja[lojaId] = pdvsGerados;
-                
-                // Salvar PDVs no banco
-                if (supabase) {
-                    for (const pdv of pdvsGerados) {
-                        await salvarPdv(lojaId, pdv);
+            initialCards.push(newCard);
+            pdvSectionTitles[newId] = `PDVs da Loja ${numero}`;
+
+            // Cria os PDVs padrão da loja (e já tenta gravar no Supabase)
+            const novosPdvs = gerarPdvsParaLoja(newId, pdvs);
+            pdvsPorLoja[newId] = novosPdvs;
+
+            if (supabase && lojaSalvaNoSupabase) {
+                try {
+                    const { error: pdvError } = await supabase
+                        .from('pdvs')
+                        .insert(novosPdvs.map(pdvParaLinha));
+                    if (pdvError) {
+                        console.warn('Erro ao salvar PDVs da nova loja:', pdvError);
                     }
+                } catch (error) {
+                    console.warn('Erro ao salvar PDVs da nova loja:', error);
                 }
-                
-                pdvSectionTitles[lojaId] = `PDVs da Loja ${numero}`;
-                
-                renderCards();
-                closeAddCardModal();
-                showNotification(`🆕 Loja ${numero} adicionada com ${pdvs} PDVs!`);
-            } catch (error) {
-                showNotification('❌ Erro ao criar loja');
             }
-            hideLoading();
+
+            renderCards();
+            closeAddCardModal();
+            showNotification(`🆕 Loja ${numero} adicionada com ${pdvs} PDVs!`);
         }
 
         // ============================================================
-        // EXPORTAR PARA EXCEL
+        // EXPORTAR PARA EXCEL COM VISÃO GERENCIAL
         // ============================================================
-        function exportToExcel() {
+        async function exportToExcel() {
             if (typeof XLSX === 'undefined') {
                 showNotification('❌ Biblioteca XLSX não carregada. Aguarde um instante.');
                 return;
             }
 
             try {
+                // Garante que a planilha reflete o que está gravado no banco,
+                // não apenas o que está em memória nesta aba do navegador.
+                if (supabase) {
+                    showNotification('⏳ Sincronizando dados do banco antes de exportar...');
+                    await loadPdvsDoSupabase();
+                }
+
                 const lojasData = initialCards.map(card => ({
                     'ID': card.id,
                     'Loja': card.loja,
@@ -3358,9 +3079,9 @@
                     (pdvsPorLoja[lojaId] || []).forEach(pdv => {
                         pdvsData.push({
                             'Loja': lojaNome,
-                            'PDV Antigo': pdv.nome_antigo || `PDV ${String(pdv.numero).padStart(2, '0')}`,
-                            'PDV Atualizado': pdv.nome_atualizado || '',
-                            'Nº Série': pdv.numero_serie || '',
+                            'PDV Antigo': pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`,
+                            'PDV Atualizado': pdv.nomeAtualizado || '',
+                            'Nº Série': pdv.numeroSerie,
                             'Status': pdv.status.charAt(0).toUpperCase() + pdv.status.slice(1),
                             'Observação': pdv.observacao || ''
                         });
@@ -3489,9 +3210,7 @@
                     document.getElementById('userRoleDisplay').textContent =
                         user.role === 'admin' ? 'Administrador' :
                         user.role === 'gerente' ? 'Gerente' : 'Técnico';
-                    showLoading();
                     await carregarTudo();
-                    hideLoading();
                     showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
                 } catch (e) {
                     console.warn('Sessão inválida', e);
@@ -3499,9 +3218,6 @@
             }
         });
 
-        // ============================================================
-        // EVENTOS GLOBAIS
-        // ============================================================
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeCardDetail();
@@ -3530,7 +3246,7 @@
             }
         });
 
-        console.log('✅ Sistema pronto com integração ao Supabase!');
+        console.log('✅ Sistema pronto!');
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
@@ -3581,7 +3297,6 @@
         window.editPdvAntigo = editPdvAntigo;
         window.editPdvAtualizado = editPdvAtualizado;
         window.savePdvSectionTitle = savePdvSectionTitle;
-
     } catch (erroFatal) {
         console.error('❌ ERRO FATAL:', erroFatal);
         const errEl = document.getElementById('loginError');
