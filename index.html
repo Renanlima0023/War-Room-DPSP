@@ -1554,7 +1554,7 @@
                 const { data, error } = await supabase
                     .from('pdvs')
                     .select('*')
-                    .order('numero', { ascending: true });
+                    .order('codigo', { ascending: true });
 
                 if (error) {
                     console.warn('Erro ao carregar PDVs do Supabase:', error);
