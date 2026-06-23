@@ -1585,14 +1585,18 @@
 
         // Converte uma linha da tabela 'pdvs' do Supabase para o formato usado no app
         function mapPdvFromRow(row) {
+            // A tabela real não tem coluna "numero" — usamos o código (ex: "PDV 01")
+            // para extrair um número de exibição, com fallback sequencial.
+            const numeroExtraido = parseInt((row.codigo || '').replace(/\D/g, ''), 10);
             return {
                 id: row.id,
-                numero: row.numero,
-                nomeAntigo: row.nome_antigo || `PDV ${String(row.numero).padStart(2, '0')}`,
+                numero: Number.isFinite(numeroExtraido) ? numeroExtraido : 1,
+                codigo: row.codigo,
+                nomeAntigo: row.nome_antigo || row.codigo || 'PDV',
                 nomeAtualizado: row.nome_atualizado || '',
-                numeroSerie: row.numero_serie || '',
+                numeroSerie: row.numero_serie || row.serial || '',
                 status: row.status || 'pendente',
-                observacao: row.observacao || '',
+                observacao: row.observacao || row.observacoes || '',
                 lojaId: row.loja_id
             };
         }
@@ -1611,7 +1615,7 @@
                     .from('pdvs')
                     .select('*')
                     .eq('loja_id', lojaId)
-                    .order('numero', { ascending: true });
+                    .order('codigo', { ascending: true });
 
                 if (error) {
                     console.warn('Erro ao buscar PDVs da loja:', error);
@@ -1624,7 +1628,7 @@
                 } else {
                     // Loja ainda sem PDVs no banco: cria os PDVs padrão e grava
                     const novos = gerarPdvsParaLoja(lojaId, quantidadePadrao || 3);
-                    const linhas = novos.map(pdv => pdvParaLinha(pdv));
+                    const linhas = novos.map(pdv => pdvParaLinha(pdv, true));
                     const { data: inserted, error: insertError } = await supabase
                         .from('pdvs')
                         .insert(linhas)
@@ -1645,30 +1649,52 @@
             }
         }
 
-        // Converte um objeto PDV (formato do app) para o formato de linha da tabela
-        function pdvParaLinha(pdv) {
-            return {
-                id: pdv.id,
+        // Converte um objeto PDV (formato do app) para o formato de linha da tabela.
+        // isNovo=true → não envia "id" (a coluna é uuid gerado pelo banco).
+        function pdvParaLinha(pdv, isNovo) {
+            const linha = {
                 loja_id: pdv.lojaId,
-                numero: pdv.numero,
+                codigo: pdv.codigo || pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`,
                 nome_antigo: pdv.nomeAntigo,
                 nome_atualizado: pdv.nomeAtualizado || null,
                 numero_serie: pdv.numeroSerie || null,
                 status: pdv.status,
                 observacao: pdv.observacao || null
             };
+            // Só inclui o id se já for um uuid real do banco (PDV existente sendo atualizado)
+            if (!isNovo && pdv.id && !String(pdv.id).startsWith('pdv-')) {
+                linha.id = pdv.id;
+            }
+            return linha;
         }
 
-        // Salva (upsert) um único PDV no Supabase
+        // Salva um PDV no Supabase: insert se for novo (sem uuid real), update se já existir
         async function salvarPdvNoSupabase(pdv) {
             if (!supabase) return;
+            const ehNovo = !pdv.id || String(pdv.id).startsWith('pdv-');
             try {
-                const { error } = await supabase
-                    .from('pdvs')
-                    .upsert(pdvParaLinha(pdv), { onConflict: 'id' });
-                if (error) {
-                    console.warn('Erro ao salvar PDV no Supabase:', error);
-                    showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
+                if (ehNovo) {
+                    const { data, error } = await supabase
+                        .from('pdvs')
+                        .insert(pdvParaLinha(pdv, true))
+                        .select()
+                        .single();
+                    if (error) {
+                        console.warn('Erro ao criar PDV no Supabase:', error);
+                        showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
+                    } else if (data) {
+                        // Atualiza o id local (temporário) para o uuid real do banco
+                        pdv.id = data.id;
+                    }
+                } else {
+                    const { error } = await supabase
+                        .from('pdvs')
+                        .update(pdvParaLinha(pdv, false))
+                        .eq('id', pdv.id);
+                    if (error) {
+                        console.warn('Erro ao atualizar PDV no Supabase:', error);
+                        showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
+                    }
                 }
             } catch (error) {
                 console.warn('Erro ao salvar PDV:', error);
@@ -1678,6 +1704,8 @@
         // Remove um PDV do Supabase
         async function removerPdvDoSupabase(pdvId) {
             if (!supabase) return;
+            // PDV que nunca foi salvo no banco (id local temporário) não existe lá — nada a remover
+            if (!pdvId || String(pdvId).startsWith('pdv-')) return;
             try {
                 const { error } = await supabase.from('pdvs').delete().eq('id', pdvId);
                 if (error) {
@@ -1692,10 +1720,12 @@
             const pdvs = [];
             for (let i = 1; i <= quantidade; i++) {
                 const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                const codigo = `PDV ${String(i).padStart(2, '0')}`;
                 pdvs.push({
                     id: `pdv-${lojaId}-${i}-${Date.now()}-${Math.random()}`,
                     numero: i,
-                    nomeAntigo: `PDV ${String(i).padStart(2, '0')}`,
+                    codigo: codigo,
+                    nomeAntigo: codigo,
                     nomeAtualizado: '',
                     numeroSerie: `SN-${randomSerial}`,
                     status: i === 1 ? 'andamento' : 'pendente',
@@ -2364,8 +2394,8 @@
             const newValue = prompt('Editar PDV Antigo:', currentValue);
             if (newValue !== null && newValue.trim() !== '') {
                 pdv.nomeAntigo = newValue.trim();
-                renderPdvs(lojaId);
                 await salvarPdvNoSupabase(pdv);
+                renderPdvs(lojaId);
                 showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
             }
         }
@@ -2380,8 +2410,8 @@
             const newValue = prompt('Informe o número do PDV atualizado:', currentValue);
             if (newValue !== null) {
                 pdv.nomeAtualizado = newValue.trim();
-                renderPdvs(lojaId);
                 await salvarPdvNoSupabase(pdv);
+                renderPdvs(lojaId);
                 showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
             }
         }
@@ -2389,12 +2419,23 @@
         async function addPdv() {
             if (!currentCardId) return;
             const pdvs = pdvsPorLoja[currentCardId] || [];
-            const nextNum = pdvs.length + 1;
+
+            // Gera o próximo número que ainda não existe como código nesta loja
+            // (evita colidir com a constraint UNIQUE loja_id+codigo se algum PDV do meio foi removido)
+            const codigosExistentes = new Set(pdvs.map(p => p.codigo || p.nomeAntigo));
+            let nextNum = pdvs.length + 1;
+            let codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
+            while (codigosExistentes.has(codigo)) {
+                nextNum++;
+                codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
+            }
+
             const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
             const newPdv = {
                 id: `pdv-${currentCardId}-${nextNum}-${Date.now()}-${Math.random()}`,
                 numero: nextNum,
-                nomeAntigo: `PDV ${String(nextNum).padStart(2, '0')}`,
+                codigo: codigo,
+                nomeAntigo: codigo,
                 nomeAtualizado: '',
                 numeroSerie: `SN-${randomSerial}`,
                 status: 'pendente',
@@ -2423,8 +2464,8 @@
             const pdv = pdvs.find(p => p.id === pdvId);
             if (pdv) {
                 pdv.status = status;
-                renderPdvs(lojaId);
                 await salvarPdvNoSupabase(pdv);
+                renderPdvs(lojaId);
                 const allDone = pdvs.every(p => p.status === 'concluido');
                 if (allDone && pdvs.length > 0) {
                     showNotification('🎉 Todos os PDVs concluídos!');
@@ -2438,6 +2479,7 @@
             if (pdv) {
                 pdv.numeroSerie = value;
                 await salvarPdvNoSupabase(pdv);
+                renderPdvs(lojaId);
                 showNotification('✅ Número de série atualizado');
             }
         }
@@ -3025,11 +3067,16 @@
 
             if (supabase && lojaSalvaNoSupabase) {
                 try {
-                    const { error: pdvError } = await supabase
+                    const linhas = novosPdvs.map(pdv => pdvParaLinha(pdv, true));
+                    const { data: pdvsInseridos, error: pdvError } = await supabase
                         .from('pdvs')
-                        .insert(novosPdvs.map(pdvParaLinha));
+                        .insert(linhas)
+                        .select();
                     if (pdvError) {
                         console.warn('Erro ao salvar PDVs da nova loja:', pdvError);
+                    } else if (pdvsInseridos) {
+                        // Substitui os ids temporários pelos uuid reais devolvidos pelo banco
+                        pdvsPorLoja[newId] = pdvsInseridos.map(mapPdvFromRow);
                     }
                 } catch (error) {
                     console.warn('Erro ao salvar PDVs da nova loja:', error);
