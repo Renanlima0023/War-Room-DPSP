@@ -3058,19 +3058,46 @@
                     await loadPdvsDoSupabase();
                 }
 
-                const lojasData = initialCards.map(card => ({
-                    'ID': card.id,
-                    'Loja': card.loja,
-                    'Responsável': card.responsavel,
-                    'Status': card.status.charAt(0).toUpperCase() + card.status.slice(1),
-                    'Regional': card.regional || 'N/A',
-                    'PDVs Total': card.pdvs || 0,
-                    'PDVs Concluídos': (pdvsPorLoja[card.id] || []).filter(p => p.status === 'concluido').length,
-                    'Data': card.data || 'N/A',
-                    'Prioridade': card.prioridade || 'Normal',
-                    'Comentários': card.comentarios || 0,
-                    'Descrição': card.descricao || ''
-                }));
+                // Uma linha por PDV: os dados da loja se repetem e as 3 colunas
+                // de PDV (Antigo, Atualizado, Nº Série) vêm sempre por último, nessa ordem.
+                // Lojas sem nenhum PDV cadastrado aparecem em uma única linha, com essas
+                // três colunas em branco.
+                const lojasData = [];
+                initialCards.forEach(card => {
+                    const baseRow = {
+                        'ID': card.id,
+                        'Loja': card.loja,
+                        'Responsável': card.responsavel,
+                        'Status': card.status.charAt(0).toUpperCase() + card.status.slice(1),
+                        'Regional': card.regional || 'N/A',
+                        'PDVs Total': card.pdvs || 0,
+                        'PDVs Concluídos': (pdvsPorLoja[card.id] || []).filter(p => p.status === 'concluido').length,
+                        'Data': card.data || 'N/A',
+                        'Prioridade': card.prioridade || 'Normal',
+                        'Comentários': card.comentarios || 0,
+                        'Descrição': card.descricao || ''
+                    };
+
+                    const pdvsDaLoja = pdvsPorLoja[card.id] || [];
+
+                    if (pdvsDaLoja.length === 0) {
+                        lojasData.push({
+                            ...baseRow,
+                            'PDV Antigo': '',
+                            'PDV Atualizado': '',
+                            'Nº Série': ''
+                        });
+                    } else {
+                        pdvsDaLoja.forEach(pdv => {
+                            lojasData.push({
+                                ...baseRow,
+                                'PDV Antigo': pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`,
+                                'PDV Atualizado': pdv.nomeAtualizado || '',
+                                'Nº Série': pdv.numeroSerie || ''
+                            });
+                        });
+                    }
+                });
 
                 const pdvsData = [];
                 Object.keys(pdvsPorLoja).forEach(lojaId => {
@@ -3079,11 +3106,11 @@
                     (pdvsPorLoja[lojaId] || []).forEach(pdv => {
                         pdvsData.push({
                             'Loja': lojaNome,
+                            'Status PDV': pdv.status.charAt(0).toUpperCase() + pdv.status.slice(1),
+                            'Observação': pdv.observacao || '',
                             'PDV Antigo': pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`,
                             'PDV Atualizado': pdv.nomeAtualizado || '',
-                            'Nº Série': pdv.numeroSerie,
-                            'Status': pdv.status.charAt(0).toUpperCase() + pdv.status.slice(1),
-                            'Observação': pdv.observacao || ''
+                            'Nº Série': pdv.numeroSerie || ''
                         });
                     });
                 });
@@ -3130,11 +3157,11 @@
                 const wb = XLSX.utils.book_new();
 
                 const wsLojas = XLSX.utils.json_to_sheet(lojasData);
-                wsLojas['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }];
+                wsLojas['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
                 XLSX.utils.book_append_sheet(wb, wsLojas, 'Lojas');
 
                 const wsPdvs = XLSX.utils.json_to_sheet(pdvsData);
-                wsPdvs['!cols'] = [{ wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 25 }];
+                wsPdvs['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 25 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
                 XLSX.utils.book_append_sheet(wb, wsPdvs, 'PDVs');
 
                 const wsMetrics = XLSX.utils.aoa_to_sheet(metricsData);
