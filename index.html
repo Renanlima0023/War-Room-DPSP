@@ -594,7 +594,6 @@
             display: inline-block;
         }
 
-        /* ===== TÍTULO EDITÁVEL DOS PDVs ===== */
         .pdv-section-title {
             display: flex;
             align-items: center;
@@ -653,7 +652,6 @@
             color: #4f46e5;
         }
 
-        /* cabeçalho da tabela PDV */
         .pdv-table-header {
             display: flex;
             align-items: center;
@@ -687,6 +685,24 @@
             padding: 2px;
         }
         .pdv-item .pdv-actions button:hover { color: #f87171; }
+
+        /* Métricas animadas */
+        .metric-value {
+            transition: all 0.5s ease;
+        }
+        .metric-value.updating {
+            color: #4f46e5;
+            transform: scale(1.05);
+        }
+
+        .ticket-item {
+            transition: all 0.2s ease;
+        }
+        .ticket-item:hover {
+            background: #1a1d27;
+            border-radius: 6px;
+            padding-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -848,103 +864,84 @@
             </div>
         </div>
 
-        <!-- PAINEL INFERIOR -->
+        <!-- PAINEL INFERIOR - COM MÉTRICAS DINÂMICAS -->
         <div class="bottom-panel px-3 md:px-6 py-2 md:py-3 flex-shrink-0" id="bottomPanel">
             <div class="toggle-btn" onclick="togglePanel()">
                 <i class="fas fa-chevron-up text-xs md:text-sm"></i>
             </div>
             <div class="panel-content">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 max-w-7xl mx-auto">
+                    
+                    <!-- TICKETS - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <div class="flex justify-between items-center mb-1 md:mb-2">
                             <h4 class="panel-title flex items-center gap-1 md:gap-2">
                                 <i class="fas fa-ticket-alt text-rose-400 text-[10px] md:text-xs"></i>
-                                <span class="hidden xs:inline">Tickets Abertos</span>
-                                <span class="xs:hidden">Tickets</span>
+                                <span>Tickets Abertos</span>
                             </h4>
-                            <span class="text-[8px] md:text-xs bg-rose-600/20 text-rose-400 px-1.5 md:px-2 py-0.5 rounded-full border border-rose-500/30">4</span>
+                            <span class="text-[8px] md:text-xs bg-rose-600/20 text-rose-400 px-1.5 md:px-2 py-0.5 rounded-full border border-rose-500/30" id="ticketCount">0</span>
                         </div>
-                        <div class="space-y-1 max-h-16 md:max-h-28 overflow-y-auto">
-                            <div class="ticket-item ticket-critical flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
-                                <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001245</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1023</span></div>
-                                <span class="priority-critical text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Crítico</span>
-                            </div>
-                            <div class="ticket-item ticket-high flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
-                                <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001239</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1008</span></div>
-                                <span class="priority-high text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Alta</span>
-                            </div>
-                            <div class="ticket-item ticket-medium flex items-center justify-between text-[10px] md:text-sm px-1">
-                                <div><span class="font-medium text-white text-[9px] md:text-xs">TK-001231</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">Loja 1015</span></div>
-                                <span class="priority-medium text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">Média</span>
-                            </div>
+                        <div class="space-y-1 max-h-16 md:max-h-28 overflow-y-auto" id="ticketList">
+                            <div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto</div>
                         </div>
                     </div>
 
+                    <!-- ATIVIDADES - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-stream text-indigo-400 text-[10px] md:text-xs"></i>
-                            <span class="hidden xs:inline">Atividades Recentes</span>
-                            <span class="xs:hidden">Atividades</span>
+                            <span>Atividades Recentes</span>
                         </h4>
-                        <div class="space-y-0.5 max-h-16 md:max-h-28 overflow-y-auto">
-                            <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5">
-                                <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 mt-1"></span>
-                                <div><span class="text-white text-[9px] md:text-xs">Loja 1004</span><span class="text-slate-400 text-[8px] md:text-xs"> concluída</span><span class="text-[8px] md:text-[10px] text-slate-500 block">10:28</span></div>
-                            </div>
-                            <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-t border-[#2d313e]">
-                                <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-rose-400 mt-1"></span>
-                                <div><span class="text-white text-[9px] md:text-xs">TK-001245</span><span class="text-slate-400 text-[8px] md:text-xs"> aberto</span><span class="text-[8px] md:text-[10px] text-slate-500 block">10:15</span></div>
-                            </div>
-                            <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-t border-[#2d313e]">
-                                <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-amber-400 mt-1"></span>
-                                <div><span class="text-white text-[9px] md:text-xs">Loja 1002</span><span class="text-slate-400 text-[8px] md:text-xs"> em execução</span><span class="text-[8px] md:text-[10px] text-slate-500 block">09:50</span></div>
-                            </div>
+                        <div class="space-y-0.5 max-h-16 md:max-h-28 overflow-y-auto" id="activityList">
+                            <div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>
                         </div>
                     </div>
 
+                    <!-- MÉTRICAS - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-chart-simple text-indigo-400 text-[10px] md:text-xs"></i>
-                            <span class="hidden xs:inline">Métricas do Dia</span>
-                            <span class="xs:hidden">Métricas</span>
+                            <span>Métricas do Dia</span>
                         </h4>
                         <div class="grid grid-cols-2 gap-1 md:gap-2">
                             <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e]">
-                                <p class="text-[8px] md:text-[10px] text-slate-400">Meta</p>
-                                <p class="text-xs md:text-sm font-bold text-white metric-value">35 <span class="text-[8px] md:text-[10px] text-slate-400">/40</span></p>
-                                <div class="w-full bg-[#2d313e] h-1 rounded-full mt-0.5"><div class="bg-emerald-500 h-1 rounded-full" style="width:87%"></div></div>
+                                <p class="text-[8px] md:text-[10px] text-slate-400">Conclusão</p>
+                                <p class="text-xs md:text-sm font-bold text-white metric-value" id="metricConclusao">0%</p>
+                                <div class="w-full bg-[#2d313e] h-1 rounded-full mt-0.5">
+                                    <div class="bg-emerald-500 h-1 rounded-full" id="metricBarConclusao" style="width:0%"></div>
+                                </div>
                             </div>
                             <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e]">
-                                <p class="text-[8px] md:text-[10px] text-slate-400">Veloc.</p>
-                                <p class="text-xs md:text-sm font-bold text-white metric-value">4,2</p>
-                                <span class="text-[8px] md:text-[10px] text-emerald-400"><i class="fas fa-arrow-up mr-0.5"></i>+0.8</span>
+                                <p class="text-[8px] md:text-[10px] text-slate-400">Andamento</p>
+                                <p class="text-xs md:text-sm font-bold text-white metric-value" id="metricAndamento">0</p>
+                                <span class="text-[8px] md:text-[10px] text-amber-400"><i class="fas fa-spinner fa-spin mr-0.5"></i><span id="metricAndamentoPct">0%</span></span>
                             </div>
                             <div class="bg-[#0f1117] p-1 md:p-2 rounded-lg border border-[#2d313e] col-span-2">
                                 <p class="text-[8px] md:text-[10px] text-slate-400">Produtividade</p>
-                                <p class="text-xs md:text-sm font-bold text-white metric-value">1,8 <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span></p>
+                                <p class="text-xs md:text-sm font-bold text-white metric-value" id="metricProdutividade">0 <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span></p>
                             </div>
                         </div>
                     </div>
 
+                    <!-- PREVISÃO - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3 flex flex-col justify-between">
                         <div>
                             <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                                 <i class="fas fa-calendar-check text-emerald-400 text-[10px] md:text-xs"></i>
-                                <span class="hidden xs:inline">Previsão de Término</span>
-                                <span class="xs:hidden">Previsão</span>
+                                <span>Status Geral</span>
                             </h4>
                             <div class="bg-[#0f1117] p-1.5 md:p-3 rounded-lg border border-[#2d313e] text-center">
-                                <p class="text-sm md:text-2xl font-bold text-indigo-400 metric-value">15/07</p>
-                                <p class="text-[8px] md:text-xs text-slate-400">2026</p>
+                                <p class="text-sm md:text-2xl font-bold text-indigo-400 metric-value" id="metricTotalLojas">0</p>
+                                <p class="text-[8px] md:text-xs text-slate-400">Total de Lojas</p>
                                 <div class="mt-0.5 md:mt-2 flex items-center justify-center gap-1 md:gap-4 text-[8px] md:text-[10px]">
-                                    <span class="text-slate-400"><i class="fas fa-flag-checkered mr-0.5 text-emerald-400"></i> 1.007</span>
-                                    <span class="text-slate-400"><i class="fas fa-clock mr-0.5 text-amber-400"></i> 4,2/dia</span>
+                                    <span class="text-emerald-400"><i class="fas fa-check-circle mr-0.5"></i> <span id="metricConcluidas">0</span> concluídas</span>
+                                    <span class="text-amber-400"><i class="fas fa-clock mr-0.5"></i> <span id="metricPendentes">0</span> pendentes</span>
                                 </div>
                             </div>
                         </div>
                         <div class="mt-0.5 md:mt-1 flex gap-0.5 md:gap-1 justify-center">
-                            <span class="text-[8px] md:text-[10px] bg-emerald-600/20 text-emerald-400 px-1 md:px-2 py-0.5 rounded-full border border-emerald-500/30">✅ 61%</span>
-                            <span class="text-[8px] md:text-[10px] bg-amber-600/20 text-amber-400 px-1 md:px-2 py-0.5 rounded-full border border-amber-500/30">⏳ 39%</span>
+                            <span class="text-[8px] md:text-[10px] bg-emerald-600/20 text-emerald-400 px-1 md:px-2 py-0.5 rounded-full border border-emerald-500/30" id="metricBadgeConcluidas">✅ 0%</span>
+                            <span class="text-[8px] md:text-[10px] bg-amber-600/20 text-amber-400 px-1 md:px-2 py-0.5 rounded-full border border-amber-500/30" id="metricBadgePendentes">⏳ 0%</span>
                         </div>
                     </div>
                 </div>
@@ -959,11 +956,10 @@
         </div>
 
         <!-- ============================================================ -->
-        <!-- MODAL DETALHADO DO CARD - COMPLETO COM PDV CHECKLIST -->
+        <!-- MODAL DETALHADO DO CARD -->
         <!-- ============================================================ -->
         <div id="cardModal" class="modal-overlay">
             <div class="modal-content">
-                <!-- HEADER -->
                 <div class="modal-header">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 md:gap-3 flex-wrap">
@@ -983,9 +979,7 @@
                     </button>
                 </div>
 
-                <!-- BODY -->
                 <div class="modal-body">
-                    <!-- TABS -->
                     <div class="flex gap-3 md:gap-6 border-b border-[#2d313e] mb-4 overflow-x-auto">
                         <button class="tab-btn active" data-tab="detalhes" onclick="switchTab('detalhes')">
                             <i class="fas fa-info-circle mr-1"></i>Detalhes
@@ -1013,13 +1007,9 @@
                         </button>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 1: DETALHES -->
-                    <!-- ============================================================ -->
                     <div id="tab-detalhes" class="tab-content active">
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                             <div class="lg:col-span-2 space-y-3 md:space-y-4">
-                                <!-- Responsável -->
                                 <div>
                                     <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Responsável</label>
                                     <select id="responsibleInput" class="dark-select w-full px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm">
@@ -1035,13 +1025,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Descrição -->
                                 <div>
                                     <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Observações</label>
                                     <textarea id="modalDescription" class="dark-input w-full px-2 md:px-3 py-1.5 rounded-lg resize-none text-xs md:text-sm" rows="3" placeholder="Adicione observações sobre a loja..."></textarea>
                                 </div>
 
-                                <!-- SLA -->
                                 <div>
                                     <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">SLA</label>
                                     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
@@ -1056,7 +1044,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Metadados -->
                                 <div class="grid grid-cols-2 gap-2 md:gap-3 text-[10px] md:text-sm">
                                     <div class="bg-[#0f1117] p-1.5 md:p-3 rounded-lg border border-[#2d313e]">
                                         <span class="text-slate-400 text-[8px] md:text-xs">Loja</span>
@@ -1077,7 +1064,6 @@
                                 </div>
                             </div>
 
-                            <!-- Ações Rápidas -->
                             <div class="space-y-2 md:space-y-3">
                                 <h4 class="text-[10px] md:text-sm font-medium text-slate-400">Ações</h4>
                                 <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition text-xs md:text-sm" onclick="startStoreFromModal()">
@@ -1096,12 +1082,8 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 2: PDVs - COM PDV ANTIGO E PDV ATUALIZADO (AMBOS EDITÁVEIS) -->
-                    <!-- ============================================================ -->
                     <div id="tab-pdvs" class="tab-content">
                         <div class="space-y-4">
-                            <!-- TÍTULO EDITÁVEL DOS PDVs -->
                             <div class="pdv-section-title">
                                 <i class="fas fa-server title-icon"></i>
                                 <span class="title-text" id="pdvSectionTitle" onclick="editPdvSectionTitle()" title="Clique para editar o título">
@@ -1113,34 +1095,17 @@
                                 </span>
                             </div>
 
-                            <!-- Resumo / Progresso -->
                             <div class="pdv-summary-bar">
-                                <div class="stat">
-                                    <span class="dot" style="background:#4f46e5;"></span>
-                                    <strong id="pdvTotalCount">0</strong> total
-                                </div>
-                                <div class="stat">
-                                    <span class="dot" style="background:#34d399;"></span>
-                                    <strong id="pdvDoneCount">0</strong> concluídos
-                                </div>
-                                <div class="stat">
-                                    <span class="dot" style="background:#60a5fa;"></span>
-                                    <strong id="pdvProgressCount">0</strong> andamento
-                                </div>
-                                <div class="stat">
-                                    <span class="dot" style="background:#fbbf24;"></span>
-                                    <strong id="pdvPendingCount">0</strong> pendentes
-                                </div>
-                                <div class="stat">
-                                    <span class="dot" style="background:#f87171;"></span>
-                                    <strong id="pdvBlockedCount">0</strong> bloqueados
-                                </div>
+                                <div class="stat"><span class="dot" style="background:#4f46e5;"></span><strong id="pdvTotalCount">0</strong> total</div>
+                                <div class="stat"><span class="dot" style="background:#34d399;"></span><strong id="pdvDoneCount">0</strong> concluídos</div>
+                                <div class="stat"><span class="dot" style="background:#60a5fa;"></span><strong id="pdvProgressCount">0</strong> andamento</div>
+                                <div class="stat"><span class="dot" style="background:#fbbf24;"></span><strong id="pdvPendingCount">0</strong> pendentes</div>
+                                <div class="stat"><span class="dot" style="background:#f87171;"></span><strong id="pdvBlockedCount">0</strong> bloqueados</div>
                                 <div class="pdv-progress-ring" id="pdvProgressRing" style="--pct: 0%;">
                                     <div class="inner" id="pdvProgressPct">0%</div>
                                 </div>
                             </div>
 
-                            <!-- Botão adicionar PDV -->
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-slate-400">Gerencie os PDVs da loja - clique no número para editar</span>
                                 <button class="text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-full hover:bg-indigo-600/40 transition" onclick="addPdv()">
@@ -1148,7 +1113,6 @@
                                 </button>
                             </div>
 
-                            <!-- Cabeçalho da tabela -->
                             <div class="pdv-table-header">
                                 <span class="col-old">PDV Antigo</span>
                                 <span class="col-new">PDV Atualizado</span>
@@ -1157,10 +1121,8 @@
                                 <span class="col-actions"></span>
                             </div>
 
-                            <!-- Lista de PDVs -->
                             <div class="pdv-grid" id="pdvListContainer"></div>
 
-                            <!-- Ações em massa -->
                             <div class="flex gap-2 flex-wrap">
                                 <button class="text-xs bg-emerald-600/20 text-emerald-400 px-3 py-1 rounded-full hover:bg-emerald-600/40 transition" onclick="setAllPdvsStatus('concluido')">
                                     <i class="fas fa-check-double mr-1"></i> Concluir todos
@@ -1175,9 +1137,6 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 3: CHECKLIST GERAL -->
-                    <!-- ============================================================ -->
                     <div id="tab-checklist" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
@@ -1190,9 +1149,6 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 4: DEPENDÊNCIAS -->
-                    <!-- ============================================================ -->
                     <div id="tab-dependencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
@@ -1217,9 +1173,6 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 5: EVIDÊNCIAS -->
-                    <!-- ============================================================ -->
                     <div id="tab-evidencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -1232,9 +1185,6 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 6: CHAT -->
-                    <!-- ============================================================ -->
                     <div id="tab-chat" class="tab-content">
                         <div class="flex flex-col h-[300px] md:h-[400px]">
                             <div class="flex-1 overflow-y-auto space-y-2 md:space-y-3 p-1 md:p-2" id="chatMessages">
@@ -1268,9 +1218,6 @@
                         </div>
                     </div>
 
-                    <!-- ============================================================ -->
-                    <!-- TAB 7: HISTÓRICO -->
-                    <!-- ============================================================ -->
                     <div id="tab-historico" class="tab-content">
                         <div class="space-y-2" id="historicoContainer">
                             <div class="history-item p-1.5 border-l-2 border-indigo-500">
@@ -1445,12 +1392,10 @@
         let resetTargetUserId = null;
         let currentCardId = null;
 
-        // Cache local
         let USERS = [];
         let RESPONSAVEIS = [];
         let initialCards = [];
 
-        // Dados locais (fallback)
         let localCards = [
             { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
             { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 2, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
@@ -1461,16 +1406,10 @@
             { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan', status: 'concluida', regional: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
         ];
 
-        // Estrutura de PDVs por loja
         let pdvsPorLoja = {};
-        // Título da seção de PDVs por loja
         let pdvSectionTitles = {};
-
         let checklistItems = [];
 
-        // ============================================================
-        // USUÁRIOS PADRÃO
-        // ============================================================
         const DEFAULT_USERS = [
             { nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
             { nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
@@ -1485,7 +1424,6 @@
         async function loadLojas() {
             if (!supabase) {
                 initialCards = [...localCards];
-                // Inicializar PDVs para lojas existentes (modo local, sem banco)
                 initialCards.forEach(card => {
                     if (!pdvsPorLoja[card.id]) {
                         pdvsPorLoja[card.id] = gerarPdvsParaLoja(card.id, card.pdvs || 3);
@@ -1504,13 +1442,13 @@
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.warn('Erro ao carregar lojas do Supabase:', error);
+                    console.warn('Erro ao carregar lojas:', error);
                     initialCards = [...localCards];
                     return initialCards;
                 }
 
                 if (data && data.length > 0) {
-                    initialCards = (data || []).map(row => ({
+                    initialCards = data.map(row => ({
                         id: row.id,
                         loja: row.nome,
                         codigo: row.codigo,
@@ -1532,9 +1470,7 @@
                     initialCards = [...localCards];
                 }
 
-                // Carrega os PDVs (todas as lojas de uma vez) direto do Supabase
                 await loadPdvsDoSupabase();
-
                 return initialCards;
             } catch (error) {
                 console.warn('Erro ao carregar lojas:', error);
@@ -1546,8 +1482,6 @@
         // ============================================================
         // PDVs - PERSISTÊNCIA NO SUPABASE
         // ============================================================
-
-        // Carrega TODOS os PDVs de uma vez (uma única query) e organiza por loja
         async function loadPdvsDoSupabase() {
             if (!supabase) return;
             try {
@@ -1557,11 +1491,10 @@
                     .order('codigo', { ascending: true });
 
                 if (error) {
-                    console.warn('Erro ao carregar PDVs do Supabase:', error);
+                    console.warn('Erro ao carregar PDVs:', error);
                     return;
                 }
 
-                // Reseta a estrutura e repopula a partir do banco
                 pdvsPorLoja = {};
                 (data || []).forEach(row => {
                     const pdv = mapPdvFromRow(row);
@@ -1569,7 +1502,6 @@
                     pdvsPorLoja[pdv.lojaId].push(pdv);
                 });
 
-                // Lojas sem nenhum PDV no banco recebem um título padrão
                 initialCards.forEach(card => {
                     if (!pdvSectionTitles[card.id]) {
                         pdvSectionTitles[card.id] = `PDVs da Loja ${card.loja}`;
@@ -1583,10 +1515,7 @@
             }
         }
 
-        // Converte uma linha da tabela 'pdvs' do Supabase para o formato usado no app
         function mapPdvFromRow(row) {
-            // A tabela real não tem coluna "numero" — usamos o código (ex: "PDV 01")
-            // para extrair um número de exibição, com fallback sequencial.
             const numeroExtraido = parseInt((row.codigo || '').replace(/\D/g, ''), 10);
             return {
                 id: row.id,
@@ -1601,7 +1530,6 @@
             };
         }
 
-        // Garante que os PDVs de uma loja existam no banco (busca ou cria os padrões)
         async function garantirPdvsDaLoja(lojaId, quantidadePadrao) {
             if (!supabase) {
                 if (!pdvsPorLoja[lojaId]) {
@@ -1626,7 +1554,6 @@
                 if (data && data.length > 0) {
                     pdvsPorLoja[lojaId] = data.map(mapPdvFromRow);
                 } else {
-                    // Loja ainda sem PDVs no banco: cria os PDVs padrão e grava
                     const novos = gerarPdvsParaLoja(lojaId, quantidadePadrao || 3);
                     const linhas = novos.map(pdv => pdvParaLinha(pdv, true));
                     const { data: inserted, error: insertError } = await supabase
@@ -1635,7 +1562,7 @@
                         .select();
 
                     if (insertError) {
-                        console.warn('Erro ao criar PDVs padrão no Supabase:', insertError);
+                        console.warn('Erro ao criar PDVs padrão:', insertError);
                         pdvsPorLoja[lojaId] = novos;
                     } else {
                         pdvsPorLoja[lojaId] = (inserted || []).map(mapPdvFromRow);
@@ -1643,14 +1570,12 @@
                 }
                 return pdvsPorLoja[lojaId];
             } catch (error) {
-                console.warn('Erro ao garantir PDVs da loja:', error);
+                console.warn('Erro ao garantir PDVs:', error);
                 if (!pdvsPorLoja[lojaId]) pdvsPorLoja[lojaId] = [];
                 return pdvsPorLoja[lojaId];
             }
         }
 
-        // Converte um objeto PDV (formato do app) para o formato de linha da tabela.
-        // isNovo=true → não envia "id" (a coluna é uuid gerado pelo banco).
         function pdvParaLinha(pdv, isNovo) {
             const linha = {
                 loja_id: pdv.lojaId,
@@ -1661,14 +1586,12 @@
                 status: pdv.status,
                 observacao: pdv.observacao || null
             };
-            // Só inclui o id se já for um uuid real do banco (PDV existente sendo atualizado)
             if (!isNovo && pdv.id && !String(pdv.id).startsWith('pdv-')) {
                 linha.id = pdv.id;
             }
             return linha;
         }
 
-        // Salva um PDV no Supabase: insert se for novo (sem uuid real), update se já existir
         async function salvarPdvNoSupabase(pdv) {
             if (!supabase) return;
             const ehNovo = !pdv.id || String(pdv.id).startsWith('pdv-');
@@ -1680,10 +1603,9 @@
                         .select()
                         .single();
                     if (error) {
-                        console.warn('Erro ao criar PDV no Supabase:', error);
+                        console.warn('Erro ao criar PDV:', error);
                         showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
                     } else if (data) {
-                        // Atualiza o id local (temporário) para o uuid real do banco
                         pdv.id = data.id;
                     }
                 } else {
@@ -1692,7 +1614,7 @@
                         .update(pdvParaLinha(pdv, false))
                         .eq('id', pdv.id);
                     if (error) {
-                        console.warn('Erro ao atualizar PDV no Supabase:', error);
+                        console.warn('Erro ao atualizar PDV:', error);
                         showNotification('⚠️ PDV salvo localmente, mas falhou ao sincronizar com o banco.');
                     }
                 }
@@ -1701,15 +1623,13 @@
             }
         }
 
-        // Remove um PDV do Supabase
         async function removerPdvDoSupabase(pdvId) {
             if (!supabase) return;
-            // PDV que nunca foi salvo no banco (id local temporário) não existe lá — nada a remover
             if (!pdvId || String(pdvId).startsWith('pdv-')) return;
             try {
                 const { error } = await supabase.from('pdvs').delete().eq('id', pdvId);
                 if (error) {
-                    console.warn('Erro ao remover PDV do Supabase:', error);
+                    console.warn('Erro ao remover PDV:', error);
                 }
             } catch (error) {
                 console.warn('Erro ao remover PDV:', error);
@@ -1795,6 +1715,7 @@
             renderCards();
             renderUserList();
             updateResponsavelFilter();
+            atualizarMetricasPainel();
             console.log('✅ Todos os dados carregados!');
         }
 
@@ -1896,6 +1817,95 @@
         }
 
         // ============================================================
+        // ATUALIZAR MÉTRICAS DO PAINEL INFERIOR (DINÂMICO)
+        // ============================================================
+        function atualizarMetricasPainel() {
+            const total = initialCards.length;
+            const agendadas = initialCards.filter(c => c.status === 'agendada').length;
+            const execucao = initialCards.filter(c => c.status === 'execucao').length;
+            const bloqueadas = initialCards.filter(c => c.status === 'bloqueada').length;
+            const revisao = initialCards.filter(c => c.status === 'revisao').length;
+            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
+            const totalPdvs = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.length, 0);
+            const totalPdvsConcluidos = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.filter(p => p.status === 'concluido').length, 0);
+            const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+            const pctConcluidosPdvs = totalPdvs > 0 ? Math.round((totalPdvsConcluidos / totalPdvs) * 100) : 0;
+
+            // Contagem de técnicos únicos
+            const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
+            const numTecnicos = tecnicos.size || 1;
+            const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
+
+            // Atualizar Tickets (lojas em andamento + bloqueadas)
+            const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
+            const ticketList = document.getElementById('ticketList');
+            const ticketCount = document.getElementById('ticketCount');
+            ticketCount.textContent = tickets.length;
+
+            if (tickets.length === 0) {
+                ticketList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto ✅</div>';
+            } else {
+                ticketList.innerHTML = tickets.slice(0, 5).map(card => `
+                    <div class="ticket-item flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
+                        <div>
+                            <span class="font-medium text-white text-[9px] md:text-xs">${card.id}</span>
+                            <span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">${card.loja}</span>
+                        </div>
+                        <span class="${card.status === 'bloqueada' ? 'priority-critical' : 'priority-high'} text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">
+                            ${card.status === 'bloqueada' ? 'Bloqueado' : 'Execução'}
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            // Atualizar Atividades (últimas 3 lojas modificadas - ordem inversa)
+            const activities = [...initialCards].reverse().slice(0, 3);
+            const activityList = document.getElementById('activityList');
+            if (activities.length === 0) {
+                activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
+            } else {
+                const statusIcons = {
+                    'agendada': 'fa-calendar-alt text-sky-400',
+                    'execucao': 'fa-spinner text-amber-400',
+                    'bloqueada': 'fa-ban text-rose-400',
+                    'revisao': 'fa-check-double text-purple-400',
+                    'concluida': 'fa-check-circle text-emerald-400'
+                };
+                const statusLabels = {
+                    'agendada': 'agendada',
+                    'execucao': 'em execução',
+                    'bloqueada': 'bloqueada',
+                    'revisao': 'em revisão',
+                    'concluida': 'concluída'
+                };
+                activityList.innerHTML = activities.map(card => `
+                    <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-b border-[#2d313e] last:border-0">
+                        <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${card.status === 'concluida' ? 'bg-emerald-400' : card.status === 'execucao' ? 'bg-amber-400' : card.status === 'bloqueada' ? 'bg-rose-400' : 'bg-sky-400'} mt-1"></span>
+                        <div>
+                            <span class="text-white text-[9px] md:text-xs">${card.loja}</span>
+                            <span class="text-slate-400 text-[8px] md:text-xs"> ${statusLabels[card.status] || card.status}</span>
+                            <span class="text-[8px] md:text-[10px] text-slate-500 block">${card.data || 'Hoje'}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Métricas
+            document.getElementById('metricConclusao').textContent = `${taxaConclusao}%`;
+            document.getElementById('metricBarConclusao').style.width = `${taxaConclusao}%`;
+            document.getElementById('metricAndamento').textContent = execucao;
+            document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` : '0%';
+            document.getElementById('metricProdutividade').innerHTML = `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
+
+            // Status Geral
+            document.getElementById('metricTotalLojas').textContent = total;
+            document.getElementById('metricConcluidas').textContent = concluidas;
+            document.getElementById('metricPendentes').textContent = total - concluidas;
+            document.getElementById('metricBadgeConcluidas').textContent = `✅ ${taxaConclusao}%`;
+            document.getElementById('metricBadgePendentes').textContent = `⏳ ${100 - taxaConclusao}%`;
+        }
+
+        // ============================================================
         // RENDER CARDS
         // ============================================================
         function renderCards() {
@@ -1918,7 +1928,6 @@
                 };
                 const prioridadeClass = card.prioridade ? prioridadeMap[card.prioridade] || '' : '';
 
-                // Calcular progresso dos PDVs
                 const pdvs = pdvsPorLoja[card.id] || [];
                 const totalPdvs = pdvs.length;
                 const concluidos = pdvs.filter(p => p.status === 'concluido').length;
@@ -1979,7 +1988,6 @@
                     'concluida': 'fa-check-circle'
                 }[card.status];
 
-                // Barra de progresso dos PDVs no card
                 const progressBar = totalPdvs > 0 ? `
                     <div class="mt-2 flex items-center gap-2">
                         <div class="flex-1 bg-[#2d313e] h-1.5 rounded-full overflow-hidden">
@@ -2032,6 +2040,7 @@
             updateMetricDisplay();
             setupDragAndDrop();
             updateResponsavelFilter();
+            atualizarMetricasPainel();
         }
 
         // ============================================================
@@ -2111,6 +2120,7 @@
                 cardData.status = targetStatus;
                 renderCards();
                 showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+                atualizarMetricasPainel();
             }
             draggedCard = null;
         }
@@ -2133,18 +2143,18 @@
                 delete pdvSectionTitles[cardId];
                 renderCards();
                 showNotification(`🗑️ ${card.loja} excluída!`);
+                atualizarMetricasPainel();
             }
         }
 
         // ============================================================
-        // MODAL DETALHADO DO CARD - COMPLETO
+        // MODAL DETALHADO DO CARD
         // ============================================================
         async function openCardDetail(cardId) {
             currentCardId = cardId;
             const cardData = initialCards.find(c => c.id === cardId);
             if (!cardData) return;
 
-            // Preencher informações
             document.getElementById('modalTitle').textContent = cardData.loja;
             document.getElementById('modalID').textContent = cardId;
             document.getElementById('modalLoja').textContent = cardData.loja;
@@ -2154,7 +2164,6 @@
             document.getElementById('modalCreated').textContent = cardData.data || '10/07/2026';
             document.getElementById('modalSLA').textContent = '2h 30min';
 
-            // Status
             const statusMap = {
                 'agendada': { label: 'Agendada', bg: 'bg-agendada' },
                 'execucao': { label: 'Em Execução', bg: 'bg-execucao' },
@@ -2167,7 +2176,6 @@
             statusEl.textContent = statusInfo.label;
             statusEl.className = `${statusInfo.bg} text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium`;
 
-            // Responsável
             populateResponsavelSelects();
             const select = document.getElementById('responsibleInput');
             if (cardData.responsavel) {
@@ -2175,24 +2183,17 @@
                 if (resp) select.value = resp.id;
             }
 
-            // Descrição
             document.getElementById('modalDescription').value = cardData.descricao || '';
 
-            // Carregar/garantir PDVs da loja (busca no Supabase; cria os padrão na 1ª vez)
             await garantirPdvsDaLoja(cardId, cardData.pdvs || 3);
             if (!pdvSectionTitles[cardId]) {
                 pdvSectionTitles[cardId] = `PDVs da Loja ${cardData.loja}`;
             }
-            // Agora que os PDVs reais foram carregados, corrige a contagem exibida
             document.getElementById('modalPdvs').textContent = (pdvsPorLoja[cardId] || []).length;
 
-            // Atualizar título da seção
             document.getElementById('pdvSectionTitle').textContent = pdvSectionTitles[cardId] || `PDVs da Loja ${cardData.loja}`;
-
-            // Renderizar PDVs
             renderPdvs(cardId);
 
-            // Checklist
             checklistItems = [
                 { id: 1, text: 'Configurar rede dos PDVs', completed: true },
                 { id: 2, text: 'Instalar Linux nos terminais', completed: true },
@@ -2202,7 +2203,6 @@
             ];
             renderChecklist();
 
-            // Atualizar totais
             document.getElementById('modalTotalPdvs').textContent = pdvsPorLoja[cardId].length;
             const concluidos = pdvsPorLoja[cardId].filter(p => p.status === 'concluido').length;
             document.getElementById('modalPdvsConcluidos').textContent = concluidos;
@@ -2287,13 +2287,12 @@
         }
 
         // ============================================================
-        // PDVs - COM PDV ANTIGO E PDV ATUALIZADO (AMBOS EDITÁVEIS)
+        // PDVs - FUNÇÕES
         // ============================================================
         function renderPdvs(lojaId) {
             const container = document.getElementById('pdvListContainer');
             const pdvs = pdvsPorLoja[lojaId] || [];
 
-            // Atualizar título e badge
             const title = pdvSectionTitles[lojaId] || `PDVs da Loja`;
             const titleEl = document.getElementById('pdvSectionTitle');
             if (titleEl) {
@@ -2301,7 +2300,6 @@
             }
             document.getElementById('pdvSectionBadge').textContent = `${pdvs.length} itens`;
 
-            // Atualizar contadores
             const total = pdvs.length;
             const done = pdvs.filter(p => p.status === 'concluido').length;
             const progress = pdvs.filter(p => p.status === 'andamento').length;
@@ -2320,7 +2318,6 @@
             ring.style.setProperty('--pct', `${pct}%`);
             document.getElementById('pdvProgressPct').textContent = `${pct}%`;
 
-            // Atualizar também no header
             document.getElementById('modalTotalPdvs').textContent = total;
             document.getElementById('modalPdvsConcluidos').textContent = done;
 
@@ -2386,7 +2383,6 @@
             }).join('');
         }
 
-        // Função para editar o PDV Antigo (com dois cliques)
         async function editPdvAntigo(lojaId, pdvId) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
@@ -2399,10 +2395,10 @@
                 await salvarPdvNoSupabase(pdv);
                 renderPdvs(lojaId);
                 showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
+                atualizarMetricasPainel();
             }
         }
 
-        // Função para editar o PDV Atualizado (com dois cliques)
         async function editPdvAtualizado(lojaId, pdvId) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
@@ -2415,6 +2411,7 @@
                 await salvarPdvNoSupabase(pdv);
                 renderPdvs(lojaId);
                 showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
+                atualizarMetricasPainel();
             }
         }
 
@@ -2422,8 +2419,6 @@
             if (!currentCardId) return;
             const pdvs = pdvsPorLoja[currentCardId] || [];
 
-            // Gera o próximo número que ainda não existe como código nesta loja
-            // (evita colidir com a constraint UNIQUE loja_id+codigo se algum PDV do meio foi removido)
             const codigosExistentes = new Set(pdvs.map(p => p.codigo || p.nomeAntigo));
             let nextNum = pdvs.length + 1;
             let codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
@@ -2449,6 +2444,7 @@
             renderPdvs(currentCardId);
             await salvarPdvNoSupabase(newPdv);
             showNotification(`✅ ${newPdv.nomeAntigo} adicionado!`);
+            atualizarMetricasPainel();
         }
 
         async function removePdv(lojaId, pdvId) {
@@ -2459,6 +2455,7 @@
             renderPdvs(lojaId);
             await removerPdvDoSupabase(pdvId);
             showNotification(`🗑️ ${removed?.nomeAntigo || 'PDV'} removido`);
+            atualizarMetricasPainel();
         }
 
         async function updatePdvStatus(lojaId, pdvId, status) {
@@ -2472,6 +2469,7 @@
                 if (allDone && pdvs.length > 0) {
                     showNotification('🎉 Todos os PDVs concluídos!');
                 }
+                atualizarMetricasPainel();
             }
         }
 
@@ -2500,6 +2498,7 @@
                 renderPdvs(currentCardId);
                 await Promise.all(pdvs.map(p => salvarPdvNoSupabase(p)));
                 showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
+                atualizarMetricasPainel();
             }
         }
 
@@ -2649,6 +2648,7 @@
                 renderCards();
                 showNotification(`✅ Responsável alterado para ${card.responsavel}`);
                 closeCardDetail();
+                atualizarMetricasPainel();
             } else {
                 showNotification('❌ Selecione um responsável válido!');
             }
@@ -2662,6 +2662,7 @@
                 renderCards();
                 closeCardDetail();
                 showNotification('🚀 Loja iniciada!');
+                atualizarMetricasPainel();
             }
         }
 
@@ -2673,6 +2674,7 @@
                 renderCards();
                 closeCardDetail();
                 showNotification('⛔ Loja bloqueada!');
+                atualizarMetricasPainel();
             }
         }
 
@@ -2691,6 +2693,7 @@
                 renderCards();
                 closeCardDetail();
                 showNotification('🎉 Loja concluída!');
+                atualizarMetricasPainel();
             }
         }
 
@@ -3063,7 +3066,6 @@
             initialCards.push(newCard);
             pdvSectionTitles[newId] = `PDVs da Loja ${numero}`;
 
-            // Cria os PDVs padrão da loja (e já tenta gravar no Supabase)
             const novosPdvs = gerarPdvsParaLoja(newId, pdvs);
             pdvsPorLoja[newId] = novosPdvs;
 
@@ -3077,7 +3079,6 @@
                     if (pdvError) {
                         console.warn('Erro ao salvar PDVs da nova loja:', pdvError);
                     } else if (pdvsInseridos) {
-                        // Substitui os ids temporários pelos uuid reais devolvidos pelo banco
                         pdvsPorLoja[newId] = pdvsInseridos.map(mapPdvFromRow);
                     }
                 } catch (error) {
@@ -3088,10 +3089,11 @@
             renderCards();
             closeAddCardModal();
             showNotification(`🆕 Loja ${numero} adicionada com ${pdvs} PDVs!`);
+            atualizarMetricasPainel();
         }
 
         // ============================================================
-        // EXPORTAR PARA EXCEL COM VISÃO GERENCIAL
+        // EXPORTAR PARA EXCEL
         // ============================================================
         async function exportToExcel() {
             if (typeof XLSX === 'undefined') {
@@ -3100,17 +3102,11 @@
             }
 
             try {
-                // Garante que a planilha reflete o que está gravado no banco,
-                // não apenas o que está em memória nesta aba do navegador.
                 if (supabase) {
                     showNotification('⏳ Sincronizando dados do banco antes de exportar...');
                     await loadPdvsDoSupabase();
                 }
 
-                // Uma linha por PDV: os dados da loja se repetem e as 3 colunas
-                // de PDV (Antigo, Atualizado, Nº Série) vêm sempre por último, nessa ordem.
-                // Lojas sem nenhum PDV cadastrado aparecem em uma única linha, com essas
-                // três colunas em branco.
                 const lojasData = [];
                 initialCards.forEach(card => {
                     const pdvsDaLojaCount = (pdvsPorLoja[card.id] || []).length;
@@ -3323,7 +3319,7 @@
             }
         });
 
-        console.log('✅ Sistema pronto!');
+        console.log('✅ Sistema pronto com métricas dinâmicas!');
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
@@ -3374,6 +3370,8 @@
         window.editPdvAntigo = editPdvAntigo;
         window.editPdvAtualizado = editPdvAtualizado;
         window.savePdvSectionTitle = savePdvSectionTitle;
+        window.atualizarMetricasPainel = atualizarMetricasPainel;
+
     } catch (erroFatal) {
         console.error('❌ ERRO FATAL:', erroFatal);
         const errEl = document.getElementById('loginError');
