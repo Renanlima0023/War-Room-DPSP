@@ -199,7 +199,7 @@
             color: #818cf8;
         }
         
-        /* ===== EXPANDED VIEW (PRÉ-VISUALIZAÇÃO) ===== */
+        /* ===== EXPANDED VIEW ===== */
         .kanban-card.status-concluida .card-expanded {
             display: none;
             padding-top: 10px;
@@ -226,13 +226,8 @@
             font-size: 11px;
             color: #94a3b8;
         }
-        .kanban-card.status-concluida .card-expanded .exp-row .label {
-            color: #64748b;
-        }
-        .kanban-card.status-concluida .card-expanded .exp-row .value {
-            color: #e2e8f0;
-            font-weight: 500;
-        }
+        .kanban-card.status-concluida .card-expanded .exp-row .label { color: #64748b; }
+        .kanban-card.status-concluida .card-expanded .exp-row .value { color: #e2e8f0; font-weight: 500; }
         .kanban-card.status-concluida .card-expanded .exp-progress {
             margin-top: 6px;
             display: flex;
@@ -581,7 +576,7 @@
         }
         .btn-export i { font-size: 13px; }
 
-        /* ===== PDV CHECKLIST CRIATIVO ===== */
+        /* ===== PDV CHECKLIST ===== */
         .pdv-item {
             display: flex;
             align-items: center;
@@ -621,19 +616,6 @@
             display: block;
             font-weight: 400;
         }
-        .pdv-item .pdv-old-input {
-            font-weight: 700;
-            font-size: 12px;
-            color: #818cf8;
-            min-width: 55px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(79,70,229,0.2);
-            border: 1px solid #818cf8;
-            text-align: center;
-            outline: none;
-            width: 65px;
-        }
 
         .pdv-item .pdv-new {
             font-weight: 600;
@@ -661,30 +643,20 @@
             display: block;
             font-weight: 400;
         }
-        .pdv-item .pdv-new-input {
-            font-weight: 600;
-            font-size: 12px;
-            color: #fcd34d;
-            min-width: 55px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(251,191,36,0.15);
-            border: 1px solid #fbbf24;
-            text-align: center;
-            outline: none;
-            width: 65px;
-        }
 
-        .pdv-item .pdv-divider {
-            color: #2d313e;
-            font-size: 14px;
-            margin: 0 2px;
-        }
-        .pdv-item .pdv-serial {
-            flex: 1;
+        .pdv-item .pdv-divider { color: #2d313e; font-size: 14px; margin: 0 2px; }
+        .pdv-item .pdv-serial { flex: 1; font-size: 11px; color: #94a3b8; }
+        .pdv-item .pdv-serial input {
+            background: transparent;
+            border-bottom: 1px solid #2d313e;
+            color: #e2e8f0;
             font-size: 11px;
-            color: #94a3b8;
+            padding: 2px 4px;
+            width: 90px;
+            outline: none;
+            transition: border-color 0.2s ease;
         }
+        .pdv-item .pdv-serial input:focus { border-color: #4f46e5; }
         .pdv-item .pdv-status {
             width: 10px;
             height: 10px;
@@ -752,10 +724,7 @@
             font-size: 11px;
             color: #94a3b8;
         }
-        .pdv-summary-bar .stat strong {
-            color: #e2e8f0;
-            font-size: 13px;
-        }
+        .pdv-summary-bar .stat strong { color: #e2e8f0; font-size: 13px; }
         .pdv-summary-bar .stat .dot {
             width: 8px;
             height: 8px;
@@ -777,10 +746,7 @@
             border-color: #4f46e5;
             box-shadow: 0 0 20px rgba(79,70,229,0.1);
         }
-        .pdv-section-title .title-icon {
-            color: #4f46e5;
-            font-size: 16px;
-        }
+        .pdv-section-title .title-icon { color: #4f46e5; font-size: 16px; }
         .pdv-section-title .title-text {
             font-size: 14px;
             font-weight: 600;
@@ -816,10 +782,7 @@
             align-items: center;
             gap: 4px;
         }
-        .pdv-section-title .title-edit-hint i {
-            font-size: 11px;
-            color: #4f46e5;
-        }
+        .pdv-section-title .title-edit-hint i { font-size: 11px; color: #4f46e5; }
 
         .pdv-table-header {
             display: flex;
@@ -839,11 +802,6 @@
         .pdv-table-header .col-status { width: 30px; text-align: center; }
         .pdv-table-header .col-actions { width: 30px; text-align: center; }
 
-        .pdv-item .pdv-actions {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
         .pdv-item .pdv-actions button {
             background: transparent;
             border: none;
@@ -855,25 +813,43 @@
         }
         .pdv-item .pdv-actions button:hover { color: #f87171; }
 
-        .metric-value {
-            transition: all 0.5s ease;
-        }
-        .metric-value.updating {
-            color: #4f46e5;
-            transform: scale(1.05);
-        }
+        .metric-value { transition: all 0.5s ease; }
+        .metric-value.updating { color: #4f46e5; transform: scale(1.05); }
+        .ticket-item { transition: all 0.2s ease; }
+        .ticket-item:hover { background: #1a1d27; border-radius: 6px; padding-left: 4px; }
 
-        .ticket-item {
-            transition: all 0.2s ease;
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #2d313e;
+            border-radius: 50%;
+            border-top-color: #4f46e5;
+            animation: spin 0.8s ease-in-out infinite;
         }
-        .ticket-item:hover {
-            background: #1a1d27;
-            border-radius: 6px;
-            padding-left: 4px;
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,17,23,0.85);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
         }
+        .loading-overlay.active { display: flex; }
     </style>
 </head>
 <body>
+
+    <!-- LOADING -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <span class="text-slate-300 text-sm">Carregando...</span>
+    </div>
 
     <!-- ============================================================ -->
     <!-- TELA DE LOGIN -->
@@ -1016,7 +992,7 @@
                         </div>
                     </div>
 
-                    <!-- COLUNA CONCLUÍDAS - COM ESTILO MINIMALISTA -->
+                    <!-- COLUNA CONCLUÍDAS -->
                     <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
                         <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
                             <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-check-circle text-emerald-400 mr-1 md:mr-2"></i>Concluídas</h3>
@@ -1040,7 +1016,7 @@
             </div>
             <div class="panel-content">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 max-w-7xl mx-auto">
-                    
+                    <!-- Tickets -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <div class="flex justify-between items-center mb-1 md:mb-2">
                             <h4 class="panel-title flex items-center gap-1 md:gap-2">
@@ -1054,6 +1030,7 @@
                         </div>
                     </div>
 
+                    <!-- Atividades -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-stream text-indigo-400 text-[10px] md:text-xs"></i>
@@ -1064,6 +1041,7 @@
                         </div>
                     </div>
 
+                    <!-- Métricas -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-chart-simple text-indigo-400 text-[10px] md:text-xs"></i>
@@ -1089,6 +1067,7 @@
                         </div>
                     </div>
 
+                    <!-- Status Geral -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3 flex flex-col justify-between">
                         <div>
                             <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
@@ -1172,6 +1151,7 @@
                         </button>
                     </div>
 
+                    <!-- TAB DETALHES -->
                     <div id="tab-detalhes" class="tab-content active">
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                             <div class="lg:col-span-2 space-y-3 md:space-y-4">
@@ -1247,6 +1227,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB PDVs -->
                     <div id="tab-pdvs" class="tab-content">
                         <div class="space-y-4">
                             <div class="pdv-section-title">
@@ -1302,6 +1283,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB CHECKLIST -->
                     <div id="tab-checklist" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
@@ -1314,6 +1296,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB DEPENDÊNCIAS -->
                     <div id="tab-dependencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
@@ -1338,6 +1321,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB EVIDÊNCIAS -->
                     <div id="tab-evidencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -1350,6 +1334,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB CHAT -->
                     <div id="tab-chat" class="tab-content">
                         <div class="flex flex-col h-[300px] md:h-[400px]">
                             <div class="flex-1 overflow-y-auto space-y-2 md:space-y-3 p-1 md:p-2" id="chatMessages">
@@ -1383,6 +1368,7 @@
                         </div>
                     </div>
 
+                    <!-- TAB HISTÓRICO -->
                     <div id="tab-historico" class="tab-content">
                         <div class="space-y-2" id="historicoContainer">
                             <div class="history-item p-1.5 border-l-2 border-indigo-500">
@@ -1547,7 +1533,7 @@
                 console.log('✅ Conectado ao Supabase.');
                 return true;
             }
-            console.error('❌ SDK do Supabase não carregou.');
+            console.warn('⚠️ SDK do Supabase não carregou. Usando modo local.');
             return false;
         }
         window.iniciarSupabase = iniciarSupabase;
@@ -1576,11 +1562,11 @@
         let checklistItems = [];
 
         const DEFAULT_USERS = [
-            { nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
-            { nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
-            { nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
+            { id: 'local-1', nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
+            { id: 'local-2', nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
+            { id: 'local-3', nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
+            { id: 'local-4', nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
+            { id: 'local-5', nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
         ];
 
         // ============================================================
@@ -1855,22 +1841,24 @@
 
         async function loadUsuarios() {
             if (!supabase) {
-                USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                USERS = [...DEFAULT_USERS];
                 return USERS;
             }
 
             try {
+                // Tentar carregar da tabela usuarios
                 const { data, error } = await supabase.from('usuarios').select('*').order('nome');
-                if (error) {
-                    console.warn('Erro ao carregar usuários:', error);
-                    USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                if (!error && data && data.length > 0) {
+                    USERS = data;
                     return USERS;
                 }
-                USERS = data || [];
+
+                // Se não houver dados na tabela, usar os padrão
+                USERS = [...DEFAULT_USERS];
                 return USERS;
             } catch (error) {
                 console.warn('Erro ao carregar usuários:', error);
-                USERS = DEFAULT_USERS.map(u => ({ ...u, id: 'local-' + Date.now() }));
+                USERS = [...DEFAULT_USERS];
                 return USERS;
             }
         }
@@ -1885,7 +1873,7 @@
         }
 
         // ============================================================
-        // FUNÇÃO DE LOGIN
+        // FUNÇÃO DE LOGIN - USANDO TABELA USUARIOS
         // ============================================================
         async function handleLogin() {
             console.log('🔑 Tentando login...');
@@ -1907,6 +1895,7 @@
             try {
                 let user = null;
 
+                // Buscar na tabela usuarios (Supabase)
                 if (supabase) {
                     try {
                         const { data, error } = await supabase
@@ -1924,6 +1913,7 @@
                     }
                 }
 
+                // Fallback local (DEFAULT_USERS)
                 if (!user) {
                     user = DEFAULT_USERS.find(u => u.email === email && u.senha === senha);
                     if (user) {
@@ -1948,7 +1938,8 @@
                     document.getElementById('userNameDisplay').textContent = user.nome;
                     document.getElementById('userRoleDisplay').textContent =
                         user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' : 'Técnico';
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
 
                     await carregarTudo();
                     showNotification(`👋 Bem-vindo, ${user.nome}!`);
@@ -1968,6 +1959,9 @@
             }
         }
 
+        // ============================================================
+        // LOGOUT
+        // ============================================================
         function handleLogout() {
             if (confirm('Deseja realmente sair?')) {
                 sessionStorage.removeItem('rocc_user');
@@ -1986,20 +1980,15 @@
         // ============================================================
         function atualizarMetricasPainel() {
             const total = initialCards.length;
-            const agendadas = initialCards.filter(c => c.status === 'agendada').length;
             const execucao = initialCards.filter(c => c.status === 'execucao').length;
-            const bloqueadas = initialCards.filter(c => c.status === 'bloqueada').length;
-            const revisao = initialCards.filter(c => c.status === 'revisao').length;
             const concluidas = initialCards.filter(c => c.status === 'concluida').length;
-            const totalPdvs = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.length, 0);
-            const totalPdvsConcluidos = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.filter(p => p.status === 'concluido').length, 0);
             const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
 
             const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
             const numTecnicos = tecnicos.size || 1;
             const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
 
-            // Tickets
+            // Tickets (em execução + bloqueadas)
             const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
             const ticketList = document.getElementById('ticketList');
             const ticketCount = document.getElementById('ticketCount');
@@ -2046,7 +2035,6 @@
                 `).join('');
             }
 
-            // Métricas
             document.getElementById('metricConclusao').textContent = `${taxaConclusao}%`;
             document.getElementById('metricBarConclusao').style.width = `${taxaConclusao}%`;
             document.getElementById('metricAndamento').textContent = execucao;
@@ -2076,11 +2064,7 @@
 
             initialCards.forEach(card => {
                 const statusClass = `status-${card.status}`;
-                const prioridadeMap = {
-                    'Crítico': 'priority-critical',
-                    'Alta': 'priority-high',
-                    'Média': 'priority-medium'
-                };
+                const prioridadeMap = { 'Crítico': 'priority-critical', 'Alta': 'priority-high', 'Média': 'priority-medium' };
                 const prioridadeClass = card.prioridade ? prioridadeMap[card.prioridade] || '' : '';
 
                 const pdvs = pdvsPorLoja[card.id] || [];
@@ -2145,7 +2129,6 @@
 
                 // ===== CARDS CONCLUÍDOS - ESTILO MINIMALISTA =====
                 if (card.status === 'concluida') {
-                    // Card minimalista
                     cardEl.className = `kanban-card status-concluida p-2 rounded-lg`;
                     cardEl.style.cursor = 'pointer';
                     
@@ -2196,13 +2179,11 @@
                         </div>
                     `;
                     
-                    // Evento para abrir o modal com duplo clique
                     cardEl.addEventListener('dblclick', function(e) {
                         e.stopPropagation();
                         openCardDetail(card.id);
                     });
                     
-                    // Evento de clique único para abrir o modal
                     cardEl.onclick = function(e) {
                         if (e.target.closest('.expand-btn')) return;
                         if (e.target.closest('.card-expanded')) {
@@ -2218,7 +2199,7 @@
                     return;
                 }
 
-                // ===== CARDS NÃO CONCLUÍDOS - ESTILO NORMAL =====
+                // ===== CARDS NÃO CONCLUÍDOS =====
                 const progressBar = totalPdvs > 0 ? `
                     <div class="mt-2 flex items-center gap-2">
                         <div class="flex-1 bg-[#2d313e] h-1.5 rounded-full overflow-hidden">
@@ -2272,40 +2253,6 @@
             setupDragAndDrop();
             updateResponsavelFilter();
             atualizarMetricasPainel();
-        }
-
-        // ============================================================
-        // FUNÇÃO PARA EXPANDIR/COLAPSAR CARD CONCLUÍDO
-        // ============================================================
-        function toggleExpandCard(cardId) {
-            const expanded = document.getElementById(`expand-${cardId}`);
-            const card = document.querySelector(`[data-id="${cardId}"]`);
-            const btn = card ? card.querySelector('.expand-btn') : null;
-            if (expanded) {
-                expanded.classList.toggle('open');
-                if (btn) {
-                    btn.classList.toggle('expanded');
-                }
-            }
-        }
-
-        // ============================================================
-        // ATUALIZAR FILTRO DE RESPONSÁVEIS
-        // ============================================================
-        function updateResponsavelFilter() {
-            const select = document.getElementById('responsibleFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Todos</option>';
-            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
-            responsaveis.forEach(r => {
-                const option = document.createElement('option');
-                option.value = r;
-                option.textContent = r;
-                select.appendChild(option);
-            });
-            if (currentValue && responsaveis.includes(currentValue)) {
-                select.value = currentValue;
-            }
         }
 
         // ============================================================
@@ -2462,6 +2409,21 @@
             document.getElementById('cardModal').classList.remove('active');
             document.body.style.overflow = '';
             currentCardId = null;
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA EXPANDIR/COLAPSAR CARD CONCLUÍDO
+        // ============================================================
+        function toggleExpandCard(cardId) {
+            const expanded = document.getElementById(`expand-${cardId}`);
+            const card = document.querySelector(`[data-id="${cardId}"]`);
+            const btn = card ? card.querySelector('.expand-btn') : null;
+            if (expanded) {
+                expanded.classList.toggle('open');
+                if (btn) {
+                    btn.classList.toggle('expanded');
+                }
+            }
         }
 
         // ============================================================
@@ -2864,7 +2826,214 @@
         }
 
         // ============================================================
-        // AÇÕES DO MODAL
+        // GERENCIAR USUÁRIOS - COM PERSISTÊNCIA NO BANCO
+        // ============================================================
+        function openUserManagement() {
+            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+                showNotification('⛔ Apenas Administradores e Gerentes podem gerenciar usuários!');
+                return;
+            }
+            renderUserList();
+            document.getElementById('userModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeUserManagement() {
+            document.getElementById('userModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function renderUserList() {
+            const list = document.getElementById('userList');
+            list.innerHTML = '';
+
+            USERS.forEach(user => {
+                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador' };
+                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador' };
+                const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
+
+                const item = document.createElement('div');
+                item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
+                        <div>
+                            <p class="text-white font-medium text-sm">${user.nome}</p>
+                            <span class="role-badge ${roleColors[user.role]}">${roleLabels[user.role]}</span>
+                            <p class="text-[10px] text-slate-400">${user.email}</p>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn-edit" onclick="editUser('${user.id}')" title="Editar nome"><i class="fas fa-edit"></i></button>
+                        <button class="btn-reset" onclick="openResetPasswordForUser('${user.id}')" title="Resetar senha"><i class="fas fa-key"></i></button>
+                        <button class="btn-delete" onclick="removeUser('${user.id}')" title="Remover usuário"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        async function addUser() {
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const role = document.getElementById('newUserRole').value;
+
+            if (!name || !email) {
+                showNotification('❌ Preencha nome e e-mail!');
+                return;
+            }
+
+            if (USERS.find(u => u.email === email)) {
+                showNotification('❌ Este e-mail já está cadastrado!');
+                return;
+            }
+
+            const newUser = { 
+                id: 'local-' + Date.now(), 
+                nome: name, 
+                email: email, 
+                senha: 'nova123', 
+                role: role 
+            };
+
+            // Salvar no Supabase
+            if (supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('usuarios')
+                        .insert({ nome: name, email: email, senha: 'nova123', role: role })
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    
+                    // Atualizar com o ID do banco
+                    newUser.id = data.id;
+                    USERS.push(newUser);
+                    showNotification(`👤 Usuário ${name} criado com sucesso!`);
+                } catch (error) {
+                    console.error('Erro ao criar usuário:', error);
+                    showNotification('❌ Erro ao criar usuário: ' + error.message);
+                    // Fallback: salvar localmente
+                    USERS.push(newUser);
+                    showNotification(`👤 Usuário ${name} adicionado (modo local)!`);
+                }
+            } else {
+                USERS.push(newUser);
+                showNotification(`👤 Usuário ${name} adicionado!`);
+            }
+
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            renderUserList();
+        }
+
+        async function editUser(userId) {
+            const user = USERS.find(u => u.id === userId);
+            if (!user) return;
+
+            const newName = prompt('Novo nome:', user.nome);
+            if (newName && newName.trim()) {
+                const oldName = user.nome;
+                user.nome = newName.trim();
+
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .update({ nome: user.nome })
+                            .eq('id', user.id);
+                        showNotification(`✏️ Usuário atualizado para ${newName}`);
+                    } catch (error) {
+                        console.error('Erro ao editar usuário:', error);
+                        user.nome = oldName; // Reverter
+                        showNotification('❌ Erro ao atualizar usuário');
+                    }
+                } else {
+                    showNotification(`✏️ Usuário atualizado para ${newName} (modo local)`);
+                }
+                renderUserList();
+            }
+        }
+
+        async function removeUser(userId) {
+            const user = USERS.find(u => u.id === userId);
+            if (!user) return;
+
+            if (user.id === currentUser?.id) {
+                showNotification('❌ Você não pode remover seu próprio usuário!');
+                return;
+            }
+
+            if (confirm(`Remover ${user.nome}?`)) {
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .delete()
+                            .eq('id', user.id);
+                        showNotification(`🗑️ Usuário ${user.nome} removido`);
+                    } catch (error) {
+                        console.error('Erro ao remover usuário:', error);
+                        showNotification('❌ Erro ao remover usuário');
+                        return;
+                    }
+                }
+                USERS = USERS.filter(u => u.id !== userId);
+                renderUserList();
+                showNotification(`🗑️ Usuário ${user.nome} removido`);
+            }
+        }
+
+        function openResetPasswordForUser(userId) {
+            const user = USERS.find(u => u.id === userId);
+            if (!user) return;
+            resetTargetUserId = userId;
+            document.getElementById('resetUserName').textContent = user.nome;
+            document.getElementById('resetPasswordModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeResetPasswordModal() {
+            document.getElementById('resetPasswordModal').classList.remove('active');
+            document.body.style.overflow = '';
+            resetTargetUserId = null;
+        }
+
+        async function confirmResetPassword() {
+            const newPassword = document.getElementById('resetNewPassword').value.trim();
+            if (!newPassword || newPassword.length < 4) {
+                showNotification('❌ Senha deve ter pelo menos 4 caracteres!');
+                return;
+            }
+
+            const user = USERS.find(u => u.id === resetTargetUserId);
+            if (user) {
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .update({ senha: newPassword })
+                            .eq('id', user.id);
+                        showNotification(`✅ Senha de ${user.nome} resetada com sucesso!`);
+                    } catch (error) {
+                        console.error('Erro ao resetar senha:', error);
+                        showNotification('❌ Erro ao resetar senha: ' + error.message);
+                        // Fallback: atualizar localmente
+                        user.senha = newPassword;
+                        showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword} (modo local)`);
+                    }
+                } else {
+                    user.senha = newPassword;
+                    showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword} (modo local)`);
+                }
+                closeResetPasswordModal();
+                renderUserList();
+            }
+        }
+
+        // ============================================================
+        // FUNÇÕES ADICIONAIS
         // ============================================================
         function populateResponsavelSelects() {
             const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
@@ -3066,6 +3235,22 @@
             });
         }
 
+        function updateResponsavelFilter() {
+            const select = document.getElementById('responsibleFilter');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Todos</option>';
+            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
+            responsaveis.forEach(r => {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = r;
+                select.appendChild(option);
+            });
+            if (currentValue && responsaveis.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
         function updateCounts() {
             const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
             statuses.forEach(status => {
@@ -3108,129 +3293,12 @@
             panel.classList.toggle('collapsed');
         }
 
-        // ============================================================
-        // GERENCIAR USUÁRIOS
-        // ============================================================
-        function openUserManagement() {
-            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
-                showNotification('⛔ Apenas Administradores e Gerentes podem gerenciar usuários!');
-                return;
-            }
-            renderUserList();
-            document.getElementById('userModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeUserManagement() {
-            document.getElementById('userModal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        function renderUserList() {
-            const list = document.getElementById('userList');
-            list.innerHTML = '';
-
-            USERS.forEach(user => {
-                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador' };
-                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador' };
-                const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
-
-                const item = document.createElement('div');
-                item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
-                        <div>
-                            <p class="text-white font-medium text-sm">${user.nome}</p>
-                            <span class="role-badge ${roleColors[user.role]}">${roleLabels[user.role]}</span>
-                            <p class="text-[10px] text-slate-400">${user.email}</p>
-                        </div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn-edit" onclick="editUser('${user.id}')" title="Editar nome"><i class="fas fa-edit"></i></button>
-                        <button class="btn-reset" onclick="openResetPasswordForUser('${user.id}')" title="Resetar senha"><i class="fas fa-key"></i></button>
-                        <button class="btn-delete" onclick="removeUser('${user.id}')" title="Remover usuário"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        async function addUser() {
-            const name = document.getElementById('newUserName').value.trim();
-            const email = document.getElementById('newUserEmail').value.trim();
-            const role = document.getElementById('newUserRole').value;
-
-            if (!name || !email) {
-                showNotification('❌ Preencha nome e e-mail!');
-                return;
-            }
-
-            if (USERS.find(u => u.email === email)) {
-                showNotification('❌ Este e-mail já está cadastrado!');
-                return;
-            }
-
-            const newUser = { id: 'local-' + Date.now(), nome: name, email: email, senha: 'nova123', role: role };
-            USERS.push(newUser);
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
-            renderUserList();
-            showNotification(`👤 Usuário ${name} adicionado!`);
-        }
-
-        async function editUser(userId) {
-            const user = USERS.find(u => u.id === userId);
-            if (!user) return;
-            const newName = prompt('Novo nome:', user.nome);
-            if (newName && newName.trim()) {
-                user.nome = newName.trim();
-                renderUserList();
-                showNotification(`✏️ Usuário atualizado para ${newName}`);
-            }
-        }
-
-        async function removeUser(userId) {
-            const user = USERS.find(u => u.id === userId);
-            if (!user) return;
-            if (user.id === currentUser?.id) {
-                showNotification('❌ Você não pode remover seu próprio usuário!');
-                return;
-            }
-            if (confirm(`Remover ${user.nome}?`)) {
-                USERS = USERS.filter(u => u.id !== userId);
-                renderUserList();
-                showNotification(`🗑️ Usuário ${user.nome} removido`);
-            }
-        }
-
-        function openResetPasswordForUser(userId) {
-            const user = USERS.find(u => u.id === userId);
-            if (!user) return;
-            resetTargetUserId = userId;
-            document.getElementById('resetUserName').textContent = user.nome;
-            document.getElementById('resetPasswordModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeResetPasswordModal() {
-            document.getElementById('resetPasswordModal').classList.remove('active');
-            document.body.style.overflow = '';
-            resetTargetUserId = null;
-        }
-
-        async function confirmResetPassword() {
-            const newPassword = document.getElementById('resetNewPassword').value.trim();
-            if (!newPassword || newPassword.length < 4) {
-                showNotification('❌ Senha deve ter pelo menos 4 caracteres!');
-                return;
-            }
-            const user = USERS.find(u => u.id === resetTargetUserId);
-            if (user) {
-                user.senha = newPassword;
-                showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword}`);
-                closeResetPasswordModal();
-            }
+        function showQuickAction() {
+            const action = prompt('Ação rápida:\n1 - Nova Loja\n2 - Ticket\n3 - Relatório\n4 - Métricas');
+            if (action === '1') openAddCardModal('agendada');
+            else if (action === '2') showNotification('Abrindo ticket...');
+            else if (action === '3') showNotification('Gerando relatório...');
+            else if (action === '4') showNotification('Exibindo métricas...');
         }
 
         // ============================================================
@@ -3500,14 +3568,6 @@
             setTimeout(() => toast.remove(), 5000);
         }
 
-        function showQuickAction() {
-            const action = prompt('Ação rápida:\n1 - Nova Loja\n2 - Ticket\n3 - Relatório\n4 - Métricas');
-            if (action === '1') openAddCardModal('agendada');
-            else if (action === '2') showNotification('Abrindo ticket...');
-            else if (action === '3') showNotification('Gerando relatório...');
-            else if (action === '4') showNotification('Exibindo métricas...');
-        }
-
         // ============================================================
         // INICIALIZAÇÃO
         // ============================================================
@@ -3528,7 +3588,8 @@
                     document.getElementById('userNameDisplay').textContent = user.nome;
                     document.getElementById('userRoleDisplay').textContent =
                         user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' : 'Técnico';
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
                     await carregarTudo();
                     showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
                 } catch (e) {
@@ -3565,7 +3626,7 @@
             }
         });
 
-        console.log('✅ Sistema pronto com cards concluídos minimalistas e título visível!');
+        console.log('✅ Sistema pronto com persistência de usuários no banco!');
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
