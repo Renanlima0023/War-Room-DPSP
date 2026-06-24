@@ -2416,11 +2416,33 @@
         // CHECKLIST - COM PERSISTÊNCIA NO SUPABASE (CORRIGIDO)
         // ============================================================
 
+        // Função para validar UUID
+        function isValidUUID(uuid) {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            return uuidRegex.test(uuid);
+        }
+
         async function carregarChecklist(lojaId) {
             console.log('📋 Carregando checklist para loja:', lojaId);
             
             if (!supabase) {
                 console.warn('⚠️ Supabase não disponível, usando modo local');
+                if (!checklistItems.length) {
+                    checklistItems = [
+                        { id: 'local-1', text: 'Configurar rede dos PDVs', completed: false },
+                        { id: 'local-2', text: 'Instalar Linux nos terminais', completed: false },
+                        { id: 'local-3', text: 'Instalar It Lean', completed: false },
+                        { id: 'local-4', text: 'Realizar venda teste', completed: false },
+                        { id: 'local-5', text: 'Assinar termo de aceite', completed: false }
+                    ];
+                }
+                renderChecklist();
+                return checklistItems;
+            }
+
+            // Se não for um UUID válido e não for ID local, usar fallback
+            if (!isValidUUID(lojaId) && !String(lojaId).startsWith('LJ-')) {
+                console.warn('⚠️ lojaId não é um UUID válido, usando modo local');
                 if (!checklistItems.length) {
                     checklistItems = [
                         { id: 'local-1', text: 'Configurar rede dos PDVs', completed: false },
@@ -2512,15 +2534,24 @@
                 return item;
             }
 
+            // SEMPRE salvar localmente primeiro (cache)
+            const existing = checklistItems.find(i => i.id === item.id);
+            if (existing) {
+                existing.completed = item.completed;
+                existing.text = item.text;
+            } else {
+                checklistItems.push({...item});
+            }
+            renderChecklist();
+
+            // Se não for UUID válido, salvar apenas localmente
+            if (!isValidUUID(lojaId) && !String(lojaId).startsWith('LJ-')) {
+                console.warn('⚠️ lojaId não é UUID, salvando apenas localmente');
+                return item;
+            }
+
             if (!supabase) {
                 console.warn('⚠️ Supabase não disponível, salvando localmente');
-                const existing = checklistItems.find(i => i.id === item.id);
-                if (existing) {
-                    existing.completed = item.completed;
-                    existing.text = item.text;
-                } else {
-                    checklistItems.push({...item});
-                }
                 return item;
             }
 
@@ -2545,8 +2576,8 @@
                         .single();
 
                     if (error) {
-                        console.error('❌ Erro ao inserir:', error);
-                        throw error;
+                        console.warn('⚠️ Erro ao inserir no Supabase, mantendo local:', error.message);
+                        return item;
                     }
                     result = data;
                     console.log('✅ Item inserido com sucesso:', result);
@@ -2560,35 +2591,33 @@
                         .single();
 
                     if (error) {
-                        console.error('❌ Erro ao atualizar:', error);
-                        throw error;
+                        console.warn('⚠️ Erro ao atualizar no Supabase, mantendo local:', error.message);
+                        return item;
                     }
                     result = data;
                     console.log('✅ Item atualizado com sucesso:', result);
                 }
 
-                const mappedItem = {
-                    id: result.id,
-                    text: result.texto,
-                    completed: result.concluido || false
-                };
-                
-                const index = checklistItems.findIndex(i => i.id === item.id);
-                if (index >= 0) {
-                    checklistItems[index] = mappedItem;
-                } else {
-                    checklistItems.push(mappedItem);
+                if (result) {
+                    const mappedItem = {
+                        id: result.id,
+                        text: result.texto,
+                        completed: result.concluido || false
+                    };
+                    
+                    const index = checklistItems.findIndex(i => i.id === item.id);
+                    if (index >= 0) {
+                        checklistItems[index] = mappedItem;
+                    } else {
+                        checklistItems.push(mappedItem);
+                    }
+                    renderChecklist();
+                    return mappedItem;
                 }
                 
-                return mappedItem;
+                return item;
             } catch (error) {
-                console.error('❌ Erro ao salvar checklist:', error);
-                showNotification('❌ Erro ao salvar checklist: ' + error.message);
-                
-                const existing = checklistItems.find(i => i.id === item.id);
-                if (existing) {
-                    existing.completed = item.completed;
-                }
+                console.warn('⚠️ Erro ao salvar no Supabase, mantendo local:', error.message);
                 return item;
             }
         }
@@ -2636,32 +2665,28 @@
                 completed: false
             };
             
+            // Salvar localmente primeiro
+            checklistItems.push(newItem);
+            renderChecklist();
+            
             if (currentCardId) {
                 try {
                     const saved = await salvarChecklistItem(currentCardId, newItem);
-                    if (saved) {
+                    if (saved && saved.id) {
                         const index = checklistItems.findIndex(i => i.id === newItem.id);
                         if (index >= 0) {
                             checklistItems[index] = saved;
-                        } else {
-                            checklistItems.push(saved);
                         }
                         renderChecklist();
                         showNotification('✅ Novo item adicionado ao checklist!');
                     } else {
-                        checklistItems.push(newItem);
-                        renderChecklist();
                         showNotification('⚠️ Item adicionado localmente (falha no banco)');
                     }
                 } catch (error) {
                     console.error('❌ Erro ao adicionar item:', error);
-                    checklistItems.push(newItem);
-                    renderChecklist();
                     showNotification('⚠️ Item adicionado localmente');
                 }
             } else {
-                checklistItems.push(newItem);
-                renderChecklist();
                 showNotification('✅ Novo item adicionado (local)!');
             }
         }
@@ -2673,7 +2698,7 @@
             
             const isTemp = String(id).startsWith('temp-') || String(id).startsWith('local-');
             
-            if (!isTemp && supabase) {
+            if (!isTemp && supabase && currentCardId) {
                 try {
                     const { error } = await supabase
                         .from('checklist')
@@ -2681,14 +2706,12 @@
                         .eq('id', id);
                     
                     if (error) {
-                        console.error('❌ Erro ao remover:', error);
-                        throw error;
+                        console.warn('⚠️ Erro ao remover do banco, removendo local:', error.message);
+                    } else {
+                        console.log('✅ Item removido do banco');
                     }
-                    console.log('✅ Item removido do banco');
                 } catch (error) {
-                    console.error('❌ Erro ao remover item:', error);
-                    showNotification('❌ Erro ao remover item: ' + error.message);
-                    return;
+                    console.warn('⚠️ Erro ao remover do banco:', error.message);
                 }
             }
             
@@ -3881,6 +3904,7 @@
         window.savePdvSectionTitle = savePdvSectionTitle;
         window.atualizarMetricasPainel = atualizarMetricasPainel;
         window.toggleExpandCard = toggleExpandCard;
+        window.isValidUUID = isValidUUID;
 
     } catch (erroFatal) {
         console.error('❌ ERRO FATAL:', erroFatal);
