@@ -1283,7 +1283,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB CHECKLIST - COM PERSISTÊNCIA NO BANCO -->
+                    <!-- TAB CHECKLIST - CORRIGIDA -->
                     <div id="tab-checklist" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
@@ -2413,18 +2413,21 @@
         }
 
         // ============================================================
-        // CHECKLIST - COM PERSISTÊNCIA NO SUPABASE
+        // CHECKLIST - COM PERSISTÊNCIA NO SUPABASE (CORRIGIDO)
         // ============================================================
 
         async function carregarChecklist(lojaId) {
+            console.log('📋 Carregando checklist para loja:', lojaId);
+            
             if (!supabase) {
+                console.warn('⚠️ Supabase não disponível, usando modo local');
                 if (!checklistItems.length) {
                     checklistItems = [
-                        { id: 'temp-1', text: 'Configurar rede dos PDVs', completed: false },
-                        { id: 'temp-2', text: 'Instalar Linux nos terminais', completed: false },
-                        { id: 'temp-3', text: 'Instalar It Lean', completed: false },
-                        { id: 'temp-4', text: 'Realizar venda teste', completed: false },
-                        { id: 'temp-5', text: 'Assinar termo de aceite', completed: false }
+                        { id: 'local-1', text: 'Configurar rede dos PDVs', completed: false },
+                        { id: 'local-2', text: 'Instalar Linux nos terminais', completed: false },
+                        { id: 'local-3', text: 'Instalar It Lean', completed: false },
+                        { id: 'local-4', text: 'Realizar venda teste', completed: false },
+                        { id: 'local-5', text: 'Assinar termo de aceite', completed: false }
                     ];
                 }
                 renderChecklist();
@@ -2438,16 +2441,21 @@
                     .eq('loja_id', lojaId)
                     .order('created_at', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Erro ao carregar checklist:', error);
+                    throw error;
+                }
+
+                console.log('📋 Dados carregados do banco:', data);
 
                 if (data && data.length > 0) {
                     checklistItems = data.map(item => ({
                         id: item.id,
                         text: item.texto,
-                        completed: item.concluido
+                        completed: item.concluido || false
                     }));
                 } else {
-                    // Criar checklist padrão
+                    console.log('📋 Nenhum item encontrado, criando padrão...');
                     const itensPadrao = [
                         'Configurar rede dos PDVs',
                         'Instalar Linux nos terminais',
@@ -2456,75 +2464,116 @@
                         'Assinar termo de aceite'
                     ];
                     
+                    checklistItems = [];
                     for (const texto of itensPadrao) {
                         const newItem = {
-                            id: 'temp-' + Date.now() + '-' + Math.random(),
+                            id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
                             text: texto,
                             completed: false
                         };
-                        const saved = await salvarChecklistItem(lojaId, newItem);
-                        checklistItems.push(saved);
+                        try {
+                            const saved = await salvarChecklistItem(lojaId, newItem);
+                            if (saved) {
+                                checklistItems.push(saved);
+                            }
+                        } catch (err) {
+                            console.error('❌ Erro ao criar item padrão:', err);
+                            checklistItems.push(newItem);
+                        }
                     }
-                    
-                    // Recarregar para pegar os IDs reais
-                    await carregarChecklist(lojaId);
                 }
                 
                 renderChecklist();
                 return checklistItems;
             } catch (error) {
-                console.error('Erro ao carregar checklist:', error);
+                console.error('❌ Erro ao carregar checklist:', error);
+                showNotification('❌ Erro ao carregar checklist: ' + error.message);
+                
+                if (!checklistItems.length) {
+                    checklistItems = [
+                        { id: 'local-1', text: 'Configurar rede dos PDVs', completed: false },
+                        { id: 'local-2', text: 'Instalar Linux nos terminais', completed: false },
+                        { id: 'local-3', text: 'Instalar It Lean', completed: false },
+                        { id: 'local-4', text: 'Realizar venda teste', completed: false },
+                        { id: 'local-5', text: 'Assinar termo de aceite', completed: false }
+                    ];
+                }
+                renderChecklist();
                 return checklistItems;
             }
         }
 
         async function salvarChecklistItem(lojaId, item) {
+            console.log('💾 Salvando checklist item:', item);
+            
+            if (!lojaId) {
+                console.error('❌ lojaId é obrigatório');
+                showNotification('❌ ID da loja não encontrado');
+                return item;
+            }
+
             if (!supabase) {
+                console.warn('⚠️ Supabase não disponível, salvando localmente');
                 const existing = checklistItems.find(i => i.id === item.id);
                 if (existing) {
                     existing.completed = item.completed;
                     existing.text = item.text;
                 } else {
-                    checklistItems.push(item);
+                    checklistItems.push({...item});
                 }
                 return item;
             }
 
             try {
+                const isNew = !item.id || String(item.id).startsWith('temp-') || String(item.id).startsWith('local-');
+                
                 const payload = {
                     loja_id: lojaId,
                     texto: item.text,
-                    concluido: item.completed,
+                    concluido: item.completed || false,
                     updated_at: new Date().toISOString()
                 };
 
                 let result;
-                if (item.id && !String(item.id).startsWith('temp-')) {
+                
+                if (isNew) {
+                    console.log('📝 Inserindo novo item...');
+                    const { data, error } = await supabase
+                        .from('checklist')
+                        .insert(payload)
+                        .select()
+                        .single();
+
+                    if (error) {
+                        console.error('❌ Erro ao inserir:', error);
+                        throw error;
+                    }
+                    result = data;
+                    console.log('✅ Item inserido com sucesso:', result);
+                } else {
+                    console.log('🔄 Atualizando item existente...');
                     const { data, error } = await supabase
                         .from('checklist')
                         .update(payload)
                         .eq('id', item.id)
                         .select()
                         .single();
-                    if (error) throw error;
+
+                    if (error) {
+                        console.error('❌ Erro ao atualizar:', error);
+                        throw error;
+                    }
                     result = data;
-                } else {
-                    const { data, error } = await supabase
-                        .from('checklist')
-                        .insert(payload)
-                        .select()
-                        .single();
-                    if (error) throw error;
-                    result = data;
+                    console.log('✅ Item atualizado com sucesso:', result);
                 }
 
-                const index = checklistItems.findIndex(i => i.id === item.id);
                 const mappedItem = {
                     id: result.id,
                     text: result.texto,
-                    completed: result.concluido
+                    completed: result.concluido || false
                 };
                 
+                const index = checklistItems.findIndex(i => i.id === item.id);
                 if (index >= 0) {
                     checklistItems[index] = mappedItem;
                 } else {
@@ -2533,51 +2582,137 @@
                 
                 return mappedItem;
             } catch (error) {
-                console.error('Erro ao salvar checklist:', error);
-                showNotification('❌ Erro ao salvar checklist');
+                console.error('❌ Erro ao salvar checklist:', error);
+                showNotification('❌ Erro ao salvar checklist: ' + error.message);
+                
+                const existing = checklistItems.find(i => i.id === item.id);
+                if (existing) {
+                    existing.completed = item.completed;
+                }
                 return item;
             }
         }
 
-        async function removerChecklistItemDoBanco(itemId) {
-            if (!supabase) {
-                checklistItems = checklistItems.filter(i => i.id !== itemId);
-                renderChecklist();
+        async function toggleChecklistItem(id) {
+            console.log('🔄 Alternando item:', id);
+            
+            const item = checklistItems.find(i => i.id === id);
+            if (!item) {
+                console.error('❌ Item não encontrado:', id);
                 return;
             }
-
-            if (String(itemId).startsWith('temp-')) {
-                checklistItems = checklistItems.filter(i => i.id !== itemId);
+            
+            item.completed = !item.completed;
+            console.log('📊 Novo status:', item.completed);
+            
+            if (currentCardId) {
+                try {
+                    await salvarChecklistItem(currentCardId, item);
+                    renderChecklist();
+                    showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
+                } catch (error) {
+                    console.error('❌ Erro ao alternar item:', error);
+                    showNotification('❌ Erro ao salvar: ' + error.message);
+                    item.completed = !item.completed;
+                    renderChecklist();
+                }
+            } else {
                 renderChecklist();
+                showNotification(item.completed ? '✅ Item concluído (local)!' : '↩️ Item reaberto (local)');
+            }
+        }
+
+        async function addChecklistItem() {
+            const text = prompt('Digite o novo item do checklist:');
+            if (!text || !text.trim()) {
                 return;
             }
-
-            try {
-                const { error } = await supabase
-                    .from('checklist')
-                    .delete()
-                    .eq('id', itemId);
-                
-                if (error) throw error;
-                
-                checklistItems = checklistItems.filter(i => i.id !== itemId);
+            
+            console.log('➕ Adicionando item:', text);
+            
+            const newItem = {
+                id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+                text: text.trim(),
+                completed: false
+            };
+            
+            if (currentCardId) {
+                try {
+                    const saved = await salvarChecklistItem(currentCardId, newItem);
+                    if (saved) {
+                        const index = checklistItems.findIndex(i => i.id === newItem.id);
+                        if (index >= 0) {
+                            checklistItems[index] = saved;
+                        } else {
+                            checklistItems.push(saved);
+                        }
+                        renderChecklist();
+                        showNotification('✅ Novo item adicionado ao checklist!');
+                    } else {
+                        checklistItems.push(newItem);
+                        renderChecklist();
+                        showNotification('⚠️ Item adicionado localmente (falha no banco)');
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao adicionar item:', error);
+                    checklistItems.push(newItem);
+                    renderChecklist();
+                    showNotification('⚠️ Item adicionado localmente');
+                }
+            } else {
+                checklistItems.push(newItem);
                 renderChecklist();
-                showNotification('🗑️ Item removido');
-            } catch (error) {
-                console.error('Erro ao remover checklist:', error);
-                showNotification('❌ Erro ao remover item');
+                showNotification('✅ Novo item adicionado (local)!');
             }
+        }
+
+        async function removeChecklistItem(id) {
+            if (!confirm('Remover este item do checklist?')) return;
+            
+            console.log('🗑️ Removendo item:', id);
+            
+            const isTemp = String(id).startsWith('temp-') || String(id).startsWith('local-');
+            
+            if (!isTemp && supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('checklist')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) {
+                        console.error('❌ Erro ao remover:', error);
+                        throw error;
+                    }
+                    console.log('✅ Item removido do banco');
+                } catch (error) {
+                    console.error('❌ Erro ao remover item:', error);
+                    showNotification('❌ Erro ao remover item: ' + error.message);
+                    return;
+                }
+            }
+            
+            checklistItems = checklistItems.filter(i => i.id !== id);
+            renderChecklist();
+            showNotification('🗑️ Item removido');
         }
 
         function renderChecklist() {
             const container = document.getElementById('checklistContainer');
-            if (!container) return;
+            if (!container) {
+                console.warn('⚠️ Container checklist não encontrado');
+                return;
+            }
             
             container.innerHTML = '';
             const total = checklistItems.length;
             const done = checklistItems.filter(item => item.completed).length;
-            document.getElementById('checklistProgress').textContent = `${done}/${total}`;
-            document.getElementById('checklistCount').textContent = total;
+            
+            const progressEl = document.getElementById('checklistProgress');
+            const countEl = document.getElementById('checklistCount');
+            
+            if (progressEl) progressEl.textContent = `${done}/${total}`;
+            if (countEl) countEl.textContent = total;
 
             if (checklistItems.length === 0) {
                 container.innerHTML = `
@@ -2607,44 +2742,6 @@
                 `;
                 container.appendChild(div);
             });
-        }
-
-        async function toggleChecklistItem(id) {
-            const item = checklistItems.find(i => i.id === id);
-            if (!item) return;
-            
-            item.completed = !item.completed;
-            
-            if (currentCardId) {
-                await salvarChecklistItem(currentCardId, item);
-            }
-            renderChecklist();
-            showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
-        }
-
-        async function addChecklistItem() {
-            const text = prompt('Digite o novo item do checklist:');
-            if (!text || !text.trim()) return;
-            
-            const newItem = {
-                id: 'temp-' + Date.now() + '-' + Math.random(),
-                text: text.trim(),
-                completed: false
-            };
-            
-            if (currentCardId) {
-                const saved = await salvarChecklistItem(currentCardId, newItem);
-                checklistItems.push(saved);
-            } else {
-                checklistItems.push(newItem);
-            }
-            renderChecklist();
-            showNotification('✅ Novo item adicionado ao checklist!');
-        }
-
-        async function removeChecklistItem(id) {
-            if (!confirm('Remover este item do checklist?')) return;
-            await removerChecklistItemDoBanco(id);
         }
 
         // ============================================================
