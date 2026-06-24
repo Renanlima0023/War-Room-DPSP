@@ -122,6 +122,171 @@
         }
         .delete-btn:hover { background: #7f1d1d; color: white; }
         .kanban-card:hover .delete-btn { opacity: 1; }
+        
+        /* ===== CARDS CONCLUÍDOS - ESTILO MINIMALISTA ===== */
+        .kanban-card.status-concluida {
+            padding: 8px 12px !important;
+            background: transparent !important;
+            border: 1px solid #2d313e;
+            border-left: 6px solid #34d399;
+            box-shadow: none !important;
+            cursor: pointer;
+            min-height: 40px;
+            transition: all 0.3s ease;
+        }
+        .kanban-card.status-concluida:hover {
+            border-color: #4f46e5;
+            background: rgba(52,211,153,0.05) !important;
+            transform: translateX(4px);
+        }
+        .kanban-card.status-concluida .card-minimal {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .kanban-card.status-concluida .card-minimal .store-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #6ee7b7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 60px;
+        }
+        .kanban-card.status-concluida .card-minimal .store-badge {
+            font-size: 9px;
+            background: rgba(52,211,153,0.15);
+            color: #34d399;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(52,211,153,0.2);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .kanban-card.status-concluida .card-minimal .store-meta {
+            font-size: 10px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .kanban-card.status-concluida .card-minimal .expand-btn {
+            background: transparent;
+            border: 1px solid #2d313e;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .kanban-card.status-concluida .card-minimal .expand-btn:hover {
+            background: #2d313e;
+            color: #e2e8f0;
+            border-color: #4f46e5;
+        }
+        .kanban-card.status-concluida .card-minimal .expand-btn.expanded {
+            transform: rotate(180deg);
+            border-color: #4f46e5;
+            color: #818cf8;
+        }
+        
+        /* ===== EXPANDED VIEW (PRÉ-VISUALIZAÇÃO) ===== */
+        .kanban-card.status-concluida .card-expanded {
+            display: none;
+            padding-top: 10px;
+            border-top: 1px solid #2d313e;
+            margin-top: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+        .kanban-card.status-concluida .card-expanded.open {
+            display: block;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #6ee7b7;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #2d313e;
+            padding-bottom: 4px;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-row .label {
+            color: #64748b;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-row .value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-progress {
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-progress .bar {
+            flex: 1;
+            height: 4px;
+            background: #2d313e;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-progress .bar .fill {
+            height: 100%;
+            background: #34d399;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-progress .pct {
+            font-size: 10px;
+            color: #34d399;
+            font-weight: 600;
+            min-width: 32px;
+            text-align: right;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #1a1d27;
+            font-size: 10px;
+            color: #64748b;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-footer .resp {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-footer .resp img {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        .kanban-card.status-concluida .card-expanded .exp-hint {
+            text-align: center;
+            margin-top: 6px;
+            font-size: 8px;
+            color: #64748b;
+            border-top: 1px solid #1a1d27;
+            padding-top: 4px;
+        }
 
         .kanban-column-inner {
             min-height: 250px;
@@ -170,6 +335,10 @@
             .kanban-column { min-width: 160px; }
             .kanban-scroll { padding: 12px; }
             .kanban-card { padding: 10px 12px !important; }
+            .kanban-card.status-concluida { padding: 6px 10px !important; }
+            .kanban-card.status-concluida .card-minimal .store-name { font-size: 11px; }
+            .kanban-card.status-concluida .card-minimal .store-meta { font-size: 8px; gap: 4px; }
+            .kanban-card.status-concluida .card-minimal .expand-btn { width: 20px; height: 20px; font-size: 9px; }
         }
 
         /* ===== MODAIS ===== */
@@ -686,7 +855,6 @@
         }
         .pdv-item .pdv-actions button:hover { color: #f87171; }
 
-        /* Métricas animadas */
         .metric-value {
             transition: all 0.5s ease;
         }
@@ -848,12 +1016,13 @@
                         </div>
                     </div>
 
+                    <!-- COLUNA CONCLUÍDAS - COM ESTILO MINIMALISTA -->
                     <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col">
                         <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
                             <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas fa-check-circle text-emerald-400 mr-1 md:mr-2"></i>Concluídas</h3>
                             <span class="bg-[#2d313e] text-slate-300 text-[10px] md:text-xs px-2 py-0.5 rounded-full" id="count-concluida">0</span>
                         </div>
-                        <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="concluida"></div>
+                        <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="concluida" id="concluidasContainer"></div>
                         <div class="p-1 md:p-2 border-t border-[#2d313e] text-center">
                             <button class="text-[10px] md:text-xs text-indigo-400 hover:text-indigo-300 transition w-full" onclick="openAddCardModal('concluida')">
                                 <i class="fas fa-plus mr-0.5"></i> Adicionar
@@ -864,7 +1033,7 @@
             </div>
         </div>
 
-        <!-- PAINEL INFERIOR - COM MÉTRICAS DINÂMICAS -->
+        <!-- PAINEL INFERIOR -->
         <div class="bottom-panel px-3 md:px-6 py-2 md:py-3 flex-shrink-0" id="bottomPanel">
             <div class="toggle-btn" onclick="togglePanel()">
                 <i class="fas fa-chevron-up text-xs md:text-sm"></i>
@@ -872,7 +1041,6 @@
             <div class="panel-content">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 max-w-7xl mx-auto">
                     
-                    <!-- TICKETS - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <div class="flex justify-between items-center mb-1 md:mb-2">
                             <h4 class="panel-title flex items-center gap-1 md:gap-2">
@@ -886,7 +1054,6 @@
                         </div>
                     </div>
 
-                    <!-- ATIVIDADES - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-stream text-indigo-400 text-[10px] md:text-xs"></i>
@@ -897,7 +1064,6 @@
                         </div>
                     </div>
 
-                    <!-- MÉTRICAS - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
                         <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                             <i class="fas fa-chart-simple text-indigo-400 text-[10px] md:text-xs"></i>
@@ -923,7 +1089,6 @@
                         </div>
                     </div>
 
-                    <!-- PREVISÃO - DINÂMICO -->
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3 flex flex-col justify-between">
                         <div>
                             <h4 class="panel-title flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
@@ -1397,7 +1562,7 @@
         let initialCards = [];
 
         let localCards = [
-            { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'agendada', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
+            { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan', status: 'concluida', regional: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
             { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José', status: 'agendada', regional: 'SP', pdvs: 2, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
             { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan', status: 'execucao', regional: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min', subtipo: 'Migração Linux' },
             { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José', status: 'bloqueada', regional: 'SP', pdvs: 3, comentarios: 12, data: '32min', subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
@@ -1817,7 +1982,7 @@
         }
 
         // ============================================================
-        // ATUALIZAR MÉTRICAS DO PAINEL INFERIOR (DINÂMICO)
+        // ATUALIZAR MÉTRICAS DO PAINEL INFERIOR
         // ============================================================
         function atualizarMetricasPainel() {
             const total = initialCards.length;
@@ -1829,14 +1994,12 @@
             const totalPdvs = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.length, 0);
             const totalPdvsConcluidos = Object.values(pdvsPorLoja).reduce((sum, pdvs) => sum + pdvs.filter(p => p.status === 'concluido').length, 0);
             const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
-            const pctConcluidosPdvs = totalPdvs > 0 ? Math.round((totalPdvsConcluidos / totalPdvs) * 100) : 0;
 
-            // Contagem de técnicos únicos
             const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
             const numTecnicos = tecnicos.size || 1;
             const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
 
-            // Atualizar Tickets (lojas em andamento + bloqueadas)
+            // Tickets
             const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
             const ticketList = document.getElementById('ticketList');
             const ticketCount = document.getElementById('ticketCount');
@@ -1858,19 +2021,12 @@
                 `).join('');
             }
 
-            // Atualizar Atividades (últimas 3 lojas modificadas - ordem inversa)
+            // Atividades
             const activities = [...initialCards].reverse().slice(0, 3);
             const activityList = document.getElementById('activityList');
             if (activities.length === 0) {
                 activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
             } else {
-                const statusIcons = {
-                    'agendada': 'fa-calendar-alt text-sky-400',
-                    'execucao': 'fa-spinner text-amber-400',
-                    'bloqueada': 'fa-ban text-rose-400',
-                    'revisao': 'fa-check-double text-purple-400',
-                    'concluida': 'fa-check-circle text-emerald-400'
-                };
                 const statusLabels = {
                     'agendada': 'agendada',
                     'execucao': 'em execução',
@@ -1897,7 +2053,6 @@
             document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` : '0%';
             document.getElementById('metricProdutividade').innerHTML = `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
 
-            // Status Geral
             document.getElementById('metricTotalLojas').textContent = total;
             document.getElementById('metricConcluidas').textContent = concluidas;
             document.getElementById('metricPendentes').textContent = total - concluidas;
@@ -1988,6 +2143,82 @@
                     'concluida': 'fa-check-circle'
                 }[card.status];
 
+                // ===== CARDS CONCLUÍDOS - ESTILO MINIMALISTA =====
+                if (card.status === 'concluida') {
+                    // Card minimalista
+                    cardEl.className = `kanban-card status-concluida p-2 rounded-lg`;
+                    cardEl.style.cursor = 'pointer';
+                    
+                    cardEl.innerHTML = `
+                        <div class="card-minimal">
+                            <span class="store-name">${card.loja}</span>
+                            <span class="store-badge">✓ Finalizada</span>
+                            <div class="store-meta">
+                                <span>${card.data || 'N/A'}</span>
+                                <span>•</span>
+                                <span>${totalPdvs} PDVs</span>
+                            </div>
+                            <button class="expand-btn" onclick="event.stopPropagation(); toggleExpandCard('${card.id}')">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="card-expanded" id="expand-${card.id}">
+                            <div class="exp-title">${card.loja}</div>
+                            <div class="exp-row">
+                                <span class="label">Responsável</span>
+                                <span class="value">${card.responsavel || 'Não atribuído'}</span>
+                            </div>
+                            <div class="exp-row">
+                                <span class="label">Regional</span>
+                                <span class="value">${card.regional || 'N/A'}</span>
+                            </div>
+                            <div class="exp-row">
+                                <span class="label">Prioridade</span>
+                                <span class="value">${card.prioridade || 'Normal'}</span>
+                            </div>
+                            <div class="exp-progress">
+                                <span class="label">Progresso</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: ${pct}%"></div>
+                                </div>
+                                <span class="pct">${pct}%</span>
+                            </div>
+                            <div class="exp-footer">
+                                <span class="resp">
+                                    <img src="https://ui-avatars.com/api/?name=${card.responsavel || 'Sistema'}&background=${corResponsavel}&color=fff&size=20" />
+                                    ${card.responsavel || 'Sistema'}
+                                </span>
+                                <span><i class="far fa-comment mr-0.5"></i>${card.comentarios || 0}</span>
+                            </div>
+                            <div class="exp-hint">
+                                <i class="fas fa-mouse-pointer mr-0.5"></i> Duplo clique para ver todos os detalhes
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Evento para abrir o modal com duplo clique
+                    cardEl.addEventListener('dblclick', function(e) {
+                        e.stopPropagation();
+                        openCardDetail(card.id);
+                    });
+                    
+                    // Evento de clique único para abrir o modal
+                    cardEl.onclick = function(e) {
+                        if (e.target.closest('.expand-btn')) return;
+                        if (e.target.closest('.card-expanded')) {
+                            if (!e.target.closest('.expand-btn')) {
+                                openCardDetail(card.id);
+                            }
+                            return;
+                        }
+                        openCardDetail(card.id);
+                    };
+                    
+                    columns.concluida.appendChild(cardEl);
+                    return;
+                }
+
+                // ===== CARDS NÃO CONCLUÍDOS - ESTILO NORMAL =====
                 const progressBar = totalPdvs > 0 ? `
                     <div class="mt-2 flex items-center gap-2">
                         <div class="flex-1 bg-[#2d313e] h-1.5 rounded-full overflow-hidden">
@@ -2041,6 +2272,21 @@
             setupDragAndDrop();
             updateResponsavelFilter();
             atualizarMetricasPainel();
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA EXPANDIR/COLAPSAR CARD CONCLUÍDO
+        // ============================================================
+        function toggleExpandCard(cardId) {
+            const expanded = document.getElementById(`expand-${cardId}`);
+            const card = document.querySelector(`[data-id="${cardId}"]`);
+            const btn = card ? card.querySelector('.expand-btn') : null;
+            if (expanded) {
+                expanded.classList.toggle('open');
+                if (btn) {
+                    btn.classList.toggle('expanded');
+                }
+            }
         }
 
         // ============================================================
@@ -3319,7 +3565,7 @@
             }
         });
 
-        console.log('✅ Sistema pronto com métricas dinâmicas!');
+        console.log('✅ Sistema pronto com cards concluídos minimalistas e título visível!');
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
@@ -3371,6 +3617,7 @@
         window.editPdvAtualizado = editPdvAtualizado;
         window.savePdvSectionTitle = savePdvSectionTitle;
         window.atualizarMetricasPainel = atualizarMetricasPainel;
+        window.toggleExpandCard = toggleExpandCard;
 
     } catch (erroFatal) {
         console.error('❌ ERRO FATAL:', erroFatal);
