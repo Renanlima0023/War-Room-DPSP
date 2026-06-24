@@ -1283,7 +1283,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB CHECKLIST -->
+                    <!-- TAB CHECKLIST - COM PERSISTÊNCIA NO BANCO -->
                     <div id="tab-checklist" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
@@ -1846,14 +1846,11 @@
             }
 
             try {
-                // Tentar carregar da tabela usuarios
                 const { data, error } = await supabase.from('usuarios').select('*').order('nome');
                 if (!error && data && data.length > 0) {
                     USERS = data;
                     return USERS;
                 }
-
-                // Se não houver dados na tabela, usar os padrão
                 USERS = [...DEFAULT_USERS];
                 return USERS;
             } catch (error) {
@@ -1873,7 +1870,7 @@
         }
 
         // ============================================================
-        // FUNÇÃO DE LOGIN - USANDO TABELA USUARIOS
+        // FUNÇÃO DE LOGIN
         // ============================================================
         async function handleLogin() {
             console.log('🔑 Tentando login...');
@@ -1895,7 +1892,6 @@
             try {
                 let user = null;
 
-                // Buscar na tabela usuarios (Supabase)
                 if (supabase) {
                     try {
                         const { data, error } = await supabase
@@ -1913,7 +1909,6 @@
                     }
                 }
 
-                // Fallback local (DEFAULT_USERS)
                 if (!user) {
                     user = DEFAULT_USERS.find(u => u.email === email && u.senha === senha);
                     if (user) {
@@ -1959,9 +1954,6 @@
             }
         }
 
-        // ============================================================
-        // LOGOUT
-        // ============================================================
         function handleLogout() {
             if (confirm('Deseja realmente sair?')) {
                 sessionStorage.removeItem('rocc_user');
@@ -1988,7 +1980,6 @@
             const numTecnicos = tecnicos.size || 1;
             const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
 
-            // Tickets (em execução + bloqueadas)
             const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
             const ticketList = document.getElementById('ticketList');
             const ticketCount = document.getElementById('ticketCount');
@@ -2010,7 +2001,6 @@
                 `).join('');
             }
 
-            // Atividades
             const activities = [...initialCards].reverse().slice(0, 3);
             const activityList = document.getElementById('activityList');
             if (activities.length === 0) {
@@ -2127,7 +2117,7 @@
                     'concluida': 'fa-check-circle'
                 }[card.status];
 
-                // ===== CARDS CONCLUÍDOS - ESTILO MINIMALISTA =====
+                // ===== CARDS CONCLUÍDOS =====
                 if (card.status === 'concluida') {
                     cardEl.className = `kanban-card status-concluida p-2 rounded-lg`;
                     cardEl.style.cursor = 'pointer';
@@ -2387,14 +2377,10 @@
             document.getElementById('pdvSectionTitle').textContent = pdvSectionTitles[cardId] || `PDVs da Loja ${cardData.loja}`;
             renderPdvs(cardId);
 
-            checklistItems = [
-                { id: 1, text: 'Configurar rede dos PDVs', completed: true },
-                { id: 2, text: 'Instalar Linux nos terminais', completed: true },
-                { id: 3, text: 'Instalar It Lean', completed: false },
-                { id: 4, text: 'Realizar venda teste', completed: false },
-                { id: 5, text: 'Assinar termo de aceite', completed: false }
-            ];
-            renderChecklist();
+            // ============================================================
+            // CARREGAR CHECKLIST DO BANCO
+            // ============================================================
+            await carregarChecklist(cardId);
 
             document.getElementById('modalTotalPdvs').textContent = pdvsPorLoja[cardId].length;
             const concluidos = pdvsPorLoja[cardId].filter(p => p.status === 'concluido').length;
@@ -2424,6 +2410,241 @@
                     btn.classList.toggle('expanded');
                 }
             }
+        }
+
+        // ============================================================
+        // CHECKLIST - COM PERSISTÊNCIA NO SUPABASE
+        // ============================================================
+
+        async function carregarChecklist(lojaId) {
+            if (!supabase) {
+                if (!checklistItems.length) {
+                    checklistItems = [
+                        { id: 'temp-1', text: 'Configurar rede dos PDVs', completed: false },
+                        { id: 'temp-2', text: 'Instalar Linux nos terminais', completed: false },
+                        { id: 'temp-3', text: 'Instalar It Lean', completed: false },
+                        { id: 'temp-4', text: 'Realizar venda teste', completed: false },
+                        { id: 'temp-5', text: 'Assinar termo de aceite', completed: false }
+                    ];
+                }
+                renderChecklist();
+                return checklistItems;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('checklist')
+                    .select('*')
+                    .eq('loja_id', lojaId)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    checklistItems = data.map(item => ({
+                        id: item.id,
+                        text: item.texto,
+                        completed: item.concluido
+                    }));
+                } else {
+                    // Criar checklist padrão
+                    const itensPadrao = [
+                        'Configurar rede dos PDVs',
+                        'Instalar Linux nos terminais',
+                        'Instalar It Lean',
+                        'Realizar venda teste',
+                        'Assinar termo de aceite'
+                    ];
+                    
+                    for (const texto of itensPadrao) {
+                        const newItem = {
+                            id: 'temp-' + Date.now() + '-' + Math.random(),
+                            text: texto,
+                            completed: false
+                        };
+                        const saved = await salvarChecklistItem(lojaId, newItem);
+                        checklistItems.push(saved);
+                    }
+                    
+                    // Recarregar para pegar os IDs reais
+                    await carregarChecklist(lojaId);
+                }
+                
+                renderChecklist();
+                return checklistItems;
+            } catch (error) {
+                console.error('Erro ao carregar checklist:', error);
+                return checklistItems;
+            }
+        }
+
+        async function salvarChecklistItem(lojaId, item) {
+            if (!supabase) {
+                const existing = checklistItems.find(i => i.id === item.id);
+                if (existing) {
+                    existing.completed = item.completed;
+                    existing.text = item.text;
+                } else {
+                    checklistItems.push(item);
+                }
+                return item;
+            }
+
+            try {
+                const payload = {
+                    loja_id: lojaId,
+                    texto: item.text,
+                    concluido: item.completed,
+                    updated_at: new Date().toISOString()
+                };
+
+                let result;
+                if (item.id && !String(item.id).startsWith('temp-')) {
+                    const { data, error } = await supabase
+                        .from('checklist')
+                        .update(payload)
+                        .eq('id', item.id)
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    result = data;
+                } else {
+                    const { data, error } = await supabase
+                        .from('checklist')
+                        .insert(payload)
+                        .select()
+                        .single();
+                    if (error) throw error;
+                    result = data;
+                }
+
+                const index = checklistItems.findIndex(i => i.id === item.id);
+                const mappedItem = {
+                    id: result.id,
+                    text: result.texto,
+                    completed: result.concluido
+                };
+                
+                if (index >= 0) {
+                    checklistItems[index] = mappedItem;
+                } else {
+                    checklistItems.push(mappedItem);
+                }
+                
+                return mappedItem;
+            } catch (error) {
+                console.error('Erro ao salvar checklist:', error);
+                showNotification('❌ Erro ao salvar checklist');
+                return item;
+            }
+        }
+
+        async function removerChecklistItemDoBanco(itemId) {
+            if (!supabase) {
+                checklistItems = checklistItems.filter(i => i.id !== itemId);
+                renderChecklist();
+                return;
+            }
+
+            if (String(itemId).startsWith('temp-')) {
+                checklistItems = checklistItems.filter(i => i.id !== itemId);
+                renderChecklist();
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('checklist')
+                    .delete()
+                    .eq('id', itemId);
+                
+                if (error) throw error;
+                
+                checklistItems = checklistItems.filter(i => i.id !== itemId);
+                renderChecklist();
+                showNotification('🗑️ Item removido');
+            } catch (error) {
+                console.error('Erro ao remover checklist:', error);
+                showNotification('❌ Erro ao remover item');
+            }
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('checklistContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            const total = checklistItems.length;
+            const done = checklistItems.filter(item => item.completed).length;
+            document.getElementById('checklistProgress').textContent = `${done}/${total}`;
+            document.getElementById('checklistCount').textContent = total;
+
+            if (checklistItems.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 py-4 text-sm">
+                        <i class="fas fa-clipboard-list text-2xl mb-2"></i>
+                        <p>Nenhum item no checklist</p>
+                        <p class="text-xs">Clique em "Adicionar item" para começar</p>
+                    </div>
+                `;
+                return;
+            }
+
+            checklistItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `checklist-item flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition ${item.completed ? 'completed' : ''}`;
+                div.innerHTML = `
+                    <input type="checkbox" ${item.completed ? 'checked' : ''} 
+                           class="w-4 h-4 accent-indigo-600 cursor-pointer" 
+                           onchange="toggleChecklistItem('${item.id}')" />
+                    <span class="checklist-text text-white flex-1 text-sm ${item.completed ? 'line-through text-slate-400' : ''}">${item.text}</span>
+                    <span class="text-xs ${item.completed ? 'text-emerald-400' : 'text-slate-400'}">
+                        ${item.completed ? '<i class="fas fa-check-circle"></i> Concluído' : '<i class="far fa-circle"></i> Pendente'}
+                    </span>
+                    <button class="text-rose-400 hover:text-rose-300 text-xs transition" onclick="removeChecklistItem('${item.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function toggleChecklistItem(id) {
+            const item = checklistItems.find(i => i.id === id);
+            if (!item) return;
+            
+            item.completed = !item.completed;
+            
+            if (currentCardId) {
+                await salvarChecklistItem(currentCardId, item);
+            }
+            renderChecklist();
+            showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
+        }
+
+        async function addChecklistItem() {
+            const text = prompt('Digite o novo item do checklist:');
+            if (!text || !text.trim()) return;
+            
+            const newItem = {
+                id: 'temp-' + Date.now() + '-' + Math.random(),
+                text: text.trim(),
+                completed: false
+            };
+            
+            if (currentCardId) {
+                const saved = await salvarChecklistItem(currentCardId, newItem);
+                checklistItems.push(saved);
+            } else {
+                checklistItems.push(newItem);
+            }
+            renderChecklist();
+            showNotification('✅ Novo item adicionado ao checklist!');
+        }
+
+        async function removeChecklistItem(id) {
+            if (!confirm('Remover este item do checklist?')) return;
+            await removerChecklistItemDoBanco(id);
         }
 
         // ============================================================
@@ -2711,122 +2932,7 @@
         }
 
         // ============================================================
-        // CHECKLIST
-        // ============================================================
-        function renderChecklist() {
-            const container = document.getElementById('checklistContainer');
-            container.innerHTML = '';
-            const total = checklistItems.length;
-            const done = checklistItems.filter(item => item.completed).length;
-            document.getElementById('checklistProgress').textContent = `${done}/${total}`;
-            document.getElementById('checklistCount').textContent = total;
-
-            checklistItems.forEach(item => {
-                const div = document.createElement('div');
-                div.className = `checklist-item flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition ${item.completed ? 'completed' : ''}`;
-                div.innerHTML = `
-                    <input type="checkbox" ${item.completed ? 'checked' : ''} class="w-4 h-4 accent-indigo-600" onchange="toggleChecklistItem(${item.id})" />
-                    <span class="checklist-text text-white flex-1 text-sm">${item.text}</span>
-                    <span class="text-xs ${item.completed ? 'text-emerald-400' : 'text-slate-400'}">
-                        ${item.completed ? '<i class="fas fa-check-circle"></i> Concluído' : '<i class="far fa-circle"></i> Pendente'}
-                    </span>
-                    <button class="text-rose-400 hover:text-rose-300 text-xs" onclick="removeChecklistItem(${item.id})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function addChecklistItem() {
-            const text = prompt('Digite o novo item do checklist:');
-            if (text && text.trim()) {
-                const newId = Math.max(0, ...checklistItems.map(i => i.id)) + 1;
-                checklistItems.push({ id: newId, text: text.trim(), completed: false });
-                renderChecklist();
-                showNotification('✅ Novo item adicionado ao checklist!');
-            }
-        }
-
-        function toggleChecklistItem(id) {
-            const item = checklistItems.find(i => i.id === id);
-            if (item) {
-                item.completed = !item.completed;
-                renderChecklist();
-                showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
-            }
-        }
-
-        function removeChecklistItem(id) {
-            if (confirm('Remover este item do checklist?')) {
-                checklistItems = checklistItems.filter(i => i.id !== id);
-                renderChecklist();
-                showNotification('🗑️ Item removido');
-            }
-        }
-
-        // ============================================================
-        // EVIDÊNCIAS
-        // ============================================================
-        function handleFileUpload(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-
-            const list = document.getElementById('evidenciasList');
-            Array.from(files).forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center justify-between p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
-                const icon = file.type.startsWith('image/') ? 'fa-image text-sky-400' : 
-                            file.type === 'application/pdf' ? 'fa-file-pdf text-rose-400' :
-                            'fa-file text-slate-400';
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <i class="fas ${icon}"></i>
-                        <div>
-                            <p class="text-sm text-white">${file.name}</p>
-                            <p class="text-xs text-slate-400">${(file.size / 1024).toFixed(1)} KB • Enviado agora</p>
-                        </div>
-                    </div>
-                    <button class="text-slate-400 hover:text-rose-400 transition" onclick="this.parentElement.remove()">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-                list.appendChild(div);
-            });
-            showNotification(`📎 ${files.length} arquivo(s) enviado(s)!`);
-            document.getElementById('fileInput').value = '';
-        }
-
-        // ============================================================
-        // CHAT
-        // ============================================================
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
-
-            const container = document.getElementById('chatMessages');
-            const newMsg = document.createElement('div');
-            newMsg.className = 'chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg';
-            newMsg.innerHTML = `
-                <img src="https://ui-avatars.com/api/?name=${currentUser?.nome || 'Admin'}&background=4F46E5&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" />
-                <div class="flex-1">
-                    <div class="flex items-center gap-1 md:gap-2">
-                        <span class="font-medium text-white text-[10px] md:text-sm">${currentUser?.nome || 'Admin'}</span>
-                        <span class="text-[8px] md:text-xs text-slate-500">${new Date().toLocaleTimeString()}</span>
-                        <span class="text-[8px] md:text-[10px] bg-emerald-600/20 text-emerald-400 px-1.5 md:px-2 py-0.5 rounded-full">Agora</span>
-                    </div>
-                    <p class="text-[10px] md:text-sm text-slate-300">${message}</p>
-                </div>
-            `;
-            container.appendChild(newMsg);
-            input.value = '';
-            container.scrollTop = container.scrollHeight;
-            showNotification('💬 Mensagem enviada!');
-        }
-
-        // ============================================================
-        // GERENCIAR USUÁRIOS - COM PERSISTÊNCIA NO BANCO
+        // GERENCIAR USUÁRIOS
         // ============================================================
         function openUserManagement() {
             if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
@@ -2896,25 +3002,22 @@
                 role: role 
             };
 
-            // Salvar no Supabase
             if (supabase) {
                 try {
                     const { data, error } = await supabase
                         .from('usuarios')
-                        .insert({ nome: name, email: email, senha: 'nova123', role: role })
+                        .insert({ nome: name, email: email, senha: 'nova123', role: role, ativo: true })
                         .select()
                         .single();
 
                     if (error) throw error;
                     
-                    // Atualizar com o ID do banco
                     newUser.id = data.id;
                     USERS.push(newUser);
                     showNotification(`👤 Usuário ${name} criado com sucesso!`);
                 } catch (error) {
                     console.error('Erro ao criar usuário:', error);
                     showNotification('❌ Erro ao criar usuário: ' + error.message);
-                    // Fallback: salvar localmente
                     USERS.push(newUser);
                     showNotification(`👤 Usuário ${name} adicionado (modo local)!`);
                 }
@@ -2946,7 +3049,7 @@
                         showNotification(`✏️ Usuário atualizado para ${newName}`);
                     } catch (error) {
                         console.error('Erro ao editar usuário:', error);
-                        user.nome = oldName; // Reverter
+                        user.nome = oldName;
                         showNotification('❌ Erro ao atualizar usuário');
                     }
                 } else {
@@ -3019,7 +3122,6 @@
                     } catch (error) {
                         console.error('Erro ao resetar senha:', error);
                         showNotification('❌ Erro ao resetar senha: ' + error.message);
-                        // Fallback: atualizar localmente
                         user.senha = newPassword;
                         showNotification(`✅ Senha de ${user.nome} resetada para: ${newPassword} (modo local)`);
                     }
@@ -3626,7 +3728,7 @@
             }
         });
 
-        console.log('✅ Sistema pronto com persistência de usuários no banco!');
+        console.log('✅ Sistema pronto com checklist persistente no banco!');
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
@@ -3636,9 +3738,12 @@
         window.openCardDetail = openCardDetail;
         window.closeCardDetail = closeCardDetail;
         window.deleteCard = deleteCard;
-        window.addChecklistItem = addChecklistItem;
+        window.carregarChecklist = carregarChecklist;
+        window.salvarChecklistItem = salvarChecklistItem;
         window.toggleChecklistItem = toggleChecklistItem;
+        window.addChecklistItem = addChecklistItem;
         window.removeChecklistItem = removeChecklistItem;
+        window.renderChecklist = renderChecklist;
         window.handleFileUpload = handleFileUpload;
         window.sendMessage = sendMessage;
         window.updateResponsibleFromModal = updateResponsibleFromModal;
