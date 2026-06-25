@@ -3451,7 +3451,7 @@
         }
 
         // ============================================================
-        // ADICIONAR LOJA - CORRIGIDO
+        // ADICIONAR LOJA - CORRIGIDO COM SUPABASE E LOCAL
         // ============================================================
         function openAddCardModal(status) {
             document.getElementById('addCardModal').classList.add('active');
@@ -3482,67 +3482,104 @@
 
             console.log('📋 Dados do formulário:', { numero, responsavelId, pdvs, status, data, regional });
 
+            // VALIDAÇÃO
             if (!numero) {
                 showNotification('❌ Por favor, informe o número da loja!');
+                document.getElementById('newLojaNumero').focus();
+                return;
+            }
+
+            if (!responsavelId) {
+                showNotification('❌ Por favor, selecione um responsável!');
+                document.getElementById('newLojaResponsavel').focus();
+                return;
+            }
+
+            if (pdvs < 0) {
+                showNotification('❌ A quantidade de PDVs não pode ser negativa!');
+                document.getElementById('newLojaPdvs').focus();
                 return;
             }
 
             const resp = RESPONSAVEIS.find(r => r.id === responsavelId);
-            let newId = `LJ-${Math.floor(Math.random() * 1000)}`;
+            if (!resp) {
+                showNotification('❌ Responsável selecionado não encontrado!');
+                return;
+            }
+
+            // Gerar ID único
+            let newId = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
             const nomeLoja = `Loja ${numero}`;
 
             console.log('🏪 Criando loja:', nomeLoja);
 
             let lojaSalvaNoSupabase = false;
+            let lojaCriada = null;
 
+            // TENTAR SALVAR NO SUPABASE PRIMEIRO
             if (supabase) {
                 try {
-                    console.log('📤 Salvando no Supabase...');
+                    console.log('📤 Tentando salvar no Supabase...');
+                    
+                    const payload = {
+                        nome: nomeLoja,
+                        codigo: newId,
+                        responsavel_id: resp.id,
+                        status: status,
+                        regional: regional,
+                        pdvs: pdvs,
+                        comentarios: 0,
+                        data_agendada: data || null,
+                        created_at: new Date().toISOString()
+                    };
+
                     const { data: inserted, error } = await supabase
                         .from('lojas')
-                        .insert({
-                            nome: nomeLoja,
-                            responsavel_id: resp ? resp.id : null,
-                            status: status,
-                            regional: regional,
-                            pdvs: pdvs,
-                            comentarios: 0,
-                            data_agendada: data || null
-                        })
+                        .insert(payload)
                         .select()
                         .single();
 
                     if (error) {
-                        console.error('❌ Erro ao salvar loja no Supabase:', error);
-                        throw error;
+                        console.error('❌ Erro Supabase:', error);
+                        throw new Error(error.message);
                     }
+
                     console.log('✅ Loja salva no Supabase:', inserted);
-                    newId = inserted.id;
                     lojaSalvaNoSupabase = true;
+                    lojaCriada = inserted;
+                    newId = inserted.id;
+                    
                 } catch (error) {
-                    console.warn('Erro ao salvar loja no Supabase, usando fallback local:', error);
-                    showNotification('⚠️ Erro ao salvar no banco, usando modo local');
+                    console.warn('⚠️ Erro ao salvar no Supabase:', error.message);
+                    showNotification('⚠️ Erro ao salvar no banco. Salvando localmente...');
+                    lojaSalvaNoSupabase = false;
                 }
             }
 
+            // CRIAR OBJETO LOCAL DA LOJA
             const newCard = {
                 id: newId,
                 loja: nomeLoja,
-                responsavel: resp ? resp.nome : 'Não atribuído',
+                responsavel: resp.nome,
+                responsavel_id: resp.id,
                 status: status,
                 regional: regional,
                 pdvs: pdvs,
                 comentarios: 0,
-                data: data ? formatarDataBR(data) : 'Hoje'
+                data: data ? formatarDataBR(data) : 'Hoje',
+                data_agendada: data || null,
+                descricao: ''
             };
 
+            // ADICIONAR AO ARRAY LOCAL
             initialCards.push(newCard);
             pdvSectionTitles[newId] = `PDVs da Loja ${numero}`;
 
-            // Criar PDVs padrão
+            // CRIAR PDVs PADRÃO
             const novosPdvs = gerarPdvsParaLoja(newId, pdvs);
             pdvsPorLoja[newId] = novosPdvs;
 
+            // SALVAR PDVs NO SUPABASE (SE A LOJA FOI SALVA)
             if (supabase && lojaSalvaNoSupabase) {
                 try {
                     const linhas = novosPdvs.map(pdv => pdvParaLinha(pdv, true));
@@ -3550,21 +3587,31 @@
                         .from('pdvs')
                         .insert(linhas)
                         .select();
+
                     if (pdvError) {
-                        console.warn('Erro ao salvar PDVs da nova loja:', pdvError);
-                    } else if (pdvsInseridos) {
+                        console.warn('⚠️ Erro ao salvar PDVs:', pdvError.message);
+                    } else if (pdvsInseridos && pdvsInseridos.length > 0) {
                         pdvsPorLoja[newId] = pdvsInseridos.map(mapPdvFromRow);
+                        console.log(`✅ ${pdvsInseridos.length} PDVs salvos no Supabase`);
                     }
                 } catch (error) {
-                    console.warn('Erro ao salvar PDVs da nova loja:', error);
+                    console.warn('⚠️ Erro ao salvar PDVs:', error.message);
                 }
             }
 
+            // RENDERIZAR E FECHAR MODAL
             renderCards();
             closeAddCardModal();
-            showNotification(`🆕 Loja ${numero} adicionada com ${pdvs} PDVs!`);
+            
+            // MENSAGEM DE SUCESSO
+            const mensagem = lojaSalvaNoSupabase 
+                ? `🆕 Loja ${numero} criada com ${pdvs} PDVs no banco de dados!` 
+                : `🆕 Loja ${numero} criada localmente com ${pdvs} PDVs!`;
+            
+            showNotification(mensagem);
             atualizarMetricasPainel();
-            console.log('✅ Loja criada com sucesso!');
+            
+            console.log('✅ Loja criada com sucesso! ID:', newId);
         }
 
         // ============================================================
@@ -3727,6 +3774,56 @@
             `;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
+        }
+
+        // ============================================================
+        // FUNÇÕES DE UPLOAD E CHAT (placeholders)
+        // ============================================================
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            let msg = `📎 ${files.length} arquivo(s) enviado(s): `;
+            for (let i = 0; i < files.length; i++) {
+                msg += files[i].name + (i < files.length - 1 ? ', ' : '');
+            }
+            showNotification(msg);
+            const list = document.getElementById('evidenciasList');
+            for (let i = 0; i < files.length; i++) {
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
+                item.innerHTML = `
+                    <i class="fas fa-file text-indigo-400"></i>
+                    <span class="text-sm text-white">${files[i].name}</span>
+                    <span class="text-xs text-slate-400">${(files[i].size / 1024).toFixed(1)} KB</span>
+                    <button class="text-rose-400 hover:text-rose-300 ml-auto" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message flex items-start gap-3 p-2 rounded-lg border-b border-[#2d313e]';
+            div.innerHTML = `
+                <img src="https://ui-avatars.com/api/?name=${currentUser?.nome || 'Eu'}&background=4F46E5&color=fff&size=28" class="w-8 h-8 rounded-full" />
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-white text-sm">${currentUser?.nome || 'Eu'}</span>
+                        <span class="text-xs text-slate-500">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm text-slate-300">${msg}</p>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            input.value = '';
+            showNotification('💬 Mensagem enviada!');
         }
 
         // ============================================================
