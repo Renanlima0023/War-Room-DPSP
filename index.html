@@ -1429,9 +1429,19 @@
                         <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Data Agendada</label>
                         <input type="date" id="newLojaData" class="dark-input w-full px-3 py-2 rounded-lg text-sm" />
                     </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-2">
+                            <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Cidade *</label>
+                            <input type="text" id="newLojaCidade" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: São Paulo" />
+                        </div>
+                        <div>
+                            <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">UF *</label>
+                            <input type="text" id="newLojaUf" maxlength="2" class="dark-input w-full px-3 py-2 rounded-lg text-sm uppercase" placeholder="SP" style="text-transform:uppercase" />
+                        </div>
+                    </div>
                     <div>
                         <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Regional</label>
-                        <input type="text" id="newLojaRegional" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: São Paulo" />
+                        <input type="text" id="newLojaRegional" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: Sudeste" />
                     </div>
                     <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium" id="btnConfirmAddCard" onclick="confirmAddCard()">
                         <i class="fas fa-check mr-2"></i> Criar Loja
@@ -3459,6 +3469,8 @@
             document.getElementById('newLojaData').value = new Date().toISOString().split('T')[0];
             document.getElementById('newLojaNumero').value = '';
             document.getElementById('newLojaPdvs').value = '3';
+            document.getElementById('newLojaCidade').value = '';
+            document.getElementById('newLojaUf').value = '';
             document.getElementById('newLojaRegional').value = '';
             document.getElementById('newLojaStatus').value = status || 'agendada';
             populateResponsavelSelects();
@@ -3478,9 +3490,11 @@
             const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 3;
             const status = document.getElementById('newLojaStatus').value;
             const data = document.getElementById('newLojaData').value;
+            const cidade = document.getElementById('newLojaCidade').value.trim();
+            const uf = document.getElementById('newLojaUf').value.trim().toUpperCase();
             const regional = document.getElementById('newLojaRegional').value.trim() || 'Nova';
 
-            console.log('📋 Dados do formulário:', { numero, responsavelId, pdvs, status, data, regional });
+            console.log('📋 Dados do formulário:', { numero, responsavelId, pdvs, status, data, cidade, uf, regional });
 
             // VALIDAÇÃO
             if (!numero) {
@@ -3492,6 +3506,18 @@
             if (!responsavelId) {
                 showNotification('❌ Por favor, selecione um responsável!');
                 document.getElementById('newLojaResponsavel').focus();
+                return;
+            }
+
+            if (!cidade) {
+                showNotification('❌ Por favor, informe a cidade da loja!');
+                document.getElementById('newLojaCidade').focus();
+                return;
+            }
+
+            if (!uf || uf.length !== 2) {
+                showNotification('❌ Por favor, informe a UF (2 letras, ex: SP)!');
+                document.getElementById('newLojaUf').focus();
                 return;
             }
 
@@ -3527,6 +3553,8 @@
                         responsavel_id: resp.id,
                         status: status,
                         regional: regional,
+                        cidade: cidade,
+                        endereco: uf,
                         pdvs: pdvs,
                         comentarios: 0,
                         data_agendada: data || null,
@@ -3564,6 +3592,8 @@
                 responsavel_id: resp.id,
                 status: status,
                 regional: regional,
+                cidade: cidade,
+                uf: uf,
                 pdvs: pdvs,
                 comentarios: 0,
                 data: data ? formatarDataBR(data) : 'Hoje',
