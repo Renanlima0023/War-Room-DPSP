@@ -1401,6 +1401,14 @@
                     status: 'concluido' },
                 { id: 'pdv-24', numero: 4, nomeAntigo: 'PDV 04', nomeAtualizado: 'PDV 04', numeroSerie: 'SN-8899',
                     status: 'concluido' }
+            ],
+            'LJ-006': [
+                { id: 'pdv-25', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: '', numeroSerie: 'SN-1122',
+                    status: 'bloqueado' },
+                { id: 'pdv-26', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: '', numeroSerie: 'SN-3344',
+                    status: 'pendente' },
+                { id: 'pdv-27', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: '', numeroSerie: 'SN-5566',
+                    status: 'pendente' }
             ]
         };
 
@@ -1522,14 +1530,45 @@
         }
 
         // ============================================================
-        // SALVAR DADOS
+        // SALVAR DADOS - CORRIGIDO COM LOGS
         // ============================================================
         function salvarDados() {
-            localStorage.setItem('rocc_lojas', JSON.stringify(initialCards));
-            localStorage.setItem('rocc_pdvs', JSON.stringify(pdvsPorLoja));
-            localStorage.setItem('rocc_checklist', JSON.stringify(checklistItems));
-            localStorage.setItem('rocc_usuarios', JSON.stringify(USERS));
-            console.log('💾 Dados salvos!');
+            try {
+                localStorage.setItem('rocc_lojas', JSON.stringify(initialCards));
+                localStorage.setItem('rocc_pdvs', JSON.stringify(pdvsPorLoja));
+                localStorage.setItem('rocc_checklist', JSON.stringify(checklistItems));
+                localStorage.setItem('rocc_usuarios', JSON.stringify(USERS));
+                console.log('💾 Dados salvos com sucesso!');
+                console.log('📊 PDVs salvas:', Object.keys(pdvsPorLoja).length, 'lojas com PDVs');
+            } catch (error) {
+                console.error('❌ Erro ao salvar dados:', error);
+                showNotification('❌ Erro ao salvar dados!');
+            }
+        }
+
+        // ============================================================
+        // VERIFICAR DADOS SALVOS
+        // ============================================================
+        function verificarDadosSalvos() {
+            console.log('🔍 Verificando dados salvos...');
+            console.log('📦 Lojas:', localStorage.getItem('rocc_lojas'));
+            console.log('📦 PDVs:', localStorage.getItem('rocc_pdvs'));
+            console.log('📦 Checklist:', localStorage.getItem('rocc_checklist'));
+
+            const pdvsSalvos = localStorage.getItem('rocc_pdvs');
+            if (pdvsSalvos) {
+                try {
+                    const parsed = JSON.parse(pdvsSalvos);
+                    console.log('✅ PDVs salvos:', Object.keys(parsed).length, 'lojas');
+                    Object.keys(parsed).forEach(loja => {
+                        console.log(`  - Loja ${loja}: ${parsed[loja].length} PDVs`);
+                    });
+                } catch (e) {
+                    console.error('❌ Erro ao parsear PDVs:', e);
+                }
+            } else {
+                console.warn('⚠️ Nenhum PDV salvo no localStorage');
+            }
         }
 
         // ============================================================
@@ -1987,8 +2026,9 @@
         }
 
         // ============================================================
-        // PDVs (Backoffice) - CORRIGIDO COM EDIÇÃO
+        // PDVs (Backoffice) - CORRIGIDO COM EDIÇÃO E SALVAMENTO
         // ============================================================
+
         function gerarPdvsParaLoja(lojaId, quantidade) {
             const pdvs = [];
             for (let i = 1; i <= quantidade; i++) {
@@ -2010,43 +2050,74 @@
         }
 
         // ============================================================
-        // EDITAR PDV ANTIGO
+        // EDITAR PDV ANTIGO - CORRIGIDO
         // ============================================================
         function editPdvAntigo(lojaId, pdvId) {
+            console.log('✏️ Editando PDV Antigo:', lojaId, pdvId);
+
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
-            if (!pdv) return;
+            if (!pdv) {
+                showNotification('❌ PDV não encontrado!');
+                return;
+            }
 
             const currentValue = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
-            const newValue = prompt('Editar PDV Antigo:', currentValue);
+            const newValue = prompt('✏️ Editar PDV Antigo:', currentValue);
+
             if (newValue !== null && newValue.trim() !== '') {
                 pdv.nomeAntigo = newValue.trim();
-                renderPdvs(lojaId);
+
+                // Atualizar o array de PDVs
+                pdvsPorLoja[lojaId] = pdvs;
+
+                // Salvar no localStorage
                 salvarDados();
+
+                // Re-renderizar
+                renderPdvs(lojaId);
+
                 showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
                 atualizarMetricasPainel();
             }
         }
 
         // ============================================================
-        // EDITAR PDV ATUALIZADO
+        // EDITAR PDV ATUALIZADO - CORRIGIDO
         // ============================================================
         function editPdvAtualizado(lojaId, pdvId) {
+            console.log('✏️ Editando PDV Atualizado:', lojaId, pdvId);
+
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
-            if (!pdv) return;
+            if (!pdv) {
+                showNotification('❌ PDV não encontrado!');
+                return;
+            }
 
             const currentValue = pdv.nomeAtualizado || '';
-            const newValue = prompt('Informe o número do PDV atualizado:', currentValue);
+            const newValue = prompt('✏️ Informe o número do PDV atualizado:', currentValue);
+
             if (newValue !== null) {
                 pdv.nomeAtualizado = newValue.trim();
-                renderPdvs(lojaId);
+
+                // Atualizar o array de PDVs
+                pdvsPorLoja[lojaId] = pdvs;
+
+                // Salvar no localStorage
                 salvarDados();
+
+                // Re-renderizar
+                renderPdvs(lojaId);
+
                 showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
                 atualizarMetricasPainel();
             }
         }
 
+        // ============================================================
+        // RENDER PDVs
+        // ============================================================
         function renderPdvs(lojaId) {
             const container = document.getElementById('pdvListContainer');
             const pdvs = pdvsPorLoja[lojaId] || [];
@@ -2074,7 +2145,11 @@
 
             if (pdvs.length === 0) {
                 container.innerHTML =
-                    `<div class="text-center text-slate-400 py-8 border border-dashed border-[#2d313e] rounded-xl"><i class="fas fa-server text-3xl mb-2 text-slate-500"></i><p class="text-sm">Nenhum PDV cadastrado</p></div>`;
+                    `<div class="text-center text-slate-400 py-8 border border-dashed border-[#2d313e] rounded-xl">
+                                <i class="fas fa-server text-3xl mb-2 text-slate-500"></i>
+                                <p class="text-sm">Nenhum PDV cadastrado</p>
+                                <p class="text-xs text-slate-500">Clique em "Adicionar PDV" para começar</p>
+                            </div>`;
                 return;
             }
 
@@ -2129,12 +2204,20 @@
             }).join('');
         }
 
+        // ============================================================
+        // ADICIONAR PDV
+        // ============================================================
         function addPdv() {
-            if (!currentCardId) return;
+            if (!currentCardId) {
+                showNotification('❌ Nenhuma loja selecionada!');
+                return;
+            }
+
             const pdvs = pdvsPorLoja[currentCardId] || [];
             const nextNum = pdvs.length + 1;
             const codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
             const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+
             const newPdv = {
                 id: `pdv-${currentCardId}-${nextNum}-${Date.now()}`,
                 numero: nextNum,
@@ -2146,55 +2229,96 @@
                 observacao: '',
                 lojaId: currentCardId
             };
+
             pdvs.push(newPdv);
             pdvsPorLoja[currentCardId] = pdvs;
-            renderPdvs(currentCardId);
+
             salvarDados();
+            renderPdvs(currentCardId);
+
             showNotification(`✅ ${newPdv.nomeAntigo} adicionado!`);
             atualizarMetricasPainel();
         }
 
+        // ============================================================
+        // REMOVER PDV
+        // ============================================================
         function removePdv(lojaId, pdvId) {
             if (!confirm('Remover este PDV?')) return;
-            pdvsPorLoja[lojaId] = pdvsPorLoja[lojaId].filter(p => p.id !== pdvId);
-            renderPdvs(lojaId);
+
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const removed = pdvs.find(p => p.id === pdvId);
+
+            pdvsPorLoja[lojaId] = pdvs.filter(p => p.id !== pdvId);
+
             salvarDados();
-            showNotification('🗑️ PDV removido');
+            renderPdvs(lojaId);
+
+            showNotification(`🗑️ ${removed?.nomeAntigo || 'PDV'} removido`);
             atualizarMetricasPainel();
         }
 
+        // ============================================================
+        // ATUALIZAR STATUS DO PDV
+        // ============================================================
         function updatePdvStatus(lojaId, pdvId, status) {
-            const pdv = pdvsPorLoja[lojaId].find(p => p.id === pdvId);
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const pdv = pdvs.find(p => p.id === pdvId);
+
             if (pdv) {
                 pdv.status = status;
-                renderPdvs(lojaId);
+                pdvsPorLoja[lojaId] = pdvs;
+
                 salvarDados();
-                const allDone = pdvsPorLoja[lojaId].every(p => p.status === 'concluido');
-                if (allDone && pdvsPorLoja[lojaId].length > 0) {
+                renderPdvs(lojaId);
+
+                const allDone = pdvs.every(p => p.status === 'concluido');
+                if (allDone && pdvs.length > 0) {
                     showNotification('🎉 Todos os PDVs concluídos!');
                 }
                 atualizarMetricasPainel();
             }
         }
 
+        // ============================================================
+        // ATUALIZAR SÉRIE DO PDV
+        // ============================================================
         function updatePdvSerial(lojaId, pdvId, value) {
-            const pdv = pdvsPorLoja[lojaId].find(p => p.id === pdvId);
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const pdv = pdvs.find(p => p.id === pdvId);
+
             if (pdv) {
                 pdv.numeroSerie = value;
+                pdvsPorLoja[lojaId] = pdvs;
+
                 salvarDados();
+                renderPdvs(lojaId);
+
                 showNotification('✅ Número de série atualizado');
             }
         }
 
+        // ============================================================
+        // DEFINIR STATUS DE TODOS OS PDVs
+        // ============================================================
         function setAllPdvsStatus(status) {
             if (!currentCardId) return;
+
             const pdvs = pdvsPorLoja[currentCardId] || [];
-            const labels = { 'pendente': 'Pendente', 'andamento': 'Em andamento', 'concluido': 'Concluído',
-                'bloqueado': 'Bloqueado' };
+            const labels = {
+                'pendente': 'Pendente',
+                'andamento': 'Em andamento',
+                'concluido': 'Concluído',
+                'bloqueado': 'Bloqueado'
+            };
+
             if (confirm(`Definir todos os PDVs como "${labels[status]}"?`)) {
                 pdvs.forEach(p => p.status = status);
-                renderPdvs(currentCardId);
+                pdvsPorLoja[currentCardId] = pdvs;
+
                 salvarDados();
+                renderPdvs(currentCardId);
+
                 showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
                 atualizarMetricasPainel();
             }
@@ -2365,23 +2489,27 @@
         function startStoreFromModal() {
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
-            if (card) { card.status = 'execucao';
+            if (card) {
+                card.status = 'execucao';
                 salvarDados();
                 renderCards();
                 closeCardDetail();
                 showNotification('🚀 Loja iniciada!');
-                atualizarMetricasPainel(); }
+                atualizarMetricasPainel();
+            }
         }
 
         function blockStoreFromModal() {
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
-            if (card) { card.status = 'bloqueada';
+            if (card) {
+                card.status = 'bloqueada';
                 salvarDados();
                 renderCards();
                 closeCardDetail();
                 showNotification('⛔ Loja bloqueada!');
-                atualizarMetricasPainel(); }
+                atualizarMetricasPainel();
+            }
         }
 
         function completeStoreFromModal() {
@@ -3601,6 +3729,7 @@
         window.verificarAssinaturas = verificarAssinaturas;
         window.deleteCard = deleteCard;
         window.salvarDados = salvarDados;
+        window.verificarDadosSalvos = verificarDadosSalvos;
         window.editPdvAntigo = editPdvAntigo;
         window.editPdvAtualizado = editPdvAtualizado;
     </script>
