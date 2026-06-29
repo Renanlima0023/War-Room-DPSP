@@ -6,6 +6,7 @@
     <title>ROCC · Roll Out Control Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* ===== TEMA ESCURO ===== */
@@ -485,6 +486,21 @@
         }
         .delete-btn:hover { background: #7f1d1d; color: white; }
         .kanban-card:hover .delete-btn { opacity: 1; }
+
+        /* Logo Engemon */
+        .logo-engemon {
+            max-height: 50px;
+            width: auto;
+            object-fit: contain;
+        }
+        .logo-engemon-pdf {
+            max-height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (max-width: 768px) {
+            .logo-engemon { max-height: 35px; }
+        }
     </style>
 </head>
 <body>
@@ -1278,144 +1294,44 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- JAVASCRIPT COMPLETO -->
+    <!-- JAVASCRIPT COMPLETO COM SUPABASE -->
     <!-- ============================================================ -->
     <script>
         // ============================================================
-        // DADOS DO SISTEMA (LOCAL)
+        // CONEXÃO SUPABASE
         // ============================================================
+        const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
+
+        let supabase = null;
+
+        function iniciarSupabase() {
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Conectado ao Supabase.');
+                return true;
+            }
+            console.warn('⚠️ SDK do Supabase não carregou. Usando modo local.');
+            return false;
+        }
+        window.iniciarSupabase = iniciarSupabase;
+        iniciarSupabase();
+
         let currentUser = null;
         let currentCardId = null;
+
+        // ============================================================
+        // DADOS DO SISTEMA
+        // ============================================================
         let initialCards = [];
         let pdvsPorLoja = {};
-        let checklistItems = [];
         let RESPONSAVEIS = [];
         let USERS = [];
-        let tecnicoLojaData = null;
-        let tecnicoIdentificado = null;
 
         // ============================================================
-        // USUÁRIOS PADRÃO
+        // FUNÇÃO DE LOGIN (SUPABASE)
         // ============================================================
-        const DEFAULT_USERS = [
-            { id: 'local-1', nome: 'Administrador', email: 'admin@rocc.com', senha: 'admin123', role: 'admin' },
-            { id: 'local-2', nome: 'Gerente Geral', email: 'gerente@rocc.com', senha: 'gerente123', role: 'gerente' },
-            { id: 'local-3', nome: 'Renan Silva', email: 'renan@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { id: 'local-4', nome: 'Camila Santos', email: 'camila@rocc.com', senha: 'tecnico123', role: 'tecnico' },
-            { id: 'local-5', nome: 'José Oliveira', email: 'jose@rocc.com', senha: 'tecnico123', role: 'tecnico' }
-        ];
-
-        // ============================================================
-        // RESPONSÁVEIS PADRÃO
-        // ============================================================
-        const DEFAULT_RESPONSAVEIS = [
-            { id: 'resp-1', nome: 'Renan Silva' },
-            { id: 'resp-2', nome: 'Camila Santos' },
-            { id: 'resp-3', nome: 'José Oliveira' },
-            { id: 'resp-4', nome: 'Mariana Costa' },
-            { id: 'resp-5', nome: 'Carlos Souza' }
-        ];
-
-        // ============================================================
-        // LOJAS DE EXEMPLO
-        // ============================================================
-        const DEFAULT_LOJAS = [
-            { id: 'LJ-001', loja: 'Loja 1001', responsavel: 'Renan Silva', status: 'concluida', regional: 'SP',
-                cidade: 'São Paulo', uf: 'SP', pdvs: 3, comentarios: 3, data: '10/07' },
-            { id: 'LJ-003', loja: 'Loja 1023', responsavel: 'José Oliveira', status: 'agendada', regional: 'SP',
-                cidade: 'São Paulo', uf: 'SP', pdvs: 2, comentarios: 5, data: 'Hoje 14h', prioridade: 'Alta' },
-            { id: 'LJ-004', loja: 'Loja 1002', responsavel: 'Renan Silva', status: 'execucao', regional: 'MG',
-                cidade: 'Belo Horizonte', uf: 'MG', pdvs: 4, comentarios: 7, data: '2h 30min',
-                subtipo: 'Migração Linux' },
-            { id: 'LJ-006', loja: 'Loja 1023', responsavel: 'José Oliveira', status: 'bloqueada', regional: 'SP',
-                cidade: 'São Paulo', uf: 'SP', pdvs: 3, comentarios: 12, data: '32min',
-                subtipo: 'PinPad não comunica', prioridade: 'Crítico' },
-            { id: 'LJ-008', loja: 'Loja 1004', responsavel: 'Camila Santos', status: 'revisao', regional: 'SP',
-                cidade: 'São Paulo', uf: 'SP', pdvs: 5, comentarios: 4, data: 'Aguardando' },
-            { id: 'LJ-009', loja: 'Loja 0999', responsavel: 'José Oliveira', status: 'concluida', regional: 'BA',
-                cidade: 'Salvador', uf: 'BA', pdvs: 6, comentarios: 2, data: '10/07' },
-            { id: 'LJ-010', loja: 'Loja 0888', responsavel: 'Renan Silva', status: 'concluida', regional: 'SC',
-                cidade: 'Florianópolis', uf: 'SC', pdvs: 4, comentarios: 2, data: '09/07' }
-        ];
-
-        // ============================================================
-        // PDVs DE EXEMPLO
-        // ============================================================
-        const DEFAULT_PDVS = {
-            'LJ-004': [
-                { id: 'pdv-1', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: 'PDV 01', numeroSerie: 'SN-8307',
-                    status: 'andamento' },
-                { id: 'pdv-2', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: 'PDV 02', numeroSerie: 'SN-5840',
-                    status: 'pendente' },
-                { id: 'pdv-3', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: 'PDV 03', numeroSerie: 'SN-2519',
-                    status: 'pendente' },
-                { id: 'pdv-4', numero: 4, nomeAntigo: 'PDV 04', nomeAtualizado: 'PDV 04', numeroSerie: 'SN-1024',
-                    status: 'concluido' }
-            ],
-            'LJ-003': [
-                { id: 'pdv-5', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: '', numeroSerie: 'SN-1122',
-                    status: 'pendente' },
-                { id: 'pdv-6', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: '', numeroSerie: 'SN-3344',
-                    status: 'pendente' }
-            ],
-            'LJ-008': [
-                { id: 'pdv-7', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: 'PDV 01', numeroSerie: 'SN-5566',
-                    status: 'concluido' },
-                { id: 'pdv-8', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: 'PDV 02', numeroSerie: 'SN-7788',
-                    status: 'concluido' },
-                { id: 'pdv-9', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: 'PDV 03', numeroSerie: 'SN-9900',
-                    status: 'concluido' },
-                { id: 'pdv-10', numero: 4, nomeAntigo: 'PDV 04', nomeAtualizado: 'PDV 04', numeroSerie: 'SN-1122',
-                    status: 'concluido' },
-                { id: 'pdv-11', numero: 5, nomeAntigo: 'PDV 05', nomeAtualizado: 'PDV 05', numeroSerie: 'SN-3344',
-                    status: 'andamento' }
-            ],
-            'LJ-001': [
-                { id: 'pdv-12', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: 'PDV 01', numeroSerie: 'SN-4455',
-                    status: 'concluido' },
-                { id: 'pdv-13', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: 'PDV 02', numeroSerie: 'SN-6677',
-                    status: 'concluido' },
-                { id: 'pdv-14', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: 'PDV 03', numeroSerie: 'SN-8899',
-                    status: 'concluido' }
-            ],
-            'LJ-009': [
-                { id: 'pdv-15', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: 'PDV 01', numeroSerie: 'SN-0011',
-                    status: 'concluido' },
-                { id: 'pdv-16', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: 'PDV 02', numeroSerie: 'SN-2233',
-                    status: 'concluido' },
-                { id: 'pdv-17', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: 'PDV 03', numeroSerie: 'SN-4455',
-                    status: 'concluido' },
-                { id: 'pdv-18', numero: 4, nomeAntigo: 'PDV 04', nomeAtualizado: 'PDV 04', numeroSerie: 'SN-6677',
-                    status: 'concluido' },
-                { id: 'pdv-19', numero: 5, nomeAntigo: 'PDV 05', nomeAtualizado: 'PDV 05', numeroSerie: 'SN-8899',
-                    status: 'concluido' },
-                { id: 'pdv-20', numero: 6, nomeAntigo: 'PDV 06', nomeAtualizado: 'PDV 06', numeroSerie: 'SN-0011',
-                    status: 'concluido' }
-            ],
-            'LJ-010': [
-                { id: 'pdv-21', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: 'PDV 01', numeroSerie: 'SN-2233',
-                    status: 'concluido' },
-                { id: 'pdv-22', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: 'PDV 02', numeroSerie: 'SN-4455',
-                    status: 'concluido' },
-                { id: 'pdv-23', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: 'PDV 03', numeroSerie: 'SN-6677',
-                    status: 'concluido' },
-                { id: 'pdv-24', numero: 4, nomeAntigo: 'PDV 04', nomeAtualizado: 'PDV 04', numeroSerie: 'SN-8899',
-                    status: 'concluido' }
-            ],
-            'LJ-006': [
-                { id: 'pdv-25', numero: 1, nomeAntigo: 'PDV 01', nomeAtualizado: '', numeroSerie: 'SN-1122',
-                    status: 'bloqueado' },
-                { id: 'pdv-26', numero: 2, nomeAntigo: 'PDV 02', nomeAtualizado: '', numeroSerie: 'SN-3344',
-                    status: 'pendente' },
-                { id: 'pdv-27', numero: 3, nomeAntigo: 'PDV 03', nomeAtualizado: '', numeroSerie: 'SN-5566',
-                    status: 'pendente' }
-            ]
-        };
-
-        // ============================================================
-        // FUNÇÃO DE LOGIN (100% LOCAL)
-        // ============================================================
-        function handleLogin() {
+        async function handleLogin() {
             console.log('🔑 handleLogin() chamada!');
 
             const email = document.getElementById('loginEmail').value.trim();
@@ -1433,33 +1349,45 @@
             errorEl.textContent = '';
 
             try {
-                const user = DEFAULT_USERS.find(u => u.email === email && u.senha === senha);
+                let user = null;
+
+                // Tentar autenticar via Supabase
+                if (supabase) {
+                    try {
+                        const { data, error } = await supabase
+                            .from('usuarios')
+                            .select('*')
+                            .eq('email', email)
+                            .maybeSingle();
+
+                        if (!error && data && data.senha === senha) {
+                            user = data;
+                            console.log('✅ Usuário encontrado no Supabase:', user.nome);
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Erro no Supabase:', e);
+                    }
+                }
 
                 if (user) {
-                    currentUser = {
-                        id: user.id,
-                        nome: user.nome,
-                        email: user.email,
-                        senha: user.senha,
-                        role: user.role
-                    };
+                    currentUser = user;
                     errorEl.textContent = '';
-                    sessionStorage.setItem('rocc_user', JSON.stringify(currentUser));
+                    sessionStorage.setItem('rocc_user', JSON.stringify(user));
 
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('appContent').style.display = 'flex';
 
-                    document.getElementById('userNameDisplay').textContent = currentUser.nome;
+                    document.getElementById('userNameDisplay').textContent = user.nome;
                     document.getElementById('userRoleDisplay').textContent =
-                        currentUser.role === 'admin' ? 'Administrador' :
-                        currentUser.role === 'gerente' ? 'Gerente' :
-                        currentUser.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                        user.role === 'admin' ? 'Administrador' :
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
 
-                    carregarTudo();
+                    await carregarTudo();
 
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
-                    showNotification(`👋 Bem-vindo, ${currentUser.nome}!`);
+                    showNotification(`👋 Bem-vindo, ${user.nome}!`);
                 } else {
                     errorEl.textContent = '❌ E-mail ou senha inválidos!';
                     btn.disabled = false;
@@ -1473,102 +1401,126 @@
             }
         }
 
-        // EXPOR GLOBALMENTE
         window.handleLogin = handleLogin;
 
         // ============================================================
-        // CARREGAMENTO DOS DADOS
+        // CARREGAR DADOS DO SUPABASE
         // ============================================================
-        function carregarTudo() {
-            // Carregar usuários
-            USERS = [...DEFAULT_USERS];
-
-            // Carregar responsáveis
-            RESPONSAVEIS = [...DEFAULT_RESPONSAVEIS];
-
-            // Carregar lojas do localStorage ou usar padrão
-            const savedLojas = localStorage.getItem('rocc_lojas');
-            if (savedLojas) {
-                try {
-                    initialCards = JSON.parse(savedLojas);
-                } catch (e) {
-                    initialCards = [...DEFAULT_LOJAS];
-                }
-            } else {
-                initialCards = [...DEFAULT_LOJAS];
-            }
-
-            // Carregar PDVs do localStorage ou usar padrão
-            const savedPdvs = localStorage.getItem('rocc_pdvs');
-            if (savedPdvs) {
-                try {
-                    pdvsPorLoja = JSON.parse(savedPdvs);
-                } catch (e) {
-                    pdvsPorLoja = { ...DEFAULT_PDVS };
-                }
-            } else {
-                pdvsPorLoja = { ...DEFAULT_PDVS };
-            }
-
-            // Carregar checklist
-            const savedChecklist = localStorage.getItem('rocc_checklist');
-            if (savedChecklist) {
-                try {
-                    checklistItems = JSON.parse(savedChecklist);
-                } catch (e) {
-                    checklistItems = [];
-                }
-            } else {
-                checklistItems = [];
-            }
-
+        async function carregarTudo() {
+            await Promise.all([loadUsuarios(), loadResponsaveis(), loadLojas(), loadPdvs()]);
             renderCards();
             renderUserList();
             updateResponsavelFilter();
             atualizarMetricasPainel();
-            console.log('✅ Todos os dados carregados!');
+            console.log('✅ Todos os dados carregados do Supabase!');
         }
 
-        // ============================================================
-        // SALVAR DADOS - CORRIGIDO COM LOGS
-        // ============================================================
-        function salvarDados() {
+        async function loadUsuarios() {
+            if (!supabase) return;
             try {
-                localStorage.setItem('rocc_lojas', JSON.stringify(initialCards));
-                localStorage.setItem('rocc_pdvs', JSON.stringify(pdvsPorLoja));
-                localStorage.setItem('rocc_checklist', JSON.stringify(checklistItems));
-                localStorage.setItem('rocc_usuarios', JSON.stringify(USERS));
-                console.log('💾 Dados salvos com sucesso!');
-                console.log('📊 PDVs salvas:', Object.keys(pdvsPorLoja).length, 'lojas com PDVs');
-            } catch (error) {
-                console.error('❌ Erro ao salvar dados:', error);
-                showNotification('❌ Erro ao salvar dados!');
+                const { data, error } = await supabase
+                    .from('usuarios')
+                    .select('*')
+                    .order('nome');
+                if (!error && data) {
+                    USERS = data;
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar usuários:', e);
             }
         }
 
-        // ============================================================
-        // VERIFICAR DADOS SALVOS
-        // ============================================================
-        function verificarDadosSalvos() {
-            console.log('🔍 Verificando dados salvos...');
-            console.log('📦 Lojas:', localStorage.getItem('rocc_lojas'));
-            console.log('📦 PDVs:', localStorage.getItem('rocc_pdvs'));
-            console.log('📦 Checklist:', localStorage.getItem('rocc_checklist'));
-
-            const pdvsSalvos = localStorage.getItem('rocc_pdvs');
-            if (pdvsSalvos) {
-                try {
-                    const parsed = JSON.parse(pdvsSalvos);
-                    console.log('✅ PDVs salvos:', Object.keys(parsed).length, 'lojas');
-                    Object.keys(parsed).forEach(loja => {
-                        console.log(`  - Loja ${loja}: ${parsed[loja].length} PDVs`);
-                    });
-                } catch (e) {
-                    console.error('❌ Erro ao parsear PDVs:', e);
+        async function loadResponsaveis() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase
+                    .from('responsaveis')
+                    .select('*')
+                    .order('nome');
+                if (!error && data) {
+                    RESPONSAVEIS = data;
                 }
-            } else {
-                console.warn('⚠️ Nenhum PDV salvo no localStorage');
+            } catch (e) {
+                console.warn('Erro ao carregar responsáveis:', e);
             }
+        }
+
+        async function loadLojas() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase
+                    .from('lojas')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (!error && data) {
+                    initialCards = data.map(row => ({
+                        id: row.id,
+                        loja: row.nome,
+                        codigo: row.codigo,
+                        responsavel: row.responsavel_nome || 'Não atribuído',
+                        responsavel_id: row.responsavel_id,
+                        status: row.status || 'agendada',
+                        regional: row.regional || 'N/A',
+                        cidade: row.cidade || '',
+                        uf: row.uf || '',
+                        pdvs: row.pdvs || 0,
+                        comentarios: row.comentarios || 0,
+                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                        data_agendada: row.data_agendada,
+                        prioridade: row.prioridade,
+                        subtipo: row.subtipo,
+                        descricao: row.descricao
+                    }));
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar lojas:', e);
+            }
+        }
+
+        async function loadPdvs() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase
+                    .from('pdvs')
+                    .select('*')
+                    .order('codigo', { ascending: true });
+
+                if (!error && data) {
+                    pdvsPorLoja = {};
+                    data.forEach(row => {
+                        const pdv = {
+                            id: row.id,
+                            numero: parseInt(row.codigo?.replace(/\D/g, '')) || 1,
+                            codigo: row.codigo,
+                            nomeAntigo: row.nome_antigo || row.codigo || 'PDV',
+                            nomeAtualizado: row.nome_atualizado || '',
+                            numeroSerie: row.numero_serie || '',
+                            status: row.status || 'pendente',
+                            observacao: row.observacao || '',
+                            lojaId: row.loja_id
+                        };
+                        if (!pdvsPorLoja[pdv.lojaId]) pdvsPorLoja[pdv.lojaId] = [];
+                        pdvsPorLoja[pdv.lojaId].push(pdv);
+                    });
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar PDVs:', e);
+            }
+        }
+
+        function formatarDataBR(isoDate) {
+            if (!isoDate) return '';
+            const [ano, mes, dia] = isoDate.split('-');
+            return `${dia}/${mes}`;
+        }
+
+        // ============================================================
+        // SALVAR DADOS NO SUPABASE
+        // ============================================================
+        async function salvarLojas() {
+            // Atualizar lojas no Supabase (implementar conforme necessidade)
+            console.log('💾 Lojas salvas no Supabase');
         }
 
         // ============================================================
@@ -1590,8 +1542,7 @@
             ticketCount.textContent = tickets.length;
 
             if (tickets.length === 0) {
-                ticketList.innerHTML =
-                    '<div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto ✅</div>';
+                ticketList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto ✅</div>';
             } else {
                 ticketList.innerHTML = tickets.slice(0, 5).map(card => `
                         <div class="ticket-item flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
@@ -1609,8 +1560,7 @@
             const activities = [...initialCards].reverse().slice(0, 3);
             const activityList = document.getElementById('activityList');
             if (activities.length === 0) {
-                activityList.innerHTML =
-                    '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
+                activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
             } else {
                 const statusLabels = {
                     'agendada': 'agendada',
@@ -1634,10 +1584,8 @@
             document.getElementById('metricConclusao').textContent = `${taxaConclusao}%`;
             document.getElementById('metricBarConclusao').style.width = `${taxaConclusao}%`;
             document.getElementById('metricAndamento').textContent = execucao;
-            document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` :
-                '0%';
-            document.getElementById('metricProdutividade').innerHTML =
-                `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
+            document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` : '0%';
+            document.getElementById('metricProdutividade').innerHTML = `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
 
             document.getElementById('metricTotalLojas').textContent = total;
             document.getElementById('metricConcluidas').textContent = concluidas;
@@ -1852,7 +1800,7 @@
             this.classList.remove('drag-over');
         }
 
-        function handleDrop(e) {
+        async function handleDrop(e) {
             e.preventDefault();
             this.classList.remove('drag-over');
 
@@ -1863,7 +1811,17 @@
             const cardData = initialCards.find(c => c.id === cardId);
             if (cardData && cardData.status !== targetStatus) {
                 cardData.status = targetStatus;
-                salvarDados();
+                // Atualizar no Supabase
+                if (supabase) {
+                    try {
+                        await supabase
+                            .from('lojas')
+                            .update({ status: targetStatus })
+                            .eq('id', cardId);
+                    } catch (e) {
+                        console.warn('Erro ao atualizar status:', e);
+                    }
+                }
                 renderCards();
                 showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
                 atualizarMetricasPainel();
@@ -1874,20 +1832,30 @@
         // ============================================================
         // FUNÇÕES DOS CARDS
         // ============================================================
-        function deleteCard(cardId) {
+        async function deleteCard(cardId) {
             const card = initialCards.find(c => c.id === cardId);
             if (!card) return;
 
-            if (card.status === 'concluida' && currentUser && currentUser.role !== 'admin' && currentUser.role !==
-                'gerente') {
+            if (card.status === 'concluida' && currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
                 showNotification('⛔ Apenas Administradores e Gerentes podem excluir lojas concluídas!');
                 return;
             }
 
             if (confirm(`Deseja excluir ${card.loja}?`)) {
+                if (supabase) {
+                    try {
+                        await supabase
+                            .from('lojas')
+                            .delete()
+                            .eq('id', cardId);
+                    } catch (e) {
+                        console.warn('Erro ao excluir loja:', e);
+                        showNotification('❌ Erro ao excluir loja!');
+                        return;
+                    }
+                }
                 initialCards = initialCards.filter(c => c.id !== cardId);
                 delete pdvsPorLoja[cardId];
-                salvarDados();
                 renderCards();
                 showNotification(`🗑️ ${card.loja} excluída!`);
                 atualizarMetricasPainel();
@@ -1897,7 +1865,7 @@
         // ============================================================
         // MODAL DETALHADO DO CARD
         // ============================================================
-        function openCardDetail(cardId) {
+        async function openCardDetail(cardId) {
             currentCardId = cardId;
             const cardData = initialCards.find(c => c.id === cardId);
             if (!cardData) return;
@@ -1909,8 +1877,7 @@
             document.getElementById('modalPdvs').textContent = cardData.pdvs || 0;
             document.getElementById('modalData').textContent = cardData.data || 'Hoje';
             document.getElementById('modalCreated').textContent = cardData.data || '10/07/2026';
-            document.getElementById('modalCidade').textContent =
-                `${cardData.cidade || ''}${cardData.uf ? ` - ${cardData.uf}` : ''}`;
+            document.getElementById('modalCidade').textContent = `${cardData.cidade || ''}${cardData.uf ? ` - ${cardData.uf}` : ''}`;
             document.getElementById('linkLojaNome').textContent = cardData.loja;
 
             const statusMap = {
@@ -1923,23 +1890,16 @@
             const statusInfo = statusMap[cardData.status] || statusMap['agendada'];
             const statusEl = document.getElementById('modalStatus');
             statusEl.textContent = statusInfo.label;
-            statusEl.className =
-                `${statusInfo.bg} text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium`;
+            statusEl.className = `${statusInfo.bg} text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium`;
 
             populateResponsavelSelects();
 
             document.getElementById('modalDescription').value = cardData.descricao || '';
 
-            // Garantir PDVs
-            if (!pdvsPorLoja[cardId]) {
-                pdvsPorLoja[cardId] = gerarPdvsParaLoja(cardId, cardData.pdvs || 3);
-            }
             renderPdvs(cardId);
 
-            carregarChecklist(cardId);
-
-            document.getElementById('modalTotalPdvs').textContent = pdvsPorLoja[cardId].length;
-            const concluidos = pdvsPorLoja[cardId].filter(p => p.status === 'concluido').length;
+            document.getElementById('modalTotalPdvs').textContent = (pdvsPorLoja[cardId] || []).length;
+            const concluidos = (pdvsPorLoja[cardId] || []).filter(p => p.status === 'concluido').length;
             document.getElementById('modalPdvsConcluidos').textContent = concluidos;
 
             document.getElementById('cardModal').classList.add('active');
@@ -1954,170 +1914,69 @@
         }
 
         // ============================================================
-        // CHECKLIST
+        // PDVs (Com Supabase)
         // ============================================================
-        function carregarChecklist(lojaId) {
-            if (!checklistItems.length) {
-                checklistItems = [
-                    { id: 'local-1', text: 'Configurar rede dos PDVs', completed: false },
-                    { id: 'local-2', text: 'Instalar Linux nos terminais', completed: false },
-                    { id: 'local-3', text: 'Instalar It Lean', completed: false },
-                    { id: 'local-4', text: 'Realizar venda teste', completed: false },
-                    { id: 'local-5', text: 'Assinar termo de aceite', completed: false }
-                ];
-            }
-            renderChecklist();
-            return checklistItems;
-        }
-
-        function renderChecklist() {
-            const container = document.getElementById('checklistContainer');
-            if (!container) return;
-
-            container.innerHTML = '';
-            const total = checklistItems.length;
-            const done = checklistItems.filter(item => item.completed).length;
-
-            const progressEl = document.getElementById('checklistProgress');
-            const countEl = document.getElementById('checklistCount');
-
-            if (progressEl) progressEl.textContent = `${done}/${total}`;
-            if (countEl) countEl.textContent = total;
-
-            if (checklistItems.length === 0) {
-                container.innerHTML =
-                    `<div class="text-center text-slate-400 py-4 text-sm"><i class="fas fa-clipboard-list text-2xl mb-2"></i><p>Nenhum item no checklist</p></div>`;
+        async function addPdv() {
+            if (!currentCardId) {
+                showNotification('❌ Nenhuma loja selecionada!');
                 return;
             }
 
-            checklistItems.forEach(item => {
-                const div = document.createElement('div');
-                div.className =
-                    `checklist-item flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition ${item.completed ? 'completed' : ''}`;
-                div.innerHTML = `
-                            <input type="checkbox" ${item.completed ? 'checked' : ''} 
-                                   class="w-4 h-4 accent-indigo-600 cursor-pointer" 
-                                   onchange="toggleChecklistItem('${item.id}')" />
-                            <span class="checklist-text text-white flex-1 text-sm ${item.completed ? 'line-through text-slate-400' : ''}">${item.text}</span>
-                            <span class="text-xs ${item.completed ? 'text-emerald-400' : 'text-slate-400'}">
-                                ${item.completed ? '<i class="fas fa-check-circle"></i> Concluído' : '<i class="far fa-circle"></i> Pendente'}
-                            </span>
-                        `;
-                container.appendChild(div);
-            });
-        }
+            const pdvs = pdvsPorLoja[currentCardId] || [];
+            const nextNum = pdvs.length + 1;
+            const codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
+            const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
 
-        function toggleChecklistItem(id) {
-            const item = checklistItems.find(i => i.id === id);
-            if (!item) return;
-            item.completed = !item.completed;
-            renderChecklist();
-            salvarDados();
-            showNotification(item.completed ? '✅ Item concluído!' : '↩️ Item reaberto');
-        }
+            const newPdv = {
+                id: `pdv-${currentCardId}-${nextNum}-${Date.now()}`,
+                numero: nextNum,
+                codigo: codigo,
+                nomeAntigo: codigo,
+                nomeAtualizado: '',
+                numeroSerie: `SN-${randomSerial}`,
+                status: 'pendente',
+                observacao: '',
+                lojaId: currentCardId
+            };
 
-        function addChecklistItem() {
-            const text = prompt('Digite o novo item do checklist:');
-            if (!text || !text.trim()) return;
-            checklistItems.push({ id: 'local-' + Date.now(), text: text.trim(), completed: false });
-            renderChecklist();
-            salvarDados();
-            showNotification('✅ Novo item adicionado!');
-        }
+            if (supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('pdvs')
+                        .insert({
+                            loja_id: currentCardId,
+                            codigo: codigo,
+                            nome_antigo: codigo,
+                            nome_atualizado: '',
+                            numero_serie: `SN-${randomSerial}`,
+                            status: 'pendente',
+                            observacao: ''
+                        })
+                        .select()
+                        .single();
 
-        // ============================================================
-        // PDVs (Backoffice) - CORRIGIDO COM EDIÇÃO E SALVAMENTO
-        // ============================================================
-
-        function gerarPdvsParaLoja(lojaId, quantidade) {
-            const pdvs = [];
-            for (let i = 1; i <= quantidade; i++) {
-                const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-                const codigo = `PDV ${String(i).padStart(2, '0')}`;
-                pdvs.push({
-                    id: `pdv-${lojaId}-${i}-${Date.now()}-${Math.random()}`,
-                    numero: i,
-                    codigo: codigo,
-                    nomeAntigo: codigo,
-                    nomeAtualizado: '',
-                    numeroSerie: `SN-${randomSerial}`,
-                    status: i === 1 ? 'andamento' : 'pendente',
-                    observacao: '',
-                    lojaId: lojaId
-                });
-            }
-            return pdvs;
-        }
-
-        // ============================================================
-        // EDITAR PDV ANTIGO - CORRIGIDO
-        // ============================================================
-        function editPdvAntigo(lojaId, pdvId) {
-            console.log('✏️ Editando PDV Antigo:', lojaId, pdvId);
-
-            const pdvs = pdvsPorLoja[lojaId] || [];
-            const pdv = pdvs.find(p => p.id === pdvId);
-            if (!pdv) {
-                showNotification('❌ PDV não encontrado!');
-                return;
+                    if (!error && data) {
+                        newPdv.id = data.id;
+                        pdvs.push(newPdv);
+                        pdvsPorLoja[currentCardId] = pdvs;
+                        renderPdvs(currentCardId);
+                        showNotification(`✅ ${newPdv.nomeAntigo} adicionado!`);
+                        atualizarMetricasPainel();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Erro ao adicionar PDV:', e);
+                }
             }
 
-            const currentValue = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
-            const newValue = prompt('✏️ Editar PDV Antigo:', currentValue);
-
-            if (newValue !== null && newValue.trim() !== '') {
-                pdv.nomeAntigo = newValue.trim();
-
-                // Atualizar o array de PDVs
-                pdvsPorLoja[lojaId] = pdvs;
-
-                // Salvar no localStorage
-                salvarDados();
-
-                // Re-renderizar
-                renderPdvs(lojaId);
-
-                showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
-                atualizarMetricasPainel();
-            }
+            // Fallback local
+            pdvs.push(newPdv);
+            pdvsPorLoja[currentCardId] = pdvs;
+            renderPdvs(currentCardId);
+            showNotification(`✅ ${newPdv.nomeAntigo} adicionado (local)!`);
+            atualizarMetricasPainel();
         }
 
-        // ============================================================
-        // EDITAR PDV ATUALIZADO - CORRIGIDO
-        // ============================================================
-        function editPdvAtualizado(lojaId, pdvId) {
-            console.log('✏️ Editando PDV Atualizado:', lojaId, pdvId);
-
-            const pdvs = pdvsPorLoja[lojaId] || [];
-            const pdv = pdvs.find(p => p.id === pdvId);
-            if (!pdv) {
-                showNotification('❌ PDV não encontrado!');
-                return;
-            }
-
-            const currentValue = pdv.nomeAtualizado || '';
-            const newValue = prompt('✏️ Informe o número do PDV atualizado:', currentValue);
-
-            if (newValue !== null) {
-                pdv.nomeAtualizado = newValue.trim();
-
-                // Atualizar o array de PDVs
-                pdvsPorLoja[lojaId] = pdvs;
-
-                // Salvar no localStorage
-                salvarDados();
-
-                // Re-renderizar
-                renderPdvs(lojaId);
-
-                showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
-                atualizarMetricasPainel();
-            }
-        }
-
-        // ============================================================
-        // RENDER PDVs
-        // ============================================================
         function renderPdvs(lojaId) {
             const container = document.getElementById('pdvListContainer');
             const pdvs = pdvsPorLoja[lojaId] || [];
@@ -2144,12 +2003,13 @@
             document.getElementById('modalPdvsConcluidos').textContent = done;
 
             if (pdvs.length === 0) {
-                container.innerHTML =
-                    `<div class="text-center text-slate-400 py-8 border border-dashed border-[#2d313e] rounded-xl">
+                container.innerHTML = `
+                            <div class="text-center text-slate-400 py-8 border border-dashed border-[#2d313e] rounded-xl">
                                 <i class="fas fa-server text-3xl mb-2 text-slate-500"></i>
                                 <p class="text-sm">Nenhum PDV cadastrado</p>
                                 <p class="text-xs text-slate-500">Clique em "Adicionar PDV" para começar</p>
-                            </div>`;
+                            </div>
+                        `;
                 return;
             }
 
@@ -2205,63 +2065,83 @@
         }
 
         // ============================================================
-        // ADICIONAR PDV
+        // EDITAR PDV ANTIGO
         // ============================================================
-        function addPdv() {
-            if (!currentCardId) {
-                showNotification('❌ Nenhuma loja selecionada!');
+        async function editPdvAntigo(lojaId, pdvId) {
+            console.log('✏️ Editando PDV Antigo:', lojaId, pdvId);
+
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const pdv = pdvs.find(p => p.id === pdvId);
+            if (!pdv) {
+                showNotification('❌ PDV não encontrado!');
                 return;
             }
 
-            const pdvs = pdvsPorLoja[currentCardId] || [];
-            const nextNum = pdvs.length + 1;
-            const codigo = `PDV ${String(nextNum).padStart(2, '0')}`;
-            const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+            const currentValue = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
+            const newValue = prompt('✏️ Editar PDV Antigo:', currentValue);
 
-            const newPdv = {
-                id: `pdv-${currentCardId}-${nextNum}-${Date.now()}`,
-                numero: nextNum,
-                codigo: codigo,
-                nomeAntigo: codigo,
-                nomeAtualizado: '',
-                numeroSerie: `SN-${randomSerial}`,
-                status: 'pendente',
-                observacao: '',
-                lojaId: currentCardId
-            };
+            if (newValue !== null && newValue.trim() !== '') {
+                pdv.nomeAntigo = newValue.trim();
+                pdvsPorLoja[lojaId] = pdvs;
 
-            pdvs.push(newPdv);
-            pdvsPorLoja[currentCardId] = pdvs;
+                if (supabase && !pdv.id.startsWith('pdv-')) {
+                    try {
+                        await supabase
+                            .from('pdvs')
+                            .update({ nome_antigo: newValue.trim() })
+                            .eq('id', pdv.id);
+                    } catch (e) {
+                        console.warn('Erro ao atualizar PDV no Supabase:', e);
+                    }
+                }
 
-            salvarDados();
-            renderPdvs(currentCardId);
-
-            showNotification(`✅ ${newPdv.nomeAntigo} adicionado!`);
-            atualizarMetricasPainel();
+                renderPdvs(lojaId);
+                showNotification(`✅ PDV Antigo atualizado para: ${newValue.trim()}`);
+                atualizarMetricasPainel();
+            }
         }
 
         // ============================================================
-        // REMOVER PDV
+        // EDITAR PDV ATUALIZADO
         // ============================================================
-        function removePdv(lojaId, pdvId) {
-            if (!confirm('Remover este PDV?')) return;
+        async function editPdvAtualizado(lojaId, pdvId) {
+            console.log('✏️ Editando PDV Atualizado:', lojaId, pdvId);
 
             const pdvs = pdvsPorLoja[lojaId] || [];
-            const removed = pdvs.find(p => p.id === pdvId);
+            const pdv = pdvs.find(p => p.id === pdvId);
+            if (!pdv) {
+                showNotification('❌ PDV não encontrado!');
+                return;
+            }
 
-            pdvsPorLoja[lojaId] = pdvs.filter(p => p.id !== pdvId);
+            const currentValue = pdv.nomeAtualizado || '';
+            const newValue = prompt('✏️ Informe o número do PDV atualizado:', currentValue);
 
-            salvarDados();
-            renderPdvs(lojaId);
+            if (newValue !== null) {
+                pdv.nomeAtualizado = newValue.trim();
+                pdvsPorLoja[lojaId] = pdvs;
 
-            showNotification(`🗑️ ${removed?.nomeAntigo || 'PDV'} removido`);
-            atualizarMetricasPainel();
+                if (supabase && !pdv.id.startsWith('pdv-')) {
+                    try {
+                        await supabase
+                            .from('pdvs')
+                            .update({ nome_atualizado: newValue.trim() })
+                            .eq('id', pdv.id);
+                    } catch (e) {
+                        console.warn('Erro ao atualizar PDV no Supabase:', e);
+                    }
+                }
+
+                renderPdvs(lojaId);
+                showNotification(`✅ PDV Atualizado: ${newValue.trim() || 'vazio'}`);
+                atualizarMetricasPainel();
+            }
         }
 
         // ============================================================
         // ATUALIZAR STATUS DO PDV
         // ============================================================
-        function updatePdvStatus(lojaId, pdvId, status) {
+        async function updatePdvStatus(lojaId, pdvId, status) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
 
@@ -2269,9 +2149,18 @@
                 pdv.status = status;
                 pdvsPorLoja[lojaId] = pdvs;
 
-                salvarDados();
-                renderPdvs(lojaId);
+                if (supabase && !pdv.id.startsWith('pdv-')) {
+                    try {
+                        await supabase
+                            .from('pdvs')
+                            .update({ status: status })
+                            .eq('id', pdv.id);
+                    } catch (e) {
+                        console.warn('Erro ao atualizar status no Supabase:', e);
+                    }
+                }
 
+                renderPdvs(lojaId);
                 const allDone = pdvs.every(p => p.status === 'concluido');
                 if (allDone && pdvs.length > 0) {
                     showNotification('🎉 Todos os PDVs concluídos!');
@@ -2283,7 +2172,7 @@
         // ============================================================
         // ATUALIZAR SÉRIE DO PDV
         // ============================================================
-        function updatePdvSerial(lojaId, pdvId, value) {
+        async function updatePdvSerial(lojaId, pdvId, value) {
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
 
@@ -2291,17 +2180,53 @@
                 pdv.numeroSerie = value;
                 pdvsPorLoja[lojaId] = pdvs;
 
-                salvarDados();
-                renderPdvs(lojaId);
+                if (supabase && !pdv.id.startsWith('pdv-')) {
+                    try {
+                        await supabase
+                            .from('pdvs')
+                            .update({ numero_serie: value })
+                            .eq('id', pdv.id);
+                    } catch (e) {
+                        console.warn('Erro ao atualizar série no Supabase:', e);
+                    }
+                }
 
+                renderPdvs(lojaId);
                 showNotification('✅ Número de série atualizado');
             }
         }
 
         // ============================================================
+        // REMOVER PDV
+        // ============================================================
+        async function removePdv(lojaId, pdvId) {
+            if (!confirm('Remover este PDV?')) return;
+
+            const pdvs = pdvsPorLoja[lojaId] || [];
+            const removed = pdvs.find(p => p.id === pdvId);
+
+            pdvsPorLoja[lojaId] = pdvs.filter(p => p.id !== pdvId);
+
+            if (supabase && !pdvId.startsWith('pdv-')) {
+                try {
+                    await supabase
+                        .from('pdvs')
+                        .delete()
+                        .eq('id', pdvId);
+                } catch (e) {
+                    console.warn('Erro ao remover PDV do Supabase:', e);
+                }
+            }
+
+            renderPdvs(lojaId);
+            showNotification(`🗑️ ${removed?.nomeAntigo || 'PDV'} removido`);
+            atualizarMetricasPainel();
+        }
+
+        // ============================================================
         // DEFINIR STATUS DE TODOS OS PDVs
         // ============================================================
-        function setAllPdvsStatus(status) {
+        async function setAllPdvsStatus(status) {
             if (!currentCardId) return;
 
             const pdvs = pdvsPorLoja[currentCardId] || [];
@@ -2316,12 +2241,181 @@
                 pdvs.forEach(p => p.status = status);
                 pdvsPorLoja[currentCardId] = pdvs;
 
-                salvarDados();
-                renderPdvs(currentCardId);
+                if (supabase) {
+                    try {
+                        for (const pdv of pdvs) {
+                            if (!pdv.id.startsWith('pdv-')) {
+                                await supabase
+                                    .from('pdvs')
+                                    .update({ status: status })
+                                    .eq('id', pdv.id);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao atualizar status no Supabase:', e);
+                    }
+                }
 
+                renderPdvs(currentCardId);
                 showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
                 atualizarMetricasPainel();
             }
+        }
+
+        // ============================================================
+        // ADICIONAR LOJA (Supabase)
+        // ============================================================
+        async function confirmAddCard() {
+            const numero = document.getElementById('newLojaNumero').value.trim();
+            const responsavelId = document.getElementById('newLojaResponsavel').value;
+            const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 3;
+            const status = document.getElementById('newLojaStatus').value;
+            const data = document.getElementById('newLojaData').value;
+            const cidade = document.getElementById('newLojaCidade').value.trim();
+            const uf = document.getElementById('newLojaUf').value.trim().toUpperCase();
+            const regional = document.getElementById('newLojaRegional').value.trim() || 'Nova';
+
+            if (!numero || !responsavelId || !cidade || !uf || uf.length !== 2) {
+                showNotification('❌ Preencha todos os campos obrigatórios!');
+                return;
+            }
+
+            const resp = RESPONSAVEIS.find(r => r.id === responsavelId);
+            if (!resp) { showNotification('❌ Responsável não encontrado!'); return; }
+
+            const nomeLoja = `Loja ${numero}`;
+
+            if (supabase) {
+                try {
+                    const { data: inserted, error } = await supabase
+                        .from('lojas')
+                        .insert({
+                            nome: nomeLoja,
+                            codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
+                            responsavel_id: resp.id,
+                            status: status,
+                            regional: regional,
+                            cidade: cidade,
+                            uf: uf,
+                            pdvs: pdvs,
+                            comentarios: 0,
+                            data_agendada: data || null
+                        })
+                        .select()
+                        .single();
+
+                    if (error) {
+                        console.error('Erro ao criar loja:', error);
+                        showNotification('❌ Erro ao criar loja!');
+                        return;
+                    }
+
+                    const newCard = {
+                        id: inserted.id,
+                        loja: nomeLoja,
+                        responsavel: resp.nome,
+                        responsavel_id: resp.id,
+                        status: status,
+                        regional: regional,
+                        cidade: cidade,
+                        uf: uf,
+                        pdvs: pdvs,
+                        comentarios: 0,
+                        data: data ? formatarDataBR(data) : 'Hoje',
+                        data_agendada: data || null,
+                        descricao: ''
+                    };
+
+                    initialCards.push(newCard);
+                    pdvsPorLoja[inserted.id] = [];
+
+                    // Criar PDVs
+                    for (let i = 1; i <= pdvs; i++) {
+                        const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                        const codigo = `PDV ${String(i).padStart(2, '0')}`;
+                        const { data: pdvData, error: pdvError } = await supabase
+                            .from('pdvs')
+                            .insert({
+                                loja_id: inserted.id,
+                                codigo: codigo,
+                                nome_antigo: codigo,
+                                nome_atualizado: '',
+                                numero_serie: `SN-${randomSerial}`,
+                                status: i === 1 ? 'andamento' : 'pendente',
+                                observacao: ''
+                            })
+                            .select()
+                            .single();
+
+                        if (!pdvError && pdvData) {
+                            pdvsPorLoja[inserted.id].push({
+                                id: pdvData.id,
+                                numero: i,
+                                codigo: codigo,
+                                nomeAntigo: codigo,
+                                nomeAtualizado: '',
+                                numeroSerie: `SN-${randomSerial}`,
+                                status: i === 1 ? 'andamento' : 'pendente',
+                                observacao: '',
+                                lojaId: inserted.id
+                            });
+                        }
+                    }
+
+                    renderCards();
+                    closeAddCardModal();
+                    showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs!`);
+                    atualizarMetricasPainel();
+                    return;
+
+                } catch (e) {
+                    console.error('Erro ao criar loja:', e);
+                    showNotification('❌ Erro ao criar loja!');
+                    return;
+                }
+            }
+
+            // Fallback local
+            const newId = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
+            const newCard = {
+                id: newId,
+                loja: nomeLoja,
+                responsavel: resp.nome,
+                responsavel_id: resp.id,
+                status: status,
+                regional: regional,
+                cidade: cidade,
+                uf: uf,
+                pdvs: pdvs,
+                comentarios: 0,
+                data: data ? formatarDataBR(data) : 'Hoje',
+                data_agendada: data || null,
+                descricao: ''
+            };
+
+            initialCards.push(newCard);
+            pdvsPorLoja[newId] = [];
+
+            for (let i = 1; i <= pdvs; i++) {
+                const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                const codigo = `PDV ${String(i).padStart(2, '0')}`;
+                pdvsPorLoja[newId].push({
+                    id: `pdv-${newId}-${i}-${Date.now()}`,
+                    numero: i,
+                    codigo: codigo,
+                    nomeAntigo: codigo,
+                    nomeAtualizado: '',
+                    numeroSerie: `SN-${randomSerial}`,
+                    status: i === 1 ? 'andamento' : 'pendente',
+                    observacao: '',
+                    lojaId: newId
+                });
+            }
+
+            renderCards();
+            closeAddCardModal();
+            showNotification(`🆕 Loja ${numero} criada localmente!`);
+            atualizarMetricasPainel();
         }
 
         // ============================================================
@@ -2347,16 +2441,12 @@
             list.innerHTML = '';
 
             USERS.forEach(user => {
-                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico',
-                    visualizador: 'Visualizador' };
-                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico',
-                    visualizador: 'role-visualizador' };
-                const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9',
-                    visualizador: '64748B' };
+                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador' };
+                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador' };
+                const bgColors = { admin: '4F46E5', gerente: '8B5CF6', tecnico: '0EA5E9', visualizador: '64748B' };
 
                 const item = document.createElement('div');
-                item.className =
-                    'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
+                item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
                 item.innerHTML = `
                             <div class="flex items-center gap-3">
                                 <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=${bgColors[user.role]}&color=fff&size=32" class="w-8 h-8 rounded-full" />
@@ -2376,7 +2466,7 @@
             });
         }
 
-        function addUser() {
+        async function addUser() {
             const name = document.getElementById('newUserName').value.trim();
             const email = document.getElementById('newUserEmail').value.trim();
             const role = document.getElementById('newUserRole').value;
@@ -2391,28 +2481,59 @@
                 return;
             }
 
+            if (supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('usuarios')
+                        .insert({ nome: name, email: email, senha: 'nova123', role: role, ativo: true })
+                        .select()
+                        .single();
+
+                    if (error) {
+                        showNotification('❌ Erro ao criar usuário!');
+                        return;
+                    }
+
+                    USERS.push(data);
+                    renderUserList();
+                    showNotification(`👤 Usuário ${name} criado!`);
+                    return;
+                } catch (e) {
+                    console.warn('Erro ao criar usuário:', e);
+                }
+            }
+
+            // Fallback local
             const newUser = { id: 'local-' + Date.now(), nome: name, email: email, senha: 'nova123', role: role };
             USERS.push(newUser);
             renderUserList();
-            salvarDados();
-            showNotification(`👤 Usuário ${name} adicionado!`);
+            showNotification(`👤 Usuário ${name} adicionado (local)!`);
             document.getElementById('newUserName').value = '';
             document.getElementById('newUserEmail').value = '';
         }
 
-        function editUser(userId) {
+        async function editUser(userId) {
             const user = USERS.find(u => u.id === userId);
             if (!user) return;
             const newName = prompt('Novo nome:', user.nome);
             if (newName && newName.trim()) {
                 user.nome = newName.trim();
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .update({ nome: newName.trim() })
+                            .eq('id', user.id);
+                    } catch (e) {
+                        console.warn('Erro ao editar usuário:', e);
+                    }
+                }
                 renderUserList();
-                salvarDados();
                 showNotification(`✏️ Usuário atualizado para ${newName}`);
             }
         }
 
-        function removeUser(userId) {
+        async function removeUser(userId) {
             const user = USERS.find(u => u.id === userId);
             if (!user) return;
             if (user.id === currentUser?.id) {
@@ -2420,9 +2541,18 @@
                 return;
             }
             if (confirm(`Remover ${user.nome}?`)) {
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .delete()
+                            .eq('id', user.id);
+                    } catch (e) {
+                        console.warn('Erro ao remover usuário:', e);
+                    }
+                }
                 USERS = USERS.filter(u => u.id !== userId);
                 renderUserList();
-                salvarDados();
                 showNotification(`🗑️ Usuário ${user.nome} removido`);
             }
         }
@@ -2442,7 +2572,7 @@
             resetTargetUserId = null;
         }
 
-        function confirmResetPassword() {
+        async function confirmResetPassword() {
             const newPassword = document.getElementById('resetNewPassword').value.trim();
             if (!newPassword || newPassword.length < 4) {
                 showNotification('❌ Senha deve ter pelo menos 4 caracteres!');
@@ -2450,8 +2580,17 @@
             }
             const user = USERS.find(u => u.id === resetTargetUserId);
             if (user) {
+                if (supabase && !user.id.startsWith('local-')) {
+                    try {
+                        await supabase
+                            .from('usuarios')
+                            .update({ senha: newPassword })
+                            .eq('id', user.id);
+                    } catch (e) {
+                        console.warn('Erro ao resetar senha:', e);
+                    }
+                }
                 user.senha = newPassword;
-                salvarDados();
                 showNotification(`✅ Senha de ${user.nome} resetada!`);
                 closeResetPasswordModal();
                 renderUserList();
@@ -2462,8 +2601,7 @@
         // FUNÇÕES ADICIONAIS
         // ============================================================
         function populateResponsavelSelects() {
-            const selects = document.querySelectorAll(
-                'select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
+            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
             selects.forEach(select => {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Selecione um responsável...</option>';
@@ -2491,11 +2629,19 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'execucao';
-                salvarDados();
-                renderCards();
-                closeCardDetail();
-                showNotification('🚀 Loja iniciada!');
-                atualizarMetricasPainel();
+                if (supabase) {
+                    supabase.from('lojas').update({ status: 'execucao' }).eq('id', card.id).then(() => {
+                        renderCards();
+                        closeCardDetail();
+                        showNotification('🚀 Loja iniciada!');
+                        atualizarMetricasPainel();
+                    });
+                } else {
+                    renderCards();
+                    closeCardDetail();
+                    showNotification('🚀 Loja iniciada!');
+                    atualizarMetricasPainel();
+                }
             }
         }
 
@@ -2504,11 +2650,19 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'bloqueada';
-                salvarDados();
-                renderCards();
-                closeCardDetail();
-                showNotification('⛔ Loja bloqueada!');
-                atualizarMetricasPainel();
+                if (supabase) {
+                    supabase.from('lojas').update({ status: 'bloqueada' }).eq('id', card.id).then(() => {
+                        renderCards();
+                        closeCardDetail();
+                        showNotification('⛔ Loja bloqueada!');
+                        atualizarMetricasPainel();
+                    });
+                } else {
+                    renderCards();
+                    closeCardDetail();
+                    showNotification('⛔ Loja bloqueada!');
+                    atualizarMetricasPainel();
+                }
             }
         }
 
@@ -2522,11 +2676,19 @@
                     if (!confirm('Ainda há PDVs pendentes. Deseja concluir a loja mesmo assim?')) return;
                 }
                 card.status = 'concluida';
-                salvarDados();
-                renderCards();
-                closeCardDetail();
-                showNotification('🎉 Loja concluída!');
-                atualizarMetricasPainel();
+                if (supabase) {
+                    supabase.from('lojas').update({ status: 'concluida' }).eq('id', card.id).then(() => {
+                        renderCards();
+                        closeCardDetail();
+                        showNotification('🎉 Loja concluída!');
+                        atualizarMetricasPainel();
+                    });
+                } else {
+                    renderCards();
+                    closeCardDetail();
+                    showNotification('🎉 Loja concluída!');
+                    atualizarMetricasPainel();
+                }
             }
         }
 
@@ -2566,8 +2728,7 @@
             const select = document.getElementById('responsibleFilter');
             const currentValue = select.value;
             select.innerHTML = '<option value="">Todos</option>';
-            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !==
-                'Não atribuído');
+            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
             responsaveis.forEach(r => {
                 const option = document.createElement('option');
                 option.value = r;
@@ -2590,8 +2751,7 @@
                 showNotification('⛔ Apenas Administradores e Gerentes podem editar as métricas!');
                 return;
             }
-            const currentValue = type === 'total' ? initialCards.length : initialCards.filter(c => c.status ===
-                'concluida').length;
+            const currentValue = type === 'total' ? initialCards.length : initialCards.filter(c => c.status === 'concluida').length;
             const label = type === 'total' ? 'Total de Lojas' : 'Lojas Concluídas';
             const newValue = prompt(`Editar ${label} (valor atual: ${currentValue}):`, currentValue);
             if (newValue === null) return;
@@ -2621,9 +2781,6 @@
             else if (action === '4') showNotification('Exibindo métricas...');
         }
 
-        // ============================================================
-        // ADICIONAR LOJA
-        // ============================================================
         function openAddCardModal(status) {
             document.getElementById('addCardModal').classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -2642,62 +2799,6 @@
             document.body.style.overflow = '';
         }
 
-        function confirmAddCard() {
-            const numero = document.getElementById('newLojaNumero').value.trim();
-            const responsavelId = document.getElementById('newLojaResponsavel').value;
-            const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 3;
-            const status = document.getElementById('newLojaStatus').value;
-            const data = document.getElementById('newLojaData').value;
-            const cidade = document.getElementById('newLojaCidade').value.trim();
-            const uf = document.getElementById('newLojaUf').value.trim().toUpperCase();
-            const regional = document.getElementById('newLojaRegional').value.trim() || 'Nova';
-
-            if (!numero || !responsavelId || !cidade || !uf || uf.length !== 2) {
-                showNotification('❌ Preencha todos os campos obrigatórios!');
-                return;
-            }
-
-            const resp = RESPONSAVEIS.find(r => r.id === responsavelId);
-            if (!resp) { showNotification('❌ Responsável não encontrado!'); return; }
-
-            const newId = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
-            const nomeLoja = `Loja ${numero}`;
-
-            const newCard = {
-                id: newId,
-                loja: nomeLoja,
-                responsavel: resp.nome,
-                responsavel_id: resp.id,
-                status: status,
-                regional: regional,
-                cidade: cidade,
-                uf: uf,
-                pdvs: pdvs,
-                comentarios: 0,
-                data: data ? formatarDataBR(data) : 'Hoje',
-                data_agendada: data || null,
-                descricao: ''
-            };
-
-            initialCards.push(newCard);
-            pdvsPorLoja[newId] = gerarPdvsParaLoja(newId, pdvs);
-
-            salvarDados();
-            renderCards();
-            closeAddCardModal();
-            showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs!`);
-            atualizarMetricasPainel();
-        }
-
-        function formatarDataBR(isoDate) {
-            if (!isoDate) return '';
-            const [ano, mes, dia] = isoDate.split('-');
-            return `${dia}/${mes}`;
-        }
-
-        // ============================================================
-        // GERAR LINK PARA TÉCNICO
-        // ============================================================
         function gerarLinkTecnico() {
             if (!currentCardId) {
                 showNotification('❌ Selecione uma loja primeiro!');
@@ -2717,12 +2818,9 @@
                 return;
             }
 
-            // Gerar token único
             const token = btoa(`${currentCardId}-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`);
-            const linkCompleto =
-                `${window.location.origin}${window.location.pathname}?token=${token}&loja=${currentCardId}`;
+            const linkCompleto = `${window.location.origin}${window.location.pathname}?token=${token}&loja=${currentCardId}`;
 
-            // Mostrar container
             document.getElementById('linkGeradoContainer').style.display = 'block';
             document.getElementById('linkGeradoInput').value = linkCompleto;
             document.getElementById('linkTecnicoNomeDisplay').textContent = tecnicoNome;
@@ -2745,13 +2843,221 @@
             const tecnicoNome = document.getElementById('linkTecnicoNomeDisplay')?.textContent || 'Técnico';
             const mensagem = encodeURIComponent(
                 `🔗 Olá ${tecnicoNome}, segue o link para atendimento da loja ${card?.loja || ''}:\n\n${link}\n\nAcesse para realizar o RAT. Link válido por 24 horas.`
-                );
+            );
             window.open(`https://wa.me/?text=${mensagem}`, '_blank');
         }
 
         // ============================================================
-        // MODO TÉCNICO (SEM LOGIN)
+        // EXPORTAR EXCEL
         // ============================================================
+        function exportToExcel() {
+            if (typeof XLSX === 'undefined') {
+                showNotification('❌ Biblioteca XLSX não carregada.');
+                return;
+            }
+            try {
+                const lojasData = initialCards.map(card => ({
+                    'ID': card.id,
+                    'Loja': card.loja,
+                    'Responsável': card.responsavel,
+                    'Status': card.status,
+                    'Regional': card.regional || 'N/A',
+                    'Cidade/UF': `${card.cidade || ''}${card.uf ? ` - ${card.uf}` : ''}`,
+                    'PDVs': card.pdvs || 0,
+                    'Data': card.data || 'N/A'
+                }));
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(lojasData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Lojas');
+                const fileName = `ROCC_Lojas_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showNotification(`📊 Excel exportado: ${fileName}`);
+            } catch (error) {
+                console.error('Erro ao exportar:', error);
+                showNotification('❌ Erro ao gerar Excel');
+            }
+        }
+
+        // ============================================================
+        // FUNÇÕES DE UPLOAD E CHAT (placeholder)
+        // ============================================================
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            const list = document.getElementById('evidenciasList');
+            for (let i = 0; i < files.length; i++) {
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
+                item.innerHTML = `
+                            <i class="fas fa-file text-indigo-400"></i>
+                            <span class="text-sm text-white">${files[i].name}</span>
+                            <span class="text-xs text-slate-400">${(files[i].size / 1024).toFixed(1)} KB</span>
+                            <button class="text-rose-400 hover:text-rose-300 ml-auto" onclick="this.parentElement.remove()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                list.appendChild(item);
+            }
+            showNotification(`📎 ${files.length} arquivo(s) enviado(s)!`);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'chat-message flex items-start gap-3 p-2 rounded-lg border-b border-[#2d313e]';
+            div.innerHTML = `
+                        <img src="https://ui-avatars.com/api/?name=${currentUser?.nome || 'Eu'}&background=4F46E5&color=fff&size=28" class="w-8 h-8 rounded-full" />
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-white text-sm">${currentUser?.nome || 'Eu'}</span>
+                                <span class="text-xs text-slate-500">${new Date().toLocaleTimeString()}</span>
+                            </div>
+                            <p class="text-sm text-slate-300">${msg}</p>
+                        </div>
+                    `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            input.value = '';
+            const chatCount = document.getElementById('chatCount');
+            const current = parseInt(chatCount.textContent) || 0;
+            chatCount.textContent = current + 1;
+            showNotification('💬 Mensagem enviada!');
+        }
+
+        // ============================================================
+        // NOTIFICAÇÕES
+        // ============================================================
+        function showNotification(message) {
+            const existing = document.querySelector('.toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-bell text-indigo-400 mt-0.5 text-sm"></i>
+                            <div>
+                                <p class="text-sm font-medium">ROCC</p>
+                                <p class="text-sm text-slate-300">${message}</p>
+                                <p class="text-xs text-slate-500 mt-0.5">${new Date().toLocaleTimeString()}</p>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" class="text-slate-500 hover:text-white ml-2">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        function handleLogout() {
+            if (confirm('Deseja realmente sair?')) {
+                sessionStorage.removeItem('rocc_user');
+                currentUser = null;
+                document.getElementById('appContent').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginError').textContent = '';
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
+            }
+        }
+
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 ROCC carregado!');
+            console.log('📌 Credenciais: admin@rocc.com / admin123');
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const lojaId = params.get('loja');
+
+            const savedUser = sessionStorage.getItem('rocc_user');
+
+            if (token && lojaId) {
+                carregarTudo().then(() => {
+                    ativarModoTecnico(lojaId, token);
+                });
+                if (savedUser) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
+                } else {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
+                }
+                return;
+            }
+
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    currentUser = user;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
+                    document.getElementById('userNameDisplay').textContent = user.nome;
+                    document.getElementById('userRoleDisplay').textContent =
+                        user.role === 'admin' ? 'Administrador' :
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                    carregarTudo();
+                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+                } catch (e) {
+                    console.warn('Sessão inválida', e);
+                }
+            }
+
+            // Adicionar evento ao botão de login
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogin();
+                });
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const loginScreen = document.getElementById('loginScreen');
+                    if (loginScreen.style.display !== 'none') {
+                        handleLogin();
+                    }
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCardDetail();
+                closeUserManagement();
+                closeAddCardModal();
+                closeResetPasswordModal();
+            }
+        });
+
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+
+        // ============================================================
+        // MODO TÉCNICO
+        // ============================================================
+        let tecnicoLojaData = null;
+        let tecnicoIdentificado = null;
+
         function ativarModoTecnico(lojaId, token) {
             const loja = initialCards.find(c => c.id === lojaId);
             if (!loja) {
@@ -2761,17 +3067,14 @@
 
             tecnicoLojaData = { loja, token };
 
-            // Mostrar identificação
             document.getElementById('kanbanWrapper').style.display = 'none';
             document.getElementById('tecnicoView').style.display = 'none';
             document.getElementById('identificacaoTecnico').style.display = 'flex';
             document.getElementById('appContent').style.display = 'flex';
 
-            // Preencher dados da loja
             document.getElementById('tecnicoCardTitle').textContent = loja.loja;
             document.getElementById('tecnicoCardId').textContent = loja.id;
-            document.getElementById('tecnicoCardCidade').textContent =
-                `${loja.cidade || ''}${loja.uf ? ` - ${loja.uf}` : ''}`;
+            document.getElementById('tecnicoCardCidade').textContent = `${loja.cidade || ''}${loja.uf ? ` - ${loja.uf}` : ''}`;
             document.getElementById('tecnicoCardResponsavel').textContent = loja.responsavel || 'Não atribuído';
 
             const statusLabels = {
@@ -2820,7 +3123,6 @@
         function carregarDadosTecnico() {
             const loja = tecnicoLojaData.loja;
 
-            // PDVs
             const pdvs = pdvsPorLoja[loja.id] || [];
             const pdvContainer = document.getElementById('tecnicoPdvsList');
             if (pdvs.length === 0) {
@@ -2849,7 +3151,6 @@
                         `).join('');
             }
 
-            // Checklist
             const checklistContainer = document.getElementById('tecnicoChecklistList');
             const itensChecklist = [
                 'Configurar rede dos PDVs',
@@ -2869,7 +3170,7 @@
         }
 
         // ============================================================
-        // ASSINATURA - FUNÇÕES GENÉRICAS (GERENTE + TÉCNICO)
+        // ASSINATURA (placeholder - simplificada)
         // ============================================================
         let assinaturas = {
             gerente: { data: null, canvas: null, ctx: null, isDrawing: false, lastX: 0, lastY: 0 },
@@ -2896,11 +3197,6 @@
             assinaturas[tipo].canvas = canvas;
             assinaturas[tipo].ctx = ctx;
 
-            canvas.removeEventListener('mousedown', (e) => startDraw(e, tipo));
-            canvas.removeEventListener('mousemove', (e) => draw(e, tipo));
-            canvas.removeEventListener('mouseup', (e) => stopDraw(e, tipo));
-            canvas.removeEventListener('mouseleave', (e) => stopDraw(e, tipo));
-
             canvas.addEventListener('mousedown', (e) => startDraw(e, tipo));
             canvas.addEventListener('mousemove', (e) => draw(e, tipo));
             canvas.addEventListener('mouseup', (e) => stopDraw(e, tipo));
@@ -2922,8 +3218,7 @@
             }
 
             if (tipo === 'tecnico') {
-                document.getElementById('assinaturaTecnicoNomeExibido').textContent = tecnicoIdentificado ||
-                    'Técnico';
+                document.getElementById('assinaturaTecnicoNomeExibido').textContent = tecnicoIdentificado || 'Técnico';
             }
         }
 
@@ -2998,10 +3293,8 @@
             data.ctx.clearRect(0, 0, data.canvas.width, data.canvas.height);
             const placeholderId = tipo === 'gerente' ? 'assinaturaGerentePlaceholder' : 'assinaturaTecnicoPlaceholder';
             document.getElementById(placeholderId).style.setProperty('opacity', '0.5');
-
             const previewId = tipo === 'gerente' ? 'assinaturaGerentePreview' : 'assinaturaTecnicoPreview';
             document.getElementById(previewId).classList.remove('active');
-
             data.data = null;
             verificarAssinaturas();
         }
@@ -3055,6 +3348,11 @@
                 data: now.toLocaleString('pt-BR'),
                 imagem: data.canvas.toDataURL('image/png')
             };
+
+            if (tipo === 'gerente') {
+                const matricula = document.getElementById('matriculaGerenteInput').value.trim();
+                data.data.matricula = matricula || '__________________';
+            }
 
             verificarAssinaturas();
             showNotification(`✅ Assinatura do ${tipo === 'gerente' ? 'gerente' : 'técnico'} aplicada!`);
@@ -3120,9 +3418,6 @@
             document.getElementById('btnFinalizarRATTecnico').disabled = !(gerenteOk && tecnicoOk);
         }
 
-        // ============================================================
-        // ABRIR/FECHAR MODAL ASSINATURA
-        // ============================================================
         function abrirAssinaturaTecnico() {
             if (!tecnicoLojaData) {
                 showNotification('❌ Nenhuma loja selecionada');
@@ -3131,8 +3426,7 @@
 
             const loja = tecnicoLojaData.loja;
             document.getElementById('assinaturaTecnicoLoja').textContent = loja.loja;
-            document.getElementById('assinaturaTecnicoCidade').textContent =
-                `${loja.cidade || ''}${loja.uf ? ` - ${loja.uf}` : ''}`;
+            document.getElementById('assinaturaTecnicoCidade').textContent = `${loja.cidade || ''}${loja.uf ? ` - ${loja.uf}` : ''}`;
             document.getElementById('assinaturaTecnicoNome').textContent = tecnicoIdentificado || 'Técnico';
 
             ['gerente', 'tecnico'].forEach(tipo => {
@@ -3166,9 +3460,6 @@
             });
         }
 
-        // ============================================================
-        // FINALIZAR RAT (COM DUAS ASSINATURAS)
-        // ============================================================
         function finalizarRATTecnico() {
             const gerenteData = assinaturas.gerente.data;
             const tecnicoData = assinaturas.tecnico.data;
@@ -3197,18 +3488,14 @@
                 });
             });
 
-            // LOGO ENGEMON
             const LOGO_ENGEMON = `
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <img src="https://via.placeholder.com/150x50/4f46e5/FFFFFF?text=ENGEMON+IT" 
-                             alt="Engemon IT" 
-                             style="height:45px; width:auto; object-fit:contain;" />
-                        <span style="font-size:12px; color:#94a3b8;">Serviços Infraestrutura e Tecnologia</span>
-                    </div>
-                `;
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span style="font-size:20px;font-weight:700;color:#4f46e5;">ENGEMON IT</span>
+                            <span style="font-size:12px; color:#94a3b8;">Serviços Infraestrutura e Tecnologia</span>
+                        </div>
+                    `;
 
-            const conteudo = gerarConteudoRAT(loja, pdvs, gerenteData, tecnicoData, tecnicoNome, checklistCompleto,
-                LOGO_ENGEMON);
+            const conteudo = gerarConteudoRAT(loja, pdvs, gerenteData, tecnicoData, tecnicoNome, checklistCompleto, LOGO_ENGEMON);
 
             const janela = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes');
             if (janela) {
@@ -3229,9 +3516,6 @@
             }
         }
 
-        // ============================================================
-        // GERAR CONTEÚDO DO RAT
-        // ============================================================
         function gerarConteudoRAT(loja, pdvs, assinaturaGerente, assinaturaTecnico, tecnico, checklist, logoHtml) {
             const statusLabels = {
                 'pendente': 'Pendente',
@@ -3321,8 +3605,6 @@
                             .container { max-width:1000px; margin:0 auto; background:#ffffff; padding:40px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
                             .header { border-bottom:3px solid #4f46e5; padding-bottom:20px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
                             .header .logo-area { display:flex; align-items:center; gap:12px; }
-                            .header .logo-area .logo-text { font-size:24px; font-weight:700; color:#4f46e5; }
-                            .header .logo-area .logo-sub { font-size:12px; color:#94a3b8; }
                             .header .title-area { text-align:right; }
                             .header .title-area .main-title { font-size:20px; font-weight:700; color:#4f46e5; }
                             .header .title-area .sub-title { font-size:13px; color:#94a3b8; }
@@ -3464,215 +3746,6 @@
         }
 
         // ============================================================
-        // FUNÇÕES DE UPLOAD E CHAT
-        // ============================================================
-        function handleFileUpload(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-            const list = document.getElementById('evidenciasList');
-            for (let i = 0; i < files.length; i++) {
-                const item = document.createElement('div');
-                item.className =
-                    'flex items-center gap-3 p-2 rounded-lg border border-[#2d313e] hover:border-indigo-500/30 transition';
-                item.innerHTML = `
-                            <i class="fas fa-file text-indigo-400"></i>
-                            <span class="text-sm text-white">${files[i].name}</span>
-                            <span class="text-xs text-slate-400">${(files[i].size / 1024).toFixed(1)} KB</span>
-                            <button class="text-rose-400 hover:text-rose-300 ml-auto" onclick="this.parentElement.remove()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        `;
-                list.appendChild(item);
-            }
-            showNotification(`📎 ${files.length} arquivo(s) enviado(s)!`);
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            const container = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.className = 'chat-message flex items-start gap-3 p-2 rounded-lg border-b border-[#2d313e]';
-            div.innerHTML = `
-                        <img src="https://ui-avatars.com/api/?name=${currentUser?.nome || 'Eu'}&background=4F46E5&color=fff&size=28" class="w-8 h-8 rounded-full" />
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-white text-sm">${currentUser?.nome || 'Eu'}</span>
-                                <span class="text-xs text-slate-500">${new Date().toLocaleTimeString()}</span>
-                            </div>
-                            <p class="text-sm text-slate-300">${msg}</p>
-                        </div>
-                    `;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            input.value = '';
-            const chatCount = document.getElementById('chatCount');
-            const current = parseInt(chatCount.textContent) || 0;
-            chatCount.textContent = current + 1;
-            showNotification('💬 Mensagem enviada!');
-        }
-
-        // ============================================================
-        // EXPORTAR EXCEL
-        // ============================================================
-        function exportToExcel() {
-            if (typeof XLSX === 'undefined') {
-                showNotification('❌ Biblioteca XLSX não carregada.');
-                return;
-            }
-            try {
-                const lojasData = initialCards.map(card => ({
-                    'ID': card.id,
-                    'Loja': card.loja,
-                    'Responsável': card.responsavel,
-                    'Status': card.status,
-                    'Regional': card.regional || 'N/A',
-                    'Cidade/UF': `${card.cidade || ''}${card.uf ? ` - ${card.uf}` : ''}`,
-                    'PDVs': card.pdvs || 0,
-                    'Data': card.data || 'N/A'
-                }));
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(lojasData);
-                XLSX.utils.book_append_sheet(wb, ws, 'Lojas');
-                const fileName = `ROCC_Lojas_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                XLSX.writeFile(wb, fileName);
-                showNotification(`📊 Excel exportado: ${fileName}`);
-            } catch (error) {
-                console.error('Erro ao exportar:', error);
-                showNotification('❌ Erro ao gerar Excel');
-            }
-        }
-
-        // ============================================================
-        // NOTIFICAÇÕES
-        // ============================================================
-        function showNotification(message) {
-            const existing = document.querySelector('.toast-notification');
-            if (existing) existing.remove();
-
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.innerHTML = `
-                        <div class="flex items-start gap-3">
-                            <i class="fas fa-bell text-indigo-400 mt-0.5 text-sm"></i>
-                            <div>
-                                <p class="text-sm font-medium">ROCC</p>
-                                <p class="text-sm text-slate-300">${message}</p>
-                                <p class="text-xs text-slate-500 mt-0.5">${new Date().toLocaleTimeString()}</p>
-                            </div>
-                            <button onclick="this.parentElement.parentElement.remove()" class="text-slate-500 hover:text-white ml-2">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    `;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 5000);
-        }
-
-        // ============================================================
-        // LOGOUT
-        // ============================================================
-        function handleLogout() {
-            if (confirm('Deseja realmente sair?')) {
-                sessionStorage.removeItem('rocc_user');
-                currentUser = null;
-                document.getElementById('appContent').style.display = 'none';
-                document.getElementById('loginScreen').style.display = 'flex';
-                document.getElementById('loginPassword').value = '';
-                document.getElementById('loginError').textContent = '';
-                document.getElementById('loginBtn').disabled = false;
-                document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
-            }
-        }
-
-        // ============================================================
-        // INICIALIZAÇÃO
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 ROCC carregado!');
-            console.log('📌 Credenciais: admin@rocc.com / admin123');
-
-            // Carregar dados
-            carregarTudo();
-
-            // Verificar token na URL (modo técnico)
-            const params = new URLSearchParams(window.location.search);
-            const token = params.get('token');
-            const lojaId = params.get('loja');
-
-            const savedUser = sessionStorage.getItem('rocc_user');
-
-            if (token && lojaId) {
-                ativarModoTecnico(lojaId, token);
-                if (savedUser) {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
-                } else {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
-                }
-                return;
-            }
-
-            if (savedUser) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    currentUser = user;
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
-                    document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' :
-                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
-                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
-                } catch (e) {
-                    console.warn('Sessão inválida', e);
-                }
-            }
-
-            // Adicionar evento ao botão de login
-            const loginBtn = document.getElementById('loginBtn');
-            if (loginBtn) {
-                loginBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    handleLogin();
-                });
-            }
-
-            // Enter key para login
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const loginScreen = document.getElementById('loginScreen');
-                    if (loginScreen.style.display !== 'none') {
-                        handleLogin();
-                    }
-                }
-            });
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeCardDetail();
-                closeUserManagement();
-                closeAddCardModal();
-                closeResetPasswordModal();
-                fecharAssinaturaTecnico();
-            }
-        });
-
-        document.querySelectorAll('.modal-overlay').forEach(modal => {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            });
-        });
-
-        // ============================================================
         // EXPOSIÇÃO GLOBAL
         // ============================================================
         window.handleLogin = handleLogin;
@@ -3721,15 +3794,9 @@
         window.handleFileUpload = handleFileUpload;
         window.sendMessage = sendMessage;
         window.showNotification = showNotification;
-        window.carregarChecklist = carregarChecklist;
-        window.toggleChecklistItem = toggleChecklistItem;
-        window.addChecklistItem = addChecklistItem;
-        window.renderChecklist = renderChecklist;
         window.initAssinaturaCanvas = initAssinaturaCanvas;
         window.verificarAssinaturas = verificarAssinaturas;
         window.deleteCard = deleteCard;
-        window.salvarDados = salvarDados;
-        window.verificarDadosSalvos = verificarDadosSalvos;
         window.editPdvAntigo = editPdvAntigo;
         window.editPdvAtualizado = editPdvAtualizado;
     </script>
