@@ -1516,12 +1516,10 @@
         }
 
         // ============================================================
-        // SALVAR DADOS NO SUPABASE
+        // (função salvarLojas removida — não era utilizada em nenhum lugar
+        // e apenas dava console.log sem persistir dados; ver
+        // updateResponsibleFromModal() para o salvamento real da loja)
         // ============================================================
-        async function salvarLojas() {
-            // Atualizar lojas no Supabase (implementar conforme necessidade)
-            console.log('💾 Lojas salvas no Supabase');
-        }
 
         // ============================================================
         // ATUALIZAR MÉTRICAS
@@ -2617,9 +2615,35 @@
             });
         }
 
-        function updateResponsibleFromModal() {
+        async function updateResponsibleFromModal() {
             if (!currentCardId) return;
-            showNotification('✅ Responsável atualizado!');
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (!card) return;
+
+            const descricaoEl = document.getElementById('modalDescription');
+            const novaDescricao = descricaoEl ? descricaoEl.value : card.descricao || '';
+
+            card.descricao = novaDescricao;
+
+            if (supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('lojas')
+                        .update({ descricao: novaDescricao })
+                        .eq('id', card.id);
+                    if (error) {
+                        console.warn('Erro ao salvar observações no Supabase:', error);
+                        showNotification('⚠️ Erro ao salvar no banco. Tente novamente.');
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Erro ao salvar observações no Supabase:', e);
+                    showNotification('⚠️ Erro ao salvar no banco. Tente novamente.');
+                    return;
+                }
+            }
+
+            showNotification('✅ Alterações salvas!');
             closeCardDetail();
             atualizarMetricasPainel();
         }
