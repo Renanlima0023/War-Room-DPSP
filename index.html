@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* ... (mantenha todos os estilos existentes) ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -727,6 +728,33 @@
             background: #3d4150;
             color: #e2e8f0;
         }
+
+        .btn-assign-tecnico {
+            background: rgba(79,70,229,0.2);
+            border: 1px solid rgba(79,70,229,0.3);
+            color: #818cf8;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-assign-tecnico:hover {
+            background: rgba(79,70,229,0.35);
+            border-color: #818cf8;
+        }
+        .btn-assign-tecnico.danger {
+            background: rgba(248,113,113,0.2);
+            border-color: rgba(248,113,113,0.3);
+            color: #f87171;
+        }
+        .btn-assign-tecnico.danger:hover {
+            background: rgba(248,113,113,0.35);
+            border-color: #f87171;
+        }
     </style>
 </head>
 <body>
@@ -1106,15 +1134,20 @@
 
                                 <div>
                                     <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Atribuir Técnico</label>
-                                    <select id="modalAssignTecnico" class="dark-select w-full px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm" onchange="atualizarResponsavelNoModal()">
-                                        <option value="">Selecione um técnico...</option>
-                                    </select>
-                                    <button class="mt-1 text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1 rounded-full hover:bg-indigo-600/40 transition" onclick="assignTecnicoFromModal()">
-                                        <i class="fas fa-user-check mr-1"></i> Atribuir Técnico
-                                    </button>
-                                    <button class="mt-1 text-xs bg-rose-600/20 text-rose-400 px-3 py-1 rounded-full hover:bg-rose-600/40 transition ml-2" onclick="removerTecnicoFromModal()">
-                                        <i class="fas fa-user-times mr-1"></i> Remover Técnico
-                                    </button>
+                                    <div class="flex flex-wrap gap-2">
+                                        <select id="modalAssignTecnico" class="dark-select flex-1 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm min-w-[150px]" onchange="atualizarResponsavelNoModal()">
+                                            <option value="">Selecione um técnico...</option>
+                                        </select>
+                                        <button class="btn-assign-tecnico" onclick="assignTecnicoFromModal()">
+                                            <i class="fas fa-user-check mr-1"></i> Atribuir
+                                        </button>
+                                        <button class="btn-assign-tecnico danger" onclick="removerTecnicoFromModal()">
+                                            <i class="fas fa-user-times mr-1"></i> Remover
+                                        </button>
+                                    </div>
+                                    <p class="text-[8px] text-slate-500 mt-1">
+                                        <i class="fas fa-info-circle mr-1"></i> Apenas técnicos com login cadastrado aparecem na lista
+                                    </p>
                                 </div>
 
                                 <div>
@@ -1698,13 +1731,13 @@
                 const { data, error } = await supabaseClient
                     .from('usuarios')
                     .select('*')
-                    .eq('ativo', true)
                     .order('nome');
                 if (!error && data) {
                     USERS = data;
                     console.log('✅ Usuários carregados:', USERS.length);
-                    console.log('👤 Técnicos com login:', USERS.filter(u => u.role === 'tecnico' && u.email).length);
-                    USERS.filter(u => u.role === 'tecnico' && u.email).forEach(t => {
+                    const tecnicos = USERS.filter(u => u.role === 'tecnico' && u.email && u.email.trim() !== '');
+                    console.log('👤 Técnicos com login:', tecnicos.length);
+                    tecnicos.forEach(t => {
                         console.log('  -', t.nome, '|', t.email);
                     });
                 }
@@ -1783,8 +1816,11 @@
         // FUNÇÕES DE TÉCNICOS (APENAS USUÁRIOS COM LOGIN)
         // ============================================================
         function getTecnicos() {
-            // Retorna APENAS usuários com role = 'tecnico' que têm email cadastrado
-            return USERS.filter(u => u.role === 'tecnico' && u.email && u.email.trim() !== '');
+            return USERS.filter(u => 
+                u.role === 'tecnico' && 
+                u.email && 
+                u.email.trim() !== ''
+            );
         }
 
         function getTecnicoNome(id) {
@@ -1794,36 +1830,42 @@
 
         function populateTecnicoSelects() {
             const tecnicos = getTecnicos();
+            console.log('👤 Técnicos disponíveis para atribuição:', tecnicos.length);
+            tecnicos.forEach(t => console.log('  -', t.nome, '|', t.email));
+            
             const select = document.getElementById('modalAssignTecnico');
             if (!select) return;
             
             const currentValue = select.value;
             select.innerHTML = '<option value="">Selecione um técnico...</option>';
             
-            // Adiciona apenas técnicos com login cadastrado
-            tecnicos.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.textContent = t.nome;
-                select.appendChild(opt);
-            });
-            
-            // Restaurar valor selecionado se ainda existir
-            if (currentValue && tecnicos.some(t => t.id === currentValue)) {
-                select.value = currentValue;
-            }
-            
-            // Também atualiza o filtro do dashboard
-            const dashFilter = document.getElementById('dashTecnicoFilter');
-            if (dashFilter) {
-                const currentDash = dashFilter.value;
-                dashFilter.innerHTML = '<option value="">Todos os Técnicos</option>';
+            if (tecnicos.length === 0) {
+                select.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
+            } else {
                 tecnicos.forEach(t => {
                     const opt = document.createElement('option');
                     opt.value = t.id;
                     opt.textContent = t.nome;
-                    dashFilter.appendChild(opt);
+                    select.appendChild(opt);
                 });
+            }
+            
+            if (currentValue && tecnicos.some(t => t.id === currentValue)) {
+                select.value = currentValue;
+            }
+            
+            const dashFilter = document.getElementById('dashTecnicoFilter');
+            if (dashFilter) {
+                const currentDash = dashFilter.value;
+                dashFilter.innerHTML = '<option value="">Todos os Técnicos</option>';
+                if (tecnicos.length > 0) {
+                    tecnicos.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.nome;
+                        dashFilter.appendChild(opt);
+                    });
+                }
                 if (currentDash && tecnicos.some(t => t.id === currentDash)) {
                     dashFilter.value = currentDash;
                 }
@@ -1831,7 +1873,7 @@
         }
 
         // ============================================================
-        // ATUALIZAR RESPONSÁVEL NO MODAL (quando muda o select)
+        // ATUALIZAR RESPONSÁVEL NO MODAL
         // ============================================================
         function atualizarResponsavelNoModal() {
             const select = document.getElementById('modalAssignTecnico');
@@ -1857,7 +1899,7 @@
         }
 
         // ============================================================
-        // ATRIBUIR TÉCNICO AO CARD
+        // ATRIBUIR TÉCNICO AO CARD - CORRIGIDO
         // ============================================================
         async function assignTecnicoFromModal() {
             if (!currentCardId) {
@@ -1884,7 +1926,6 @@
                 return;
             }
 
-            // Verificar se o técnico já está atribuído a esta loja
             if (card.responsavel_id === tecnicoId) {
                 showNotification(`ℹ️ ${tecnico.nome} já está atribuído a esta loja.`);
                 return;
@@ -1897,29 +1938,38 @@
             // Atualizar no Supabase
             if (supabaseClient) {
                 try {
-                    await supabaseClient
+                    const { error } = await supabaseClient
                         .from('lojas')
                         .update({
                             responsavel_id: tecnico.id,
                             responsavel_nome: tecnico.nome
                         })
                         .eq('id', card.id);
+                    
+                    if (error) {
+                        console.error('Erro ao atualizar no Supabase:', error);
+                        showNotification('❌ Erro ao salvar no banco de dados!');
+                        return;
+                    }
+                    
+                    console.log('✅ Técnico atualizado no Supabase:', tecnico.nome);
                 } catch (e) {
-                    console.warn('Erro ao atribuir técnico:', e);
+                    console.error('Erro ao atribuir técnico:', e);
                     showNotification('❌ Erro ao atribuir técnico!');
                     return;
                 }
             }
 
-            // Atualizar o modal com o novo responsável
+            // Atualizar o modal
             document.getElementById('modalResponsavel').textContent = tecnico.nome;
-            
-            // Atualizar o avatar do responsável no modal
             const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
             if (avatarImg && avatarImg.tagName === 'IMG') {
                 avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
             }
 
+            // RECARREGAR OS DADOS PARA GARANTIR CONSISTÊNCIA
+            await loadLojas();
+            
             renderCards();
             atualizarDashboard();
             atualizarMetricasPainel();
@@ -1927,7 +1977,7 @@
         }
 
         // ============================================================
-        // REMOVER TÉCNICO DO CARD
+        // REMOVER TÉCNICO DO CARD - CORRIGIDO
         // ============================================================
         async function removerTecnicoFromModal() {
             if (!currentCardId) {
@@ -1956,34 +2006,132 @@
             
             if (supabaseClient) {
                 try {
-                    await supabaseClient
+                    const { error } = await supabaseClient
                         .from('lojas')
                         .update({ 
                             responsavel_id: null, 
                             responsavel_nome: 'Não atribuído' 
                         })
                         .eq('id', card.id);
+                    
+                    if (error) {
+                        console.error('Erro ao remover no Supabase:', error);
+                        showNotification('❌ Erro ao remover técnico!');
+                        return;
+                    }
+                    
+                    console.log('✅ Técnico removido do Supabase');
                 } catch (e) {
-                    console.warn('Erro ao remover atribuição:', e);
+                    console.error('Erro ao remover técnico:', e);
                     showNotification('❌ Erro ao remover técnico!');
                     return;
                 }
             }
             
-            // Atualizar o modal com o novo responsável
+            // Atualizar o modal
             document.getElementById('modalResponsavel').textContent = 'Não atribuído';
             const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
             if (avatarImg && avatarImg.tagName === 'IMG') {
                 avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
             }
-            
-            // Resetar o select
             document.getElementById('modalAssignTecnico').value = '';
+
+            // RECARREGAR OS DADOS PARA GARANTIR CONSISTÊNCIA
+            await loadLojas();
             
             renderCards();
             atualizarDashboard();
             atualizarMetricasPainel();
             showNotification(`✅ Técnico removido da loja ${card.loja}!`);
+        }
+
+        // ============================================================
+        // ADICIONAR USUÁRIO
+        // ============================================================
+        async function addUser() {
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            
+            if (!name || !email) {
+                showNotification('❌ Preencha nome e e-mail!');
+                return;
+            }
+            
+            if (USERS.find(u => u.email === email)) {
+                showNotification('❌ Este e-mail já está cadastrado!');
+                return;
+            }
+            
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('usuarios')
+                        .insert({
+                            nome: name,
+                            email: email,
+                            senha: 'nova123',
+                            role: role,
+                            ativo: true
+                        })
+                        .select()
+                        .single();
+                        
+                    if (error) {
+                        showNotification('❌ Erro ao criar usuário!');
+                        console.error('Erro Supabase:', error);
+                        return;
+                    }
+                    
+                    USERS.push(data);
+                    renderUserList();
+                    populateTecnicoSelects();
+                    
+                    if (document.getElementById('cardModal').classList.contains('active')) {
+                        const select = document.getElementById('modalAssignTecnico');
+                        if (select) {
+                            const currentValue = select.value;
+                            const tecnicos = getTecnicos();
+                            select.innerHTML = '<option value="">Selecione um técnico...</option>';
+                            tecnicos.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t.id;
+                                opt.textContent = t.nome;
+                                select.appendChild(opt);
+                            });
+                            if (currentValue && tecnicos.some(t => t.id === currentValue)) {
+                                select.value = currentValue;
+                            }
+                        }
+                    }
+                    
+                    document.getElementById('newUserName').value = '';
+                    document.getElementById('newUserEmail').value = '';
+                    
+                    showNotification(`👤 Usuário ${name} criado com sucesso!`);
+                    return;
+                    
+                } catch (e) {
+                    console.error('Erro ao criar usuário:', e);
+                    showNotification('❌ Erro ao criar usuário!');
+                    return;
+                }
+            }
+            
+            const newUser = {
+                id: 'local-' + Date.now(),
+                nome: name,
+                email: email,
+                senha: 'nova123',
+                role: role,
+                ativo: true
+            };
+            USERS.push(newUser);
+            renderUserList();
+            populateTecnicoSelects();
+            showNotification(`👤 Usuário ${name} adicionado (local)!`);
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
         }
 
         // ============================================================
@@ -2012,7 +2160,6 @@
             document.getElementById('totalLojasDisplay').textContent = total;
             document.getElementById('concluidasDisplay').textContent = concluidas;
 
-            // Tickets
             const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
             document.getElementById('ticketCount').textContent = tickets.length;
             const ticketList = document.getElementById('ticketList');
@@ -2032,7 +2179,6 @@
                 `).join('');
             }
 
-            // Activities
             const activities = [...initialCards].reverse().slice(0, 3);
             const activityList = document.getElementById('activityList');
             if (activities.length === 0) {
@@ -2119,7 +2265,6 @@
 
             const tecnicoNome = card.responsavel || 'Não atribuído';
 
-            // Só mostra o regional se ele existir e não for vazio
             let regionalHtml = '';
             if (card.prioridade) {
                 regionalHtml = `<span class="${prioridadeClass} text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full">${card.prioridade}</span>`;
@@ -2286,15 +2431,12 @@
             populateResponsavelSelects();
             populateTecnicoSelects();
 
-            // Set current assigned technician
             const assignSelect = document.getElementById('modalAssignTecnico');
             if (cardData.responsavel_id) {
-                // Verifica se o técnico ainda existe na lista
                 const tecnicos = getTecnicos();
                 if (tecnicos.some(t => t.id === cardData.responsavel_id)) {
                     assignSelect.value = cardData.responsavel_id;
                 } else {
-                    // Se o técnico foi removido, limpa a atribuição
                     assignSelect.value = '';
                     cardData.responsavel = 'Não atribuído';
                     cardData.responsavel_id = null;
@@ -2303,11 +2445,9 @@
                 assignSelect.value = '';
             }
             
-            // Atualizar o nome do responsável no modal
             const responsavelNome = cardData.responsavel || 'Não atribuído';
             document.getElementById('modalResponsavel').textContent = responsavelNome;
             
-            // Atualizar o avatar do responsável
             const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
             if (avatarImg && avatarImg.tagName === 'IMG') {
                 const nome = responsavelNome !== 'Não atribuído' ? responsavelNome : 'Admin';
@@ -2644,7 +2784,6 @@
                 }
             }
 
-            // Fallback local
             const newId = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
             const newCard = {
                 id: newId,
@@ -2686,7 +2825,7 @@
         }
 
         // ============================================================
-        // DASHBOARD - ABA DEDICADA
+        // DASHBOARD
         // ============================================================
         function toggleDashboardTab() {
             const kanbanWrapper = document.getElementById('kanbanWrapper');
@@ -2719,7 +2858,6 @@
                 filteredCards = initialCards.filter(c => c.responsavel_id === tecnicoFilter);
             }
 
-            // Summary cards
             const statusCounts = {
                 agendada: filteredCards.filter(c => c.status === 'agendada').length,
                 execucao: filteredCards.filter(c => c.status === 'execucao').length,
@@ -2735,7 +2873,6 @@
             document.getElementById('sumConcluida').textContent = statusCounts.concluida;
             document.getElementById('totalLojasDash').textContent = `${filteredCards.length} lojas`;
 
-            // Bar Chart - Carga por técnico
             const tecnicosMap = {};
             filteredCards.forEach(card => {
                 const nome = card.responsavel || 'Não atribuído';
@@ -2754,7 +2891,6 @@
             const ctx = document.getElementById('barChart').getContext('2d');
             if (barChartInstance) barChartInstance.destroy();
 
-            const colors = ['#4f46e5', '#818cf8', '#a78bfa', '#7c3aed', '#6366f1', '#8b5cf6', '#6d28d9', '#5b21b6'];
             barChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -2790,7 +2926,6 @@
                 }
             });
 
-            // Doughnut Chart - Distribuição por status
             const ctx2 = document.getElementById('doughnutChart').getContext('2d');
             if (doughnutChartInstance) doughnutChartInstance.destroy();
 
@@ -2822,7 +2957,6 @@
                 }
             });
 
-            // Detalhamento por técnico
             const detailList = document.getElementById('tecnicoDetailList');
             if (sortedTecnicos.length === 0) {
                 detailList.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Nenhum técnico com lojas atribuídas</p>';
@@ -3165,38 +3299,6 @@
                 `;
                 list.appendChild(item);
             });
-        }
-
-        async function addUser() {
-            const name = document.getElementById('newUserName').value.trim();
-            const email = document.getElementById('newUserEmail').value.trim();
-            const role = document.getElementById('newUserRole').value;
-            if (!name || !email) { showNotification('❌ Preencha nome e e-mail!'); return; }
-            if (USERS.find(u => u.email === email)) { showNotification('❌ Este e-mail já está cadastrado!'); return; }
-            if (supabaseClient) {
-                try {
-                    const { data, error } = await supabaseClient.from('usuarios').insert({
-                        nome: name,
-                        email: email,
-                        senha: 'nova123',
-                        role: role,
-                        ativo: true
-                    }).select().single();
-                    if (error) { showNotification('❌ Erro ao criar usuário!'); return; }
-                    USERS.push(data);
-                    renderUserList();
-                    populateTecnicoSelects();
-                    showNotification(`👤 Usuário ${name} criado!`);
-                    return;
-                } catch (e) { console.warn('Erro ao criar usuário:', e); }
-            }
-            const newUser = { id: 'local-' + Date.now(), nome: name, email: email, senha: 'nova123', role: role };
-            USERS.push(newUser);
-            renderUserList();
-            populateTecnicoSelects();
-            showNotification(`👤 Usuário ${name} adicionado (local)!`);
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
         }
 
         async function editUser(userId) {
@@ -4033,6 +4135,7 @@
         window.removerTecnicoFromModal = removerTecnicoFromModal;
         window.atualizarResponsavelNoModal = atualizarResponsavelNoModal;
         window.populateTecnicoSelects = populateTecnicoSelects;
+        window.getTecnicos = getTecnicos;
     </script>
 
 </body>
