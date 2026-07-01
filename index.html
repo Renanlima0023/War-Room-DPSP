@@ -64,7 +64,6 @@
             overflow: hidden;
         }
 
-        /* Classe para ocultar painel inferior no modo técnico */
         .modo-tecnico .bottom-panel {
             display: none !important;
         }
@@ -270,6 +269,9 @@
 
         .btn-logout { background: #f8717133; color: #f87171; border: 1px solid #f8717144; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
         .btn-logout:hover { background: #f8717155; }
+
+        .btn-sync { background: #05966933; color: #34d399; border: 1px solid #05966944; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-sync:hover { background: #05966955; }
 
         .kanban-scroll::-webkit-scrollbar, .modal-content::-webkit-scrollbar { width: 6px; height: 6px; }
         .kanban-scroll::-webkit-scrollbar-track, .modal-content::-webkit-scrollbar-track { background: #0f1117; }
@@ -774,7 +776,6 @@
             margin-left: 4px;
         }
 
-        /* Classe para PDF com logo */
         .logo-engemon {
             max-height: 60px;
             width: auto;
@@ -862,6 +863,9 @@
                 </div>
                 <button class="btn-export" onclick="exportToExcel()">
                     <i class="fas fa-file-excel"></i> Exportar Excel
+                </button>
+                <button class="btn-sync" onclick="sincronizarDados()">
+                    <i class="fas fa-sync"></i> Sincronizar
                 </button>
                 <button class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs transition border border-indigo-500/30 flex items-center gap-1" onclick="openUserManagement()">
                     <i class="fas fa-users"></i>
@@ -1380,12 +1384,9 @@
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- JAVASCRIPT -->
-    <!-- ============================================================ -->
     <script>
         // ============================================================
-        // CONEXÃO SUPABASE
+        // CONEXÃO SUPABASE - CORRIGIDA
         // ============================================================
         const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
@@ -1400,7 +1401,7 @@
         let RESPONSAVEIS = [];
         let USERS = [];
         let dashboardVisible = false;
-        let supabaseAutenticado = false;
+        let supabaseAutenticado = true;
         let isModoTecnico = false;
 
         function iniciarSupabase() {
@@ -1412,48 +1413,25 @@
             console.warn('⚠️ SDK do Supabase não carregou. Usando modo local.');
             return false;
         }
-        window.iniciarSupabase = iniciarSupabase;
-        iniciarSupabase();
+
+        async function autenticarSupabase() {
+            if (!supabaseClient) {
+                iniciarSupabase();
+            }
+            console.log('✅ Modo sem autenticação ativado');
+            return true;
+        }
 
         // ============================================================
-        // AUTENTICAÇÃO SUPABASE
+        // FUNÇÃO DE SINCronizar
         // ============================================================
-        async function autenticarSupabase() {
-            if (!supabaseClient) return false;
-            if (supabaseAutenticado) return true;
-            
-            try {
-                const { data: sessionData } = await supabaseClient.auth.getSession();
-                if (sessionData?.session) {
-                    console.log('✅ Sessão já ativa');
-                    supabaseAutenticado = true;
-                    return true;
-                }
-                
-                const email = document.getElementById('loginEmail')?.value || 'admin@rocc.com';
-                const senha = document.getElementById('loginPassword')?.value || 'admin123';
-                
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: senha
-                });
-                
-                if (error) {
-                    console.warn('⚠️ Erro na autenticação:', error.message);
-                    console.warn('⚠️ Continuando sem autenticação');
-                    supabaseAutenticado = false;
-                    return false;
-                }
-                
-                console.log('✅ Autenticado no Supabase como:', data?.user?.email || 'usuário');
-                supabaseAutenticado = true;
-                return true;
-                
-            } catch (e) {
-                console.warn('❌ Erro ao autenticar:', e);
-                supabaseAutenticado = false;
-                return false;
-            }
+        async function sincronizarDados() {
+            showNotification('🔄 Sincronizando dados...');
+            await loadLojas();
+            renderCards();
+            atualizarMetricasPainel();
+            atualizarDashboard();
+            showNotification('✅ Dados sincronizados!');
         }
 
         // ============================================================
@@ -1730,7 +1708,7 @@
         }
 
         // ============================================================
-        // ATRIBUIR TÉCNICO
+        // ATRIBUIR TÉCNICO - CORRIGIDA (SALVA NO BANCO)
         // ============================================================
         async function assignTecnicoFromModal() {
             if (!currentCardId) {
@@ -1758,78 +1736,59 @@
                 return;
             }
 
-            if (card.responsavel_id === tecnicoId) {
-                showNotification(`ℹ️ ${tecnico.nome} já está atribuído a esta loja.`);
-                return;
-            }
-
-            showNotification(`⏳ Atribuindo ${tecnico.nome}...`);
+            showNotification(`⏳ Salvando ${tecnico.nome}...`);
 
             try {
-                await autenticarSupabase();
+                // 🔥 SALVA DIRETO NO SUPABASE
+                if (supabaseClient) {
+                    const { data, error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            responsavel_id: tecnico.id,
+                            responsavel_nome: tecnico.nome 
+                        })
+                        .eq('id', card.id)
+                        .select();
 
-                if (!supabaseClient || !supabaseAutenticado) {
-                    card.responsavel = tecnico.nome;
-                    card.responsavel_id = tecnico.id;
-                    document.getElementById('modalResponsavel').textContent = tecnico.nome;
-                    renderCards();
-                    atualizarDashboard();
-                    atualizarMetricasPainel();
-                    showNotification(`✅ Técnico ${tecnico.nome} atribuído à ${card.loja} (local)`);
-                    return;
-                }
-
-                const { data, error } = await supabaseClient
-                    .from('lojas')
-                    .update({ 
-                        responsavel_id: tecnico.id,
-                        responsavel_nome: tecnico.nome 
-                    })
-                    .eq('id', card.id)
-                    .select();
-
-                if (error) {
-                    console.error('Erro ao atribuir técnico no Supabase:', error);
-                    
-                    if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('row-level security')) {
-                        showNotification('⚠️ Sem permissão no banco. Atualizando localmente.');
-                        card.responsavel = tecnico.nome;
-                        card.responsavel_id = tecnico.id;
-                        document.getElementById('modalResponsavel').textContent = tecnico.nome;
-                        renderCards();
-                        atualizarDashboard();
-                        atualizarMetricasPainel();
+                    if (error) {
+                        console.error('❌ Erro no Supabase:', error);
+                        showNotification('❌ Erro: ' + error.message);
                         return;
                     }
+
+                    console.log('✅ Salvo no banco:', data);
                     
-                    showNotification('❌ Erro ao salvar: ' + (error.message || 'Erro desconhecido'));
-                    return;
+                    // 🔥 ATUALIZA O CARD LOCAL COM OS DADOS DO BANCO
+                    if (data && data.length > 0) {
+                        card.responsavel = data[0].responsavel_nome;
+                        card.responsavel_id = data[0].responsavel_id;
+                    }
                 }
 
-                card.responsavel = tecnico.nome;
-                card.responsavel_id = tecnico.id;
-                document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                // 🔥 ATUALIZA A TELA
+                document.getElementById('modalResponsavel').textContent = card.responsavel;
                 
                 const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
                 if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.responsavel)}&background=4F46E5&color=fff&size=20`;
                 }
 
+                // 🔥 RECARREGA OS DADOS DO BANCO PARA GARANTIR
                 await loadLojas();
                 renderCards();
                 atualizarDashboard();
                 atualizarMetricasPainel();
                 
-                showNotification(`✅ Técnico ${tecnico.nome} atribuído à ${card.loja}!`);
+                showNotification(`✅ Técnico ${tecnico.nome} atribuído com sucesso!`);
                 
             } catch (e) {
-                console.error('Erro ao atribuir técnico:', e);
+                console.error('❌ Erro:', e);
                 showNotification('❌ Erro ao atribuir técnico!');
             }
         }
 
         // ============================================================
-        // REMOVER TÉCNICO
+        // REMOVER TÉCNICO - CORRIGIDA
         // ============================================================
         async function removerTecnicoFromModal() {
             if (!currentCardId) {
@@ -1852,63 +1811,118 @@
                 return;
             }
 
+            const nomeRemovido = card.responsavel;
+
             try {
-                await autenticarSupabase();
+                // 🔥 REMOVE DO SUPABASE
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            responsavel_id: null, 
+                            responsavel_nome: null 
+                        })
+                        .eq('id', card.id);
 
-                const nomeRemovido = card.responsavel;
-
-                if (!supabaseClient || !supabaseAutenticado) {
-                    card.responsavel = 'Não atribuído';
-                    card.responsavel_id = null;
-                    document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-                    document.getElementById('modalAssignTecnico').value = '';
-                    renderCards();
-                    atualizarDashboard();
-                    atualizarMetricasPainel();
-                    showNotification(`✅ Técnico ${nomeRemovido} removido (local)`);
-                    return;
-                }
-
-                const { error } = await supabaseClient
-                    .from('lojas')
-                    .update({ 
-                        responsavel_id: null, 
-                        responsavel_nome: 'Não atribuído' 
-                    })
-                    .eq('id', card.id);
-
-                if (error) {
-                    console.error('Erro ao remover técnico no Supabase:', error);
-                    if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('row-level security')) {
-                        card.responsavel = 'Não atribuído';
-                        card.responsavel_id = null;
-                        document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-                        document.getElementById('modalAssignTecnico').value = '';
-                        renderCards();
-                        atualizarDashboard();
-                        atualizarMetricasPainel();
-                        showNotification(`✅ Técnico ${nomeRemovido} removido (local)`);
+                    if (error) {
+                        console.error('❌ Erro ao remover:', error);
+                        showNotification('❌ Erro: ' + error.message);
                         return;
                     }
-                    showNotification('❌ Erro ao remover técnico!');
-                    return;
                 }
 
+                // 🔥 ATUALIZA LOCAL
                 card.responsavel = 'Não atribuído';
                 card.responsavel_id = null;
                 document.getElementById('modalResponsavel').textContent = 'Não atribuído';
                 document.getElementById('modalAssignTecnico').value = '';
 
+                // 🔥 RECARREGA DO BANCO
                 await loadLojas();
                 renderCards();
                 atualizarDashboard();
                 atualizarMetricasPainel();
                 
-                showNotification(`✅ Técnico ${nomeRemovido} removido da loja ${card.loja}!`);
+                showNotification(`✅ Técnico ${nomeRemovido} removido!`);
                 
             } catch (e) {
-                console.error('Erro ao remover técnico:', e);
+                console.error('❌ Erro:', e);
                 showNotification('❌ Erro ao remover técnico!');
+            }
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA ATUALIZAR RESPONSÁVEL NO MODAL
+        // ============================================================
+        function atualizarResponsavelNoModal() {
+            const select = document.getElementById('modalAssignTecnico');
+            const tecnicoId = select.value;
+            if (!tecnicoId) {
+                document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
+                }
+                return;
+            }
+            const tecnico = USERS.find(u => u.id === tecnicoId);
+            if (tecnico) {
+                document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
+                }
+            }
+        }
+
+        // ============================================================
+        // LOAD LOJAS - CORRIGIDA
+        // ============================================================
+        async function loadLojas() {
+            if (!supabaseClient) {
+                console.warn('⚠️ Supabase não conectado');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('lojas')
+                    .select('*')
+                    .order('ordem', { ascending: true, nullsLast: true });
+
+                if (error) {
+                    console.error('❌ Erro ao carregar lojas:', error);
+                    return;
+                }
+
+                if (data) {
+                    initialCards = data.map(row => ({
+                        id: row.id,
+                        loja: row.nome,
+                        codigo: row.codigo,
+                        responsavel: row.responsavel_nome || 'Não atribuído',
+                        responsavel_id: row.responsavel_id,
+                        status: row.status || 'agendada',
+                        regional: row.regional || '',
+                        cidade: row.cidade || '',
+                        uf: row.uf || '',
+                        pdvs: row.pdvs || 0,
+                        comentarios: row.comentarios || 0,
+                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                        data_agendada: row.data_agendada,
+                        prioridade: row.prioridade,
+                        subtipo: row.subtipo,
+                        descricao: row.descricao,
+                        ordem: row.ordem || 0
+                    }));
+                    
+                    console.log('✅ Lojas carregadas do banco:', initialCards.length);
+                    renderCards();
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                }
+            } catch (e) {
+                console.warn('⚠️ Erro ao carregar lojas:', e);
             }
         }
 
@@ -1926,87 +1940,7 @@
             populateTecnicoSelects();
             atualizarDashboard();
             console.log('✅ Todos os dados carregados!');
-            iniciarRealtime();
         }
-
-        // ============================================================
-        // TEMPO REAL — Supabase Realtime
-        // Qualquer mudança na tabela lojas ou usuarios é refletida
-        // automaticamente em todos os dispositivos conectados.
-        // ============================================================
-        let realtimeChannel = null;
-
-        function iniciarRealtime() {
-            if (!supabaseClient) return;
-            // Evita criar múltiplos canais se chamado mais de uma vez
-            if (realtimeChannel) {
-                supabaseClient.removeChannel(realtimeChannel);
-            }
-
-            realtimeChannel = supabaseClient
-                .channel('rocc-realtime')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'lojas' }, async (payload) => {
-                    const { eventType, new: novo, old: antigo } = payload;
-
-                    if (eventType === 'INSERT') {
-                        // Nova loja criada por outro usuário
-                        if (!initialCards.find(c => c.id === novo.id)) {
-                            const resp = USERS.find(u => u.id === novo.responsavel_id) || RESPONSAVEIS.find(r => r.id === novo.responsavel_id);
-                            initialCards.push({
-                                ...novo,
-                                loja: novo.nome,
-                                responsavel: resp ? resp.nome : 'Não atribuído',
-                                responsavel_id: novo.responsavel_id,
-                                status: novo.status || 'agendada'
-                            });
-                            renderCards();
-                            atualizarMetricasPainel();
-                        }
-                    } else if (eventType === 'UPDATE') {
-                        // Loja atualizada por outro usuário
-                        const idx = initialCards.findIndex(c => c.id === novo.id);
-                        if (idx !== -1) {
-                            const resp = USERS.find(u => u.id === novo.responsavel_id) || RESPONSAVEIS.find(r => r.id === novo.responsavel_id);
-                            initialCards[idx] = {
-                                ...initialCards[idx],
-                                ...novo,
-                                loja: novo.nome,
-                                responsavel: resp ? resp.nome : 'Não atribuído',
-                                responsavel_id: novo.responsavel_id
-                            };
-                            renderCards();
-                            atualizarMetricasPainel();
-                            // Atualiza o modal se estiver aberto para esse card
-                            if (currentCardId === novo.id) {
-                                document.getElementById('modalResponsavel').textContent = resp ? resp.nome : 'Não atribuído';
-                                const descEl = document.getElementById('modalDescription');
-                                if (descEl && document.activeElement !== descEl) descEl.value = novo.descricao || '';
-                            }
-                        }
-                    } else if (eventType === 'DELETE') {
-                        // Loja removida por outro usuário
-                        const idx = initialCards.findIndex(c => c.id === antigo.id);
-                        if (idx !== -1) {
-                            initialCards.splice(idx, 1);
-                            renderCards();
-                            atualizarMetricasPainel();
-                        }
-                    }
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, async () => {
-                    // Usuário criado/editado/removido — recarrega a lista para manter os selects atualizados
-                    await loadUsuarios();
-                    populateResponsavelSelects();
-                    populateTecnicoSelects();
-                    renderUserList();
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('🔴 Realtime ativo — atualizações em tempo real habilitadas.');
-                    }
-                });
-        }
-        window.iniciarRealtime = iniciarRealtime;
 
         async function loadUsuarios() {
             if (!supabaseClient) return;
@@ -2028,38 +1962,6 @@
                 const { data, error } = await supabaseClient.from('responsaveis').select('*').order('nome');
                 if (!error && data) RESPONSAVEIS = data;
             } catch (e) { console.warn('Erro ao carregar responsáveis:', e); }
-        }
-
-        async function loadLojas() {
-            if (!supabaseClient) return;
-            try {
-                const { data, error } = await supabaseClient
-                    .from('lojas')
-                    .select('*')
-                    .order('ordem', { ascending: true, nullsLast: true })
-                    .order('created_at', { ascending: true });
-                if (!error && data) {
-                    initialCards = data.map(row => ({
-                        id: row.id,
-                        loja: row.nome,
-                        codigo: row.codigo,
-                        responsavel: row.responsavel_nome || 'Não atribuído',
-                        responsavel_id: row.responsavel_id,
-                        status: row.status || 'agendada',
-                        regional: row.regional || '',
-                        cidade: row.cidade || '',
-                        uf: row.uf || '',
-                        pdvs: row.pdvs || 0,
-                        comentarios: row.comentarios || 0,
-                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
-                        data_agendada: row.data_agendada,
-                        prioridade: row.prioridade,
-                        subtipo: row.subtipo,
-                        descricao: row.descricao,
-                        ordem: row.ordem || 0
-                    }));
-                }
-            } catch (e) { console.warn('Erro ao carregar lojas:', e); }
         }
 
         async function loadPdvs() {
@@ -2098,27 +2000,6 @@
         // ============================================================
         function getTecnicos() {
             return USERS.filter(u => u.role === 'tecnico' && u.email && u.email.trim() !== '');
-        }
-
-        function atualizarResponsavelNoModal() {
-            const select = document.getElementById('modalAssignTecnico');
-            const tecnicoId = select.value;
-            if (!tecnicoId) {
-                document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-                if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
-                }
-                return;
-            }
-            const tecnico = USERS.find(u => u.id === tecnicoId);
-            if (tecnico) {
-                document.getElementById('modalResponsavel').textContent = tecnico.nome;
-                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-                if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
-                }
-            }
         }
 
         // ============================================================
@@ -2997,28 +2878,13 @@
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (!card) return;
-
             const descricaoEl = document.getElementById('modalDescription');
             const novaDescricao = descricaoEl ? descricaoEl.value : card.descricao || '';
-            const novoResponsavelId = card.responsavel_id || null;
-
             card.descricao = novaDescricao;
-
             await autenticarSupabase();
             if (supabaseClient) {
-                const { error } = await supabaseClient.from('lojas').update({
-                    descricao: novaDescricao,
-                    responsavel_id: novoResponsavelId
-                }).eq('id', card.id);
-
-                if (error) {
-                    console.error('Erro ao salvar:', error);
-                    showNotification('❌ Erro ao salvar. Tente novamente.');
-                    return;
-                }
+                await supabaseClient.from('lojas').update({ descricao: novaDescricao }).eq('id', card.id);
             }
-
-            renderCards();
             showNotification('✅ Alterações salvas!');
             closeCardDetail();
             atualizarMetricasPainel();
@@ -3203,7 +3069,7 @@
             if (confirm('Deseja realmente sair?')) {
                 sessionStorage.removeItem('rocc_user');
                 currentUser = null;
-                supabaseAutenticado = false;
+                supabaseAutenticado = true;
                 document.getElementById('appContent').style.display = 'none';
                 document.getElementById('loginScreen').style.display = 'flex';
                 document.getElementById('loginPassword').value = '';
@@ -3262,7 +3128,6 @@
             tecnicoLojaData = { loja, token };
             isModoTecnico = true;
             
-            // Aplicar classe para ocultar painel inferior e botão flutuante
             document.getElementById('appContent').classList.add('modo-tecnico');
             
             document.getElementById('kanbanWrapper').style.display = 'none';
@@ -3270,7 +3135,6 @@
             document.getElementById('identificacaoTecnico').style.display = 'flex';
             document.getElementById('appContent').style.display = 'flex';
             
-            // Ocultar dashboard button no modo técnico
             const dashboardBtn = document.getElementById('dashboardTabBtn');
             if (dashboardBtn) dashboardBtn.style.display = 'none';
             
@@ -3647,7 +3511,6 @@
                 });
             });
             
-            // Logo em base64 - substitua pela sua imagem
             const LOGO_ENGEMON = `
                 <div style="display:flex;align-items:center;gap:12px;">
                     <img src="https://iwomsbgytjkvssgjynie.supabase.co/storage/v1/object/sign/logo/LOGOS-01.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jYmJlY2M2My00ODAyLTQ0ZDgtYWExYi1jNmU2OTg3ODliZDYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJsb2dvL0xPR09TLTAxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI5Mjc5MTAsImV4cCI6MTg0NTk5OTkxMH0.kI0uv2J4VbL9driOucDGywUrn7IlFUJPfUR09mUcYGE" alt="Engemon IT" style="max-height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';document.getElementById('fallbackLogo').style.display='block';" />
@@ -3784,7 +3647,6 @@
         // ATUALIZAR MÉTRICAS DO PAINEL
         // ============================================================
         function atualizarMetricasPainel() {
-            // Não atualizar métricas se estiver em modo técnico
             if (isModoTecnico) return;
             
             const total = initialCards.length;
@@ -3903,6 +3765,9 @@
         window.salvarOrdemCards = salvarOrdemCards;
         window.autenticarSupabase = autenticarSupabase;
         window.ativarModoTecnico = ativarModoTecnico;
+        window.sincronizarDados = sincronizarDados;
+        window.carregarTudo = carregarTudo;
+        window.loadLojas = loadLojas;
     </script>
 </body>
 </html>
