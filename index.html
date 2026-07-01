@@ -1926,7 +1926,87 @@
             populateTecnicoSelects();
             atualizarDashboard();
             console.log('✅ Todos os dados carregados!');
+            iniciarRealtime();
         }
+
+        // ============================================================
+        // TEMPO REAL — Supabase Realtime
+        // Qualquer mudança na tabela lojas ou usuarios é refletida
+        // automaticamente em todos os dispositivos conectados.
+        // ============================================================
+        let realtimeChannel = null;
+
+        function iniciarRealtime() {
+            if (!supabaseClient) return;
+            // Evita criar múltiplos canais se chamado mais de uma vez
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+
+            realtimeChannel = supabaseClient
+                .channel('rocc-realtime')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'lojas' }, async (payload) => {
+                    const { eventType, new: novo, old: antigo } = payload;
+
+                    if (eventType === 'INSERT') {
+                        // Nova loja criada por outro usuário
+                        if (!initialCards.find(c => c.id === novo.id)) {
+                            const resp = USERS.find(u => u.id === novo.responsavel_id) || RESPONSAVEIS.find(r => r.id === novo.responsavel_id);
+                            initialCards.push({
+                                ...novo,
+                                loja: novo.nome,
+                                responsavel: resp ? resp.nome : 'Não atribuído',
+                                responsavel_id: novo.responsavel_id,
+                                status: novo.status || 'agendada'
+                            });
+                            renderCards();
+                            atualizarMetricasPainel();
+                        }
+                    } else if (eventType === 'UPDATE') {
+                        // Loja atualizada por outro usuário
+                        const idx = initialCards.findIndex(c => c.id === novo.id);
+                        if (idx !== -1) {
+                            const resp = USERS.find(u => u.id === novo.responsavel_id) || RESPONSAVEIS.find(r => r.id === novo.responsavel_id);
+                            initialCards[idx] = {
+                                ...initialCards[idx],
+                                ...novo,
+                                loja: novo.nome,
+                                responsavel: resp ? resp.nome : 'Não atribuído',
+                                responsavel_id: novo.responsavel_id
+                            };
+                            renderCards();
+                            atualizarMetricasPainel();
+                            // Atualiza o modal se estiver aberto para esse card
+                            if (currentCardId === novo.id) {
+                                document.getElementById('modalResponsavel').textContent = resp ? resp.nome : 'Não atribuído';
+                                const descEl = document.getElementById('modalDescription');
+                                if (descEl && document.activeElement !== descEl) descEl.value = novo.descricao || '';
+                            }
+                        }
+                    } else if (eventType === 'DELETE') {
+                        // Loja removida por outro usuário
+                        const idx = initialCards.findIndex(c => c.id === antigo.id);
+                        if (idx !== -1) {
+                            initialCards.splice(idx, 1);
+                            renderCards();
+                            atualizarMetricasPainel();
+                        }
+                    }
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, async () => {
+                    // Usuário criado/editado/removido — recarrega a lista para manter os selects atualizados
+                    await loadUsuarios();
+                    populateResponsavelSelects();
+                    populateTecnicoSelects();
+                    renderUserList();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('🔴 Realtime ativo — atualizações em tempo real habilitadas.');
+                    }
+                });
+        }
+        window.iniciarRealtime = iniciarRealtime;
 
         async function loadUsuarios() {
             if (!supabaseClient) return;
@@ -2917,13 +2997,28 @@
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (!card) return;
+
             const descricaoEl = document.getElementById('modalDescription');
             const novaDescricao = descricaoEl ? descricaoEl.value : card.descricao || '';
+            const novoResponsavelId = card.responsavel_id || null;
+
             card.descricao = novaDescricao;
+
             await autenticarSupabase();
             if (supabaseClient) {
-                await supabaseClient.from('lojas').update({ descricao: novaDescricao }).eq('id', card.id);
+                const { error } = await supabaseClient.from('lojas').update({
+                    descricao: novaDescricao,
+                    responsavel_id: novoResponsavelId
+                }).eq('id', card.id);
+
+                if (error) {
+                    console.error('Erro ao salvar:', error);
+                    showNotification('❌ Erro ao salvar. Tente novamente.');
+                    return;
+                }
             }
+
+            renderCards();
             showNotification('✅ Alterações salvas!');
             closeCardDetail();
             atualizarMetricasPainel();
