@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -765,24 +764,6 @@
             border: 1px solid rgba(79,70,229,0.2);
             margin-left: 4px;
         }
-
-        .btn-salvar-responsavel {
-            background: rgba(34,197,94,0.2);
-            color: #34d399;
-            border: 1px solid rgba(34,197,94,0.3);
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .btn-salvar-responsavel:hover {
-            background: rgba(34,197,94,0.35);
-            border-color: #34d399;
-        }
     </style>
 </head>
 <body>
@@ -1093,7 +1074,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB PDVs -->
                     <div id="tab-pdvs" class="tab-content">
                         <div class="space-y-4">
                             <div class="pdv-summary-bar">
@@ -1126,7 +1106,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB CHECKLIST -->
                     <div id="tab-checklist" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
@@ -1137,7 +1116,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB DEPENDÊNCIAS -->
                     <div id="tab-dependencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
@@ -1162,7 +1140,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB EVIDÊNCIAS -->
                     <div id="tab-evidencias" class="tab-content">
                         <div class="space-y-3">
                             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -1175,7 +1152,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB CHAT -->
                     <div id="tab-chat" class="tab-content">
                         <div class="flex flex-col h-[300px] md:h-[400px]">
                             <div class="flex-1 overflow-y-auto space-y-2 md:space-y-3 p-1 md:p-2" id="chatMessages">
@@ -1207,7 +1183,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB HISTÓRICO -->
                     <div id="tab-historico" class="tab-content">
                         <div class="space-y-2" id="historicoContainer">
                             <div class="history-item p-1.5 border-l-2 border-indigo-500">
@@ -1245,7 +1220,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB LINK -->
                     <div id="tab-link" class="tab-content">
                         <div class="space-y-4">
                             <div class="bg-indigo-600/10 border border-indigo-500/20 rounded-lg p-4 text-center">
@@ -1425,16 +1399,14 @@
         iniciarSupabase();
 
         // ============================================================
-        // AUTENTICAÇÃO SUPABASE
+        // AUTENTICAÇÃO SUPABASE - CORRIGIDA (SEM ANÔNIMO)
         // ============================================================
         async function autenticarSupabase() {
             if (!supabaseClient) return false;
             if (supabaseAutenticado) return true;
             
             try {
-                const email = document.getElementById('loginEmail')?.value || 'admin@rocc.com';
-                const senha = document.getElementById('loginPassword')?.value || 'admin123';
-                
+                // Tentar obter a sessão atual
                 const { data: sessionData } = await supabaseClient.auth.getSession();
                 if (sessionData?.session) {
                     console.log('✅ Sessão já ativa');
@@ -1442,6 +1414,11 @@
                     return true;
                 }
                 
+                // Usar as credenciais do login atual
+                const email = document.getElementById('loginEmail')?.value || 'admin@rocc.com';
+                const senha = document.getElementById('loginPassword')?.value || 'admin123';
+                
+                // Tentar login com credenciais
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: senha
@@ -1449,15 +1426,9 @@
                 
                 if (error) {
                     console.warn('⚠️ Erro na autenticação:', error.message);
-                    const { data: anonData, error: anonError } = await supabaseClient.auth.signInAnonymously();
-                    if (anonError) {
-                        console.warn('⚠️ Erro no login anônimo:', anonError.message);
-                        supabaseAutenticado = false;
-                        return false;
-                    }
-                    console.log('✅ Login anônimo realizado');
-                    supabaseAutenticado = true;
-                    return true;
+                    console.warn('⚠️ Continuando sem autenticação - operações podem falhar se RLS estiver ativo');
+                    supabaseAutenticado = false;
+                    return false;
                 }
                 
                 console.log('✅ Autenticado no Supabase como:', data?.user?.email || 'usuário');
@@ -1745,7 +1716,7 @@
         }
 
         // ============================================================
-        // FUNÇÃO ATRIBUIR TÉCNICO - CORRIGIDA
+        // ATRIBUIR TÉCNICO - CORRIGIDO
         // ============================================================
         async function assignTecnicoFromModal() {
             if (!currentCardId) {
@@ -1778,24 +1749,49 @@
                 return;
             }
 
-            // Mostrar loading
             showNotification(`⏳ Atribuindo ${tecnico.nome}...`);
 
             try {
                 await autenticarSupabase();
 
+                // Se não tiver cliente Supabase ou não estiver autenticado, atualizar localmente
+                if (!supabaseClient || !supabaseAutenticado) {
+                    card.responsavel = tecnico.nome;
+                    card.responsavel_id = tecnico.id;
+                    document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                    renderCards();
+                    atualizarDashboard();
+                    atualizarMetricasPainel();
+                    showNotification(`✅ Técnico ${tecnico.nome} atribuído à ${card.loja} (local)`);
+                    return;
+                }
+
                 // ATUALIZAR NO SUPABASE
-                const { error } = await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('lojas')
                     .update({ 
                         responsavel_id: tecnico.id,
                         responsavel_nome: tecnico.nome 
                     })
-                    .eq('id', card.id);
+                    .eq('id', card.id)
+                    .select();
 
                 if (error) {
                     console.error('Erro ao atribuir técnico no Supabase:', error);
-                    showNotification('❌ Erro ao salvar no banco de dados!');
+                    
+                    // Se erro de permissão (RLS), atualizar localmente
+                    if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('row-level security')) {
+                        showNotification('⚠️ Sem permissão no banco. Atualizando localmente.');
+                        card.responsavel = tecnico.nome;
+                        card.responsavel_id = tecnico.id;
+                        document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                        renderCards();
+                        atualizarDashboard();
+                        atualizarMetricasPainel();
+                        return;
+                    }
+                    
+                    showNotification('❌ Erro ao salvar: ' + (error.message || 'Erro desconhecido'));
                     return;
                 }
 
@@ -1810,7 +1806,7 @@
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
                 }
 
-                // RECARREGAR OS DADOS DO BANCO PARA GARANTIR CONSISTÊNCIA
+                // RECARREGAR OS DADOS DO BANCO
                 await loadLojas();
                 
                 renderCards();
@@ -1854,7 +1850,18 @@
 
                 const nomeRemovido = card.responsavel;
 
-                // ATUALIZAR NO SUPABASE
+                if (!supabaseClient || !supabaseAutenticado) {
+                    card.responsavel = 'Não atribuído';
+                    card.responsavel_id = null;
+                    document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+                    document.getElementById('modalAssignTecnico').value = '';
+                    renderCards();
+                    atualizarDashboard();
+                    atualizarMetricasPainel();
+                    showNotification(`✅ Técnico ${nomeRemovido} removido (local)`);
+                    return;
+                }
+
                 const { error } = await supabaseClient
                     .from('lojas')
                     .update({ 
@@ -1865,25 +1872,27 @@
 
                 if (error) {
                     console.error('Erro ao remover técnico no Supabase:', error);
+                    if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('row-level security')) {
+                        card.responsavel = 'Não atribuído';
+                        card.responsavel_id = null;
+                        document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+                        document.getElementById('modalAssignTecnico').value = '';
+                        renderCards();
+                        atualizarDashboard();
+                        atualizarMetricasPainel();
+                        showNotification(`✅ Técnico ${nomeRemovido} removido (local)`);
+                        return;
+                    }
                     showNotification('❌ Erro ao remover técnico!');
                     return;
                 }
 
-                // Atualizar localmente
                 card.responsavel = 'Não atribuído';
                 card.responsavel_id = null;
-
-                // Atualizar o modal
                 document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-                if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
-                }
                 document.getElementById('modalAssignTecnico').value = '';
 
-                // RECARREGAR OS DADOS DO BANCO
                 await loadLojas();
-                
                 renderCards();
                 atualizarDashboard();
                 atualizarMetricasPainel();
@@ -3273,7 +3282,7 @@
         });
 
         // ============================================================
-        // ASSINATURA (mantida do original - resumida)
+        // ASSINATURA (resumida - mantida do original)
         // ============================================================
         let assinaturas = {
             gerente: { data: null, canvas: null, ctx: null, isDrawing: false, lastX: 0, lastY: 0 },
@@ -3541,7 +3550,6 @@
         }
 
         function gerarConteudoRAT(loja, pdvs, assinaturaGerente, assinaturaTecnico, tecnico, checklist, logoHtml) {
-            // Mantido do original
             const statusLabels = { 'pendente': 'Pendente', 'andamento': 'Em Andamento', 'concluido': 'Concluído', 'bloqueado': 'Bloqueado' };
             const dataAtual = new Date().toLocaleDateString('pt-BR');
             const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
