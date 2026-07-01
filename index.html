@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -61,6 +62,14 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+        }
+
+        /* Classe para ocultar painel inferior no modo técnico */
+        .modo-tecnico .bottom-panel {
+            display: none !important;
+        }
+        .modo-tecnico .fab {
+            display: none !important;
         }
 
         .kanban-card {
@@ -764,6 +773,13 @@
             border: 1px solid rgba(79,70,229,0.2);
             margin-left: 4px;
         }
+
+        /* Classe para PDF com logo */
+        .logo-engemon {
+            max-height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
@@ -1385,6 +1401,7 @@
         let USERS = [];
         let dashboardVisible = false;
         let supabaseAutenticado = false;
+        let isModoTecnico = false;
 
         function iniciarSupabase() {
             if (window.supabase && typeof window.supabase.createClient === 'function') {
@@ -1399,14 +1416,13 @@
         iniciarSupabase();
 
         // ============================================================
-        // AUTENTICAÇÃO SUPABASE - CORRIGIDA (SEM ANÔNIMO)
+        // AUTENTICAÇÃO SUPABASE
         // ============================================================
         async function autenticarSupabase() {
             if (!supabaseClient) return false;
             if (supabaseAutenticado) return true;
             
             try {
-                // Tentar obter a sessão atual
                 const { data: sessionData } = await supabaseClient.auth.getSession();
                 if (sessionData?.session) {
                     console.log('✅ Sessão já ativa');
@@ -1414,11 +1430,9 @@
                     return true;
                 }
                 
-                // Usar as credenciais do login atual
                 const email = document.getElementById('loginEmail')?.value || 'admin@rocc.com';
                 const senha = document.getElementById('loginPassword')?.value || 'admin123';
                 
-                // Tentar login com credenciais
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: senha
@@ -1426,7 +1440,7 @@
                 
                 if (error) {
                     console.warn('⚠️ Erro na autenticação:', error.message);
-                    console.warn('⚠️ Continuando sem autenticação - operações podem falhar se RLS estiver ativo');
+                    console.warn('⚠️ Continuando sem autenticação');
                     supabaseAutenticado = false;
                     return false;
                 }
@@ -1509,7 +1523,7 @@
         window.handleLogin = handleLogin;
 
         // ============================================================
-        // POPULAR SELECT DE RESPONSÁVEIS - APENAS USUÁRIOS COM LOGIN
+        // POPULAR SELECT DE RESPONSÁVEIS
         // ============================================================
         function populateResponsavelSelects() {
             const usuariosComLogin = USERS.filter(u => u.email && u.email.trim() !== '');
@@ -1716,7 +1730,7 @@
         }
 
         // ============================================================
-        // ATRIBUIR TÉCNICO - CORRIGIDO
+        // ATRIBUIR TÉCNICO
         // ============================================================
         async function assignTecnicoFromModal() {
             if (!currentCardId) {
@@ -1754,7 +1768,6 @@
             try {
                 await autenticarSupabase();
 
-                // Se não tiver cliente Supabase ou não estiver autenticado, atualizar localmente
                 if (!supabaseClient || !supabaseAutenticado) {
                     card.responsavel = tecnico.nome;
                     card.responsavel_id = tecnico.id;
@@ -1766,7 +1779,6 @@
                     return;
                 }
 
-                // ATUALIZAR NO SUPABASE
                 const { data, error } = await supabaseClient
                     .from('lojas')
                     .update({ 
@@ -1779,7 +1791,6 @@
                 if (error) {
                     console.error('Erro ao atribuir técnico no Supabase:', error);
                     
-                    // Se erro de permissão (RLS), atualizar localmente
                     if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('row-level security')) {
                         showNotification('⚠️ Sem permissão no banco. Atualizando localmente.');
                         card.responsavel = tecnico.nome;
@@ -1795,20 +1806,16 @@
                     return;
                 }
 
-                // Atualizar localmente
                 card.responsavel = tecnico.nome;
                 card.responsavel_id = tecnico.id;
-
-                // Atualizar o modal
                 document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                
                 const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
                 if (avatarImg && avatarImg.tagName === 'IMG') {
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
                 }
 
-                // RECARREGAR OS DADOS DO BANCO
                 await loadLojas();
-                
                 renderCards();
                 atualizarDashboard();
                 atualizarMetricasPainel();
@@ -2625,7 +2632,7 @@
         }
 
         // ============================================================
-        // PDVs
+        // PDVs (resumido)
         // ============================================================
         async function addPdv() {
             if (!currentCardId) { showNotification('❌ Nenhuma loja selecionada!'); return; }
@@ -3156,20 +3163,33 @@
         function ativarModoTecnico(lojaId, token) {
             const loja = initialCards.find(c => c.id === lojaId);
             if (!loja) { showNotification('❌ Loja não encontrada!'); return; }
+            
             tecnicoLojaData = { loja, token };
+            isModoTecnico = true;
+            
+            // Aplicar classe para ocultar painel inferior e botão flutuante
+            document.getElementById('appContent').classList.add('modo-tecnico');
+            
             document.getElementById('kanbanWrapper').style.display = 'none';
             document.getElementById('tecnicoView').style.display = 'none';
             document.getElementById('identificacaoTecnico').style.display = 'flex';
             document.getElementById('appContent').style.display = 'flex';
+            
+            // Ocultar dashboard button no modo técnico
+            const dashboardBtn = document.getElementById('dashboardTabBtn');
+            if (dashboardBtn) dashboardBtn.style.display = 'none';
+            
             document.getElementById('tecnicoCardTitle').textContent = loja.loja;
             document.getElementById('tecnicoCardId').textContent = loja.id;
             document.getElementById('tecnicoCardCidade').textContent = `${loja.cidade || ''}${loja.uf ? ` - ${loja.uf}` : ''}`;
             document.getElementById('tecnicoCardResponsavel').textContent = loja.responsavel || 'Não atribuído';
+            
             const statusLabels = { 'agendada': 'Agendada', 'execucao': 'Em Execução', 'bloqueada': 'Bloqueada', 'revisao': 'Revisão', 'concluida': 'Concluída' };
             const statusClasses = { 'agendada': 'status-badge-agendada', 'execucao': 'status-badge-execucao', 'bloqueada': 'status-badge-bloqueada', 'revisao': 'status-badge-revisao', 'concluida': 'status-badge-concluida' };
             const statusEl = document.getElementById('tecnicoCardStatus');
             statusEl.textContent = statusLabels[loja.status] || loja.status;
             statusEl.className = `status-badge ${statusClasses[loja.status] || ''}`;
+            
             console.log('🔓 Modo Técnico ativado para:', loja.loja);
         }
 
@@ -3531,12 +3551,16 @@
                     concluido: chk.checked
                 });
             });
+            
+            // Logo em base64 - substitua pela sua imagem
             const LOGO_ENGEMON = `
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <span style="font-size:20px;font-weight:700;color:#4f46e5;">ENGEMON IT</span>
-                    <span style="font-size:12px; color:#94a3b8;">Serviços Infraestrutura e Tecnologia</span>
+                    <img src="https://engemonit.com.br/logo.png" alt="Engemon IT" style="max-height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';document.getElementById('fallbackLogo').style.display='block';" />
+                    <span id="fallbackLogo" style="display:none;font-size:20px;font-weight:700;color:#4f46e5;">ENGEMON IT</span>
+                    <span style="font-size:12px;color:#94a3b8;">Serviços Infraestrutura e Tecnologia</span>
                 </div>
             `;
+            
             const conteudo = gerarConteudoRAT(loja, pdvs, gerenteData, tecnicoData, tecnicoNome, checklistCompleto, LOGO_ENGEMON);
             const janela = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes');
             if (janela) {
@@ -3665,6 +3689,9 @@
         // ATUALIZAR MÉTRICAS DO PAINEL
         // ============================================================
         function atualizarMetricasPainel() {
+            // Não atualizar métricas se estiver em modo técnico
+            if (isModoTecnico) return;
+            
             const total = initialCards.length;
             const execucao = initialCards.filter(c => c.status === 'execucao').length;
             const concluidas = initialCards.filter(c => c.status === 'concluida').length;
@@ -3780,6 +3807,7 @@
         window.getTecnicos = getTecnicos;
         window.salvarOrdemCards = salvarOrdemCards;
         window.autenticarSupabase = autenticarSupabase;
+        window.ativarModoTecnico = ativarModoTecnico;
     </script>
 </body>
 </html>
