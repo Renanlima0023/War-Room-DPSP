@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -755,6 +754,17 @@
             background: rgba(248,113,113,0.35);
             border-color: #f87171;
         }
+
+        /* Badge para mostrar que o usuário é o responsável */
+        .responsible-badge {
+            font-size: 9px;
+            padding: 1px 8px;
+            border-radius: 10px;
+            background: rgba(79,70,229,0.2);
+            color: #818cf8;
+            border: 1px solid rgba(79,70,229,0.2);
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -1091,7 +1101,13 @@
                 </div>
                 <div class="modal-body space-y-4">
                     <div><label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Número da Loja *</label><input type="text" id="newLojaNumero" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: 1001" /></div>
-                    <div><label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Responsável *</label><select id="newLojaResponsavel" class="dark-select w-full px-3 py-2 rounded-lg text-sm"><option value="">Selecione um responsável...</option></select></div>
+                    <div>
+                        <label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Responsável *</label>
+                        <select id="newLojaResponsavel" class="dark-select w-full px-3 py-2 rounded-lg text-sm">
+                            <option value="">Selecione um responsável...</option>
+                        </select>
+                        <p class="text-[8px] text-slate-500 mt-1"><i class="fas fa-info-circle mr-1"></i> Apenas usuários com login cadastrado</p>
+                    </div>
                     <div><label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Quantidade de PDVs</label><input type="number" id="newLojaPdvs" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="0" min="0" value="3" /></div>
                     <div><label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Status</label><select id="newLojaStatus" class="dark-select w-full px-3 py-2 rounded-lg text-sm"><option value="agendada">Agendada</option><option value="execucao">Em Execução</option><option value="bloqueada">Bloqueada</option><option value="revisao">Revisão</option><option value="concluida">Concluída</option></select></div>
                     <div><label class="text-xs md:text-sm font-medium text-slate-400 block mb-1">Data Agendada</label><input type="date" id="newLojaData" class="dark-input w-full px-3 py-2 rounded-lg text-sm" /></div>
@@ -1226,7 +1242,6 @@
                 const email = document.getElementById('loginEmail')?.value || 'admin@rocc.com';
                 const senha = document.getElementById('loginPassword')?.value || 'admin123';
                 
-                // Verificar se já está autenticado
                 const { data: sessionData } = await supabaseClient.auth.getSession();
                 if (sessionData?.session) {
                     console.log('✅ Sessão já ativa');
@@ -1234,24 +1249,20 @@
                     return true;
                 }
                 
-                // Tentar login com credenciais
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: senha
                 });
                 
                 if (error) {
-                    console.warn('⚠️ Erro na autenticação Supabase:', error.message);
-                    // Tenta login anônimo como fallback
+                    console.warn('⚠️ Erro na autenticação:', error.message);
                     const { data: anonData, error: anonError } = await supabaseClient.auth.signInAnonymously();
                     if (anonError) {
                         console.warn('⚠️ Erro no login anônimo:', anonError.message);
-                        // Fallback: continuar sem autenticação (modo público)
-                        console.log('ℹ️ Modo público (sem autenticação)');
                         supabaseAutenticado = false;
                         return false;
                     }
-                    console.log('✅ Login anônimo realizado com sucesso');
+                    console.log('✅ Login anônimo realizado');
                     supabaseAutenticado = true;
                     return true;
                 }
@@ -1286,11 +1297,9 @@
             errorEl.textContent = '';
 
             try {
+                await autenticarSupabase();
+                
                 let user = null;
-                
-                // Primeiro autenticar no Supabase
-                const authOk = await autenticarSupabase();
-                
                 if (supabaseClient) {
                     try {
                         const { data, error } = await supabaseClient
@@ -1304,7 +1313,6 @@
                     } catch (e) { console.warn('Erro no Supabase:', e); }
                 }
 
-                // Se não encontrou no Supabase, verificar local
                 if (!user && USERS.length > 0) {
                     user = USERS.find(u => u.email === email && u.senha === senha);
                 }
@@ -1337,17 +1345,248 @@
         window.handleLogin = handleLogin;
 
         // ============================================================
+        // POPULAR SELECT DE RESPONSÁVEIS - APENAS USUÁRIOS COM LOGIN
+        // ============================================================
+        function populateResponsavelSelects() {
+            // Buscar apenas usuários com login cadastrado (que estão na tabela usuarios)
+            const usuariosComLogin = USERS.filter(u => u.email && u.email.trim() !== '');
+            
+            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Selecione um responsável...</option>';
+                
+                if (usuariosComLogin.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum usuário cadastrado</option>';
+                } else {
+                    // Ordenar por nome
+                    usuariosComLogin.sort((a, b) => a.nome.localeCompare(b.nome));
+                    
+                    usuariosComLogin.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        // Mostrar o nome e a role entre parênteses
+                        const roleLabel = {
+                            'admin': 'Admin',
+                            'gerente': 'Gerente',
+                            'tecnico': 'Técnico',
+                            'visualizador': 'Visualizador'
+                        } [user.role] || user.role;
+                        option.textContent = `${user.nome} (${roleLabel})`;
+                        select.appendChild(option);
+                    });
+                }
+                
+                // Restaurar valor selecionado se ainda existir
+                if (currentValue && usuariosComLogin.some(u => u.id === currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        // ============================================================
+        // POPULAR SELECT DE TÉCNICOS - APENAS USUÁRIOS COM ROLE TÉCNICO
+        // ============================================================
+        function populateTecnicoSelects() {
+            // Buscar apenas usuários com role = 'tecnico' e email cadastrado
+            const tecnicos = USERS.filter(u => 
+                u.role === 'tecnico' && 
+                u.email && 
+                u.email.trim() !== ''
+            );
+            
+            console.log('👤 Técnicos disponíveis para atribuição:', tecnicos.length);
+            tecnicos.forEach(t => console.log('  -', t.nome, '|', t.email));
+            
+            const select = document.getElementById('modalAssignTecnico');
+            if (!select) return;
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Selecione um técnico...</option>';
+            
+            if (tecnicos.length === 0) {
+                select.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
+            } else {
+                tecnicos.sort((a, b) => a.nome.localeCompare(b.nome));
+                tecnicos.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.nome;
+                    select.appendChild(opt);
+                });
+            }
+            
+            if (currentValue && tecnicos.some(t => t.id === currentValue)) {
+                select.value = currentValue;
+            }
+            
+            // Atualizar também o filtro do dashboard
+            const dashFilter = document.getElementById('dashTecnicoFilter');
+            if (dashFilter) {
+                const currentDash = dashFilter.value;
+                dashFilter.innerHTML = '<option value="">Todos os Técnicos</option>';
+                if (tecnicos.length > 0) {
+                    tecnicos.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.nome;
+                        dashFilter.appendChild(opt);
+                    });
+                }
+                if (currentDash && tecnicos.some(t => t.id === currentDash)) {
+                    dashFilter.value = currentDash;
+                }
+            }
+        }
+
+        // ============================================================
+        // FUNÇÃO CONFIRM ADD CARD - CORRIGIDA
+        // ============================================================
+        async function confirmAddCard() {
+            const numero = document.getElementById('newLojaNumero').value.trim();
+            const responsavelId = document.getElementById('newLojaResponsavel').value;
+            const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 3;
+            const status = document.getElementById('newLojaStatus').value;
+            const data = document.getElementById('newLojaData').value;
+            const cidade = document.getElementById('newLojaCidade').value.trim();
+            const uf = document.getElementById('newLojaUf').value.trim().toUpperCase();
+            const regional = document.getElementById('newLojaRegional').value.trim() || '';
+
+            if (!numero || !responsavelId || !cidade || !uf || uf.length !== 2) {
+                showNotification('❌ Preencha todos os campos obrigatórios!');
+                return;
+            }
+
+            // Buscar o usuário (responsável) na lista de usuários
+            const usuario = USERS.find(u => u.id === responsavelId);
+            if (!usuario) { 
+                showNotification('❌ Usuário responsável não encontrado!');
+                return; 
+            }
+
+            const nomeLoja = `Loja ${numero}`;
+
+            try {
+                await autenticarSupabase();
+                
+                if (supabaseClient) {
+                    const lojaData = {
+                        nome: nomeLoja,
+                        codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
+                        responsavel_id: usuario.id,
+                        responsavel_nome: usuario.nome,
+                        status: status,
+                        regional: regional,
+                        cidade: cidade,
+                        uf: uf,
+                        pdvs: pdvs,
+                        comentarios: 0,
+                        data_agendada: data || null
+                    };
+
+                    // Tentar adicionar ordem se a coluna existir
+                    let temOrdem = false;
+                    try {
+                        const { data: testData } = await supabaseClient
+                            .from('lojas')
+                            .select('ordem')
+                            .limit(1);
+                        temOrdem = true;
+                    } catch (e) {
+                        console.log('⚠️ Coluna ordem não existe');
+                    }
+
+                    if (temOrdem) {
+                        lojaData.ordem = 999;
+                    }
+
+                    const { data: inserted, error } = await supabaseClient
+                        .from('lojas')
+                        .insert(lojaData)
+                        .select()
+                        .single();
+
+                    if (error) {
+                        console.error('Erro ao criar loja:', error);
+                        showNotification('❌ Erro ao criar loja: ' + (error.message || 'Erro desconhecido'));
+                        return;
+                    }
+
+                    const newCard = {
+                        id: inserted.id,
+                        loja: nomeLoja,
+                        responsavel: usuario.nome,
+                        responsavel_id: usuario.id,
+                        status: status,
+                        regional: regional,
+                        cidade: cidade,
+                        uf: uf,
+                        pdvs: pdvs,
+                        comentarios: 0,
+                        data: data ? formatarDataBR(data) : 'Hoje',
+                        data_agendada: data || null,
+                        descricao: '',
+                        ordem: inserted.ordem || 0
+                    };
+
+                    initialCards.push(newCard);
+                    pdvsPorLoja[inserted.id] = [];
+
+                    for (let i = 1; i <= pdvs; i++) {
+                        const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                        const codigo = `PDV ${String(i).padStart(2, '0')}`;
+                        const { data: pdvData, error: pdvError } = await supabaseClient
+                            .from('pdvs')
+                            .insert({
+                                loja_id: inserted.id,
+                                codigo: codigo,
+                                nome_antigo: codigo,
+                                nome_atualizado: '',
+                                numero_serie: `SN-${randomSerial}`,
+                                status: i === 1 ? 'andamento' : 'pendente',
+                                observacao: ''
+                            })
+                            .select()
+                            .single();
+
+                        if (!pdvError && pdvData) {
+                            pdvsPorLoja[inserted.id].push({
+                                id: pdvData.id,
+                                numero: i,
+                                codigo: codigo,
+                                nomeAntigo: codigo,
+                                nomeAtualizado: '',
+                                numeroSerie: `SN-${randomSerial}`,
+                                status: i === 1 ? 'andamento' : 'pendente',
+                                observacao: '',
+                                lojaId: inserted.id
+                            });
+                        }
+                    }
+
+                    renderCards();
+                    closeAddCardModal();
+                    showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs! Responsável: ${usuario.nome}`);
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                    return;
+                }
+            } catch (error) {
+                console.error('Erro ao criar loja:', error);
+                showNotification('❌ Erro ao criar loja: ' + (error.message || 'Erro desconhecido'));
+            }
+        }
+
+        // ============================================================
         // CARREGAR DADOS
         // ============================================================
         async function carregarTudo() {
-            // Autenticar antes de carregar os dados
             await autenticarSupabase();
-            
             await Promise.all([loadUsuarios(), loadResponsaveis(), loadLojas(), loadPdvs()]);
             renderCards();
             renderUserList();
             updateResponsavelFilter();
             atualizarMetricasPainel();
+            populateResponsavelSelects();
             populateTecnicoSelects();
             atualizarDashboard();
             console.log('✅ Todos os dados carregados!');
@@ -1439,45 +1678,29 @@
         }
 
         // ============================================================
-        // FUNÇÕES DE TÉCNICOS
+        // FUNÇÕES ADICIONAIS
         // ============================================================
         function getTecnicos() {
             return USERS.filter(u => u.role === 'tecnico' && u.email && u.email.trim() !== '');
         }
 
-        function populateTecnicoSelects() {
-            const tecnicos = getTecnicos();
+        function atualizarResponsavelNoModal() {
             const select = document.getElementById('modalAssignTecnico');
-            if (!select) return;
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Selecione um técnico...</option>';
-            if (tecnicos.length === 0) {
-                select.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
-            } else {
-                tecnicos.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t.id;
-                    opt.textContent = t.nome;
-                    select.appendChild(opt);
-                });
-            }
-            if (currentValue && tecnicos.some(t => t.id === currentValue)) {
-                select.value = currentValue;
-            }
-            const dashFilter = document.getElementById('dashTecnicoFilter');
-            if (dashFilter) {
-                const currentDash = dashFilter.value;
-                dashFilter.innerHTML = '<option value="">Todos os Técnicos</option>';
-                if (tecnicos.length > 0) {
-                    tecnicos.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = t.id;
-                        opt.textContent = t.nome;
-                        dashFilter.appendChild(opt);
-                    });
+            const tecnicoId = select.value;
+            if (!tecnicoId) {
+                document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
                 }
-                if (currentDash && tecnicos.some(t => t.id === currentDash)) {
-                    dashFilter.value = currentDash;
+                return;
+            }
+            const tecnico = USERS.find(u => u.id === tecnicoId);
+            if (tecnico) {
+                document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
                 }
             }
         }
@@ -1510,17 +1733,23 @@
                 showNotification(`ℹ️ ${tecnico.nome} já está atribuído a esta loja.`);
                 return;
             }
+            
+            // Guardar o nome anterior para notificação
+            const nomeAnterior = card.responsavel || 'Não atribuído';
+            
             card.responsavel = tecnico.nome;
             card.responsavel_id = tecnico.id;
             
-            // Autenticar antes de atualizar
             await autenticarSupabase();
             
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient
                         .from('lojas')
-                        .update({ responsavel_id: tecnico.id, responsavel_nome: tecnico.nome })
+                        .update({ 
+                            responsavel_id: tecnico.id,
+                            responsavel_nome: tecnico.nome 
+                        })
                         .eq('id', card.id);
                     if (error) {
                         console.error('Erro ao atribuir técnico:', error);
@@ -1533,12 +1762,20 @@
                     return;
                 }
             }
+            
             document.getElementById('modalResponsavel').textContent = tecnico.nome;
+            
+            // Atualizar avatar
+            const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+            if (avatarImg && avatarImg.tagName === 'IMG') {
+                avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
+            }
+            
             await loadLojas();
             renderCards();
             atualizarDashboard();
             atualizarMetricasPainel();
-            showNotification(`✅ Técnico ${tecnico.nome} atribuído à ${card.loja}!`);
+            showNotification(`✅ Técnico atribuído: ${nomeAnterior} → ${tecnico.nome}`);
         }
 
         // ============================================================
@@ -1561,17 +1798,21 @@
             if (!confirm(`Remover o técnico "${card.responsavel}" da loja ${card.loja}?`)) {
                 return;
             }
+            
+            const nomeRemovido = card.responsavel;
             card.responsavel = 'Não atribuído';
             card.responsavel_id = null;
             
-            // Autenticar antes de atualizar
             await autenticarSupabase();
             
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient
                         .from('lojas')
-                        .update({ responsavel_id: null, responsavel_nome: 'Não atribuído' })
+                        .update({ 
+                            responsavel_id: null, 
+                            responsavel_nome: 'Não atribuído' 
+                        })
                         .eq('id', card.id);
                     if (error) {
                         console.error('Erro ao remover técnico:', error);
@@ -1584,13 +1825,20 @@
                     return;
                 }
             }
+            
             document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+            
+            const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+            if (avatarImg && avatarImg.tagName === 'IMG') {
+                avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
+            }
+            
             document.getElementById('modalAssignTecnico').value = '';
             await loadLojas();
             renderCards();
             atualizarDashboard();
             atualizarMetricasPainel();
-            showNotification(`✅ Técnico removido da loja ${card.loja}!`);
+            showNotification(`✅ Técnico ${nomeRemovido} removido da loja ${card.loja}!`);
         }
 
         // ============================================================
@@ -1609,7 +1857,6 @@
                 return;
             }
             
-            // Autenticar antes de inserir
             await autenticarSupabase();
             
             if (supabaseClient) {
@@ -1625,6 +1872,7 @@
                     }
                     USERS.push(data);
                     renderUserList();
+                    populateResponsavelSelects();
                     populateTecnicoSelects();
                     document.getElementById('newUserName').value = '';
                     document.getElementById('newUserEmail').value = '';
@@ -1639,6 +1887,7 @@
             const newUser = { id: 'local-' + Date.now(), nome: name, email: email, senha: 'nova123', role: role, ativo: true };
             USERS.push(newUser);
             renderUserList();
+            populateResponsavelSelects();
             populateTecnicoSelects();
             showNotification(`👤 Usuário ${name} adicionado (local)!`);
             document.getElementById('newUserName').value = '';
@@ -1646,262 +1895,11 @@
         }
 
         // ============================================================
-        // CONFIRM ADD CARD
-        // ============================================================
-        async function confirmAddCard() {
-            const numero = document.getElementById('newLojaNumero').value.trim();
-            const responsavelId = document.getElementById('newLojaResponsavel').value;
-            const pdvs = parseInt(document.getElementById('newLojaPdvs').value) || 3;
-            const status = document.getElementById('newLojaStatus').value;
-            const data = document.getElementById('newLojaData').value;
-            const cidade = document.getElementById('newLojaCidade').value.trim();
-            const uf = document.getElementById('newLojaUf').value.trim().toUpperCase();
-            const regional = document.getElementById('newLojaRegional').value.trim() || '';
-
-            if (!numero || !responsavelId || !cidade || !uf || uf.length !== 2) {
-                showNotification('❌ Preencha todos os campos obrigatórios!');
-                return;
-            }
-
-            const resp = RESPONSAVEIS.find(r => r.id === responsavelId);
-            if (!resp) { 
-                showNotification('❌ Responsável não encontrado!');
-                return; 
-            }
-
-            const nomeLoja = `Loja ${numero}`;
-
-            try {
-                // Autenticar antes de inserir
-                await autenticarSupabase();
-                
-                if (supabaseClient) {
-                    const { data: inserted, error } = await supabaseClient
-                        .from('lojas')
-                        .insert({
-                            nome: nomeLoja,
-                            codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
-                            responsavel_id: resp.id,
-                            status: status,
-                            regional: regional,
-                            cidade: cidade,
-                            uf: uf,
-                            pdvs: pdvs,
-                            comentarios: 0,
-                            data_agendada: data || null,
-                            ordem: 999
-                        })
-                        .select()
-                        .single();
-
-                    if (error) {
-                        // Se erro for sobre coluna ordem, tentar sem ela
-                        if (error.message && error.message.includes('ordem')) {
-                            console.log('⚠️ Coluna ordem não encontrada. Tentando sem...');
-                            const { data: inserted2, error: error2 } = await supabaseClient
-                                .from('lojas')
-                                .insert({
-                                    nome: nomeLoja,
-                                    codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
-                                    responsavel_id: resp.id,
-                                    status: status,
-                                    regional: regional,
-                                    cidade: cidade,
-                                    uf: uf,
-                                    pdvs: pdvs,
-                                    comentarios: 0,
-                                    data_agendada: data || null
-                                })
-                                .select()
-                                .single();
-                            
-                            if (error2) {
-                                console.error('Erro ao criar loja (sem ordem):', error2);
-                                showNotification('❌ Erro ao criar loja: ' + (error2.message || 'Erro desconhecido'));
-                                return;
-                            }
-                            
-                            const newCard = {
-                                id: inserted2.id,
-                                loja: nomeLoja,
-                                responsavel: resp.nome,
-                                responsavel_id: resp.id,
-                                status: status,
-                                regional: regional,
-                                cidade: cidade,
-                                uf: uf,
-                                pdvs: pdvs,
-                                comentarios: 0,
-                                data: data ? formatarDataBR(data) : 'Hoje',
-                                data_agendada: data || null,
-                                descricao: '',
-                                ordem: 0
-                            };
-                            
-                            initialCards.push(newCard);
-                            pdvsPorLoja[inserted2.id] = [];
-                            
-                            for (let i = 1; i <= pdvs; i++) {
-                                const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-                                const codigo = `PDV ${String(i).padStart(2, '0')}`;
-                                const { data: pdvData, error: pdvError } = await supabaseClient
-                                    .from('pdvs')
-                                    .insert({
-                                        loja_id: inserted2.id,
-                                        codigo: codigo,
-                                        nome_antigo: codigo,
-                                        nome_atualizado: '',
-                                        numero_serie: `SN-${randomSerial}`,
-                                        status: i === 1 ? 'andamento' : 'pendente',
-                                        observacao: ''
-                                    })
-                                    .select()
-                                    .single();
-                                
-                                if (!pdvError && pdvData) {
-                                    pdvsPorLoja[inserted2.id].push({
-                                        id: pdvData.id,
-                                        numero: i,
-                                        codigo: codigo,
-                                        nomeAntigo: codigo,
-                                        nomeAtualizado: '',
-                                        numeroSerie: `SN-${randomSerial}`,
-                                        status: i === 1 ? 'andamento' : 'pendente',
-                                        observacao: '',
-                                        lojaId: inserted2.id
-                                    });
-                                }
-                            }
-                            
-                            renderCards();
-                            closeAddCardModal();
-                            showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs!`);
-                            atualizarMetricasPainel();
-                            atualizarDashboard();
-                            return;
-                        } else {
-                            console.error('Erro ao criar loja:', error);
-                            showNotification('❌ Erro ao criar loja: ' + (error.message || 'Erro desconhecido'));
-                            return;
-                        }
-                    }
-
-                    const newCard = {
-                        id: inserted.id,
-                        loja: nomeLoja,
-                        responsavel: resp.nome,
-                        responsavel_id: resp.id,
-                        status: status,
-                        regional: regional,
-                        cidade: cidade,
-                        uf: uf,
-                        pdvs: pdvs,
-                        comentarios: 0,
-                        data: data ? formatarDataBR(data) : 'Hoje',
-                        data_agendada: data || null,
-                        descricao: '',
-                        ordem: 999
-                    };
-
-                    initialCards.push(newCard);
-                    pdvsPorLoja[inserted.id] = [];
-
-                    for (let i = 1; i <= pdvs; i++) {
-                        const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-                        const codigo = `PDV ${String(i).padStart(2, '0')}`;
-                        const { data: pdvData, error: pdvError } = await supabaseClient
-                            .from('pdvs')
-                            .insert({
-                                loja_id: inserted.id,
-                                codigo: codigo,
-                                nome_antigo: codigo,
-                                nome_atualizado: '',
-                                numero_serie: `SN-${randomSerial}`,
-                                status: i === 1 ? 'andamento' : 'pendente',
-                                observacao: ''
-                            })
-                            .select()
-                            .single();
-
-                        if (!pdvError && pdvData) {
-                            pdvsPorLoja[inserted.id].push({
-                                id: pdvData.id,
-                                numero: i,
-                                codigo: codigo,
-                                nomeAntigo: codigo,
-                                nomeAtualizado: '',
-                                numeroSerie: `SN-${randomSerial}`,
-                                status: i === 1 ? 'andamento' : 'pendente',
-                                observacao: '',
-                                lojaId: inserted.id
-                            });
-                        }
-                    }
-
-                    renderCards();
-                    closeAddCardModal();
-                    showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs!`);
-                    atualizarMetricasPainel();
-                    atualizarDashboard();
-                    return;
-
-                } else {
-                    // Fallback local
-                    const newId = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
-                    const newCard = {
-                        id: newId,
-                        loja: nomeLoja,
-                        responsavel: resp.nome,
-                        responsavel_id: resp.id,
-                        status: status,
-                        regional: regional,
-                        cidade: cidade,
-                        uf: uf,
-                        pdvs: pdvs,
-                        comentarios: 0,
-                        data: data ? formatarDataBR(data) : 'Hoje',
-                        data_agendada: data || null,
-                        descricao: '',
-                        ordem: 999
-                    };
-                    initialCards.push(newCard);
-                    pdvsPorLoja[newId] = [];
-                    for (let i = 1; i <= pdvs; i++) {
-                        const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
-                        const codigo = `PDV ${String(i).padStart(2, '0')}`;
-                        pdvsPorLoja[newId].push({
-                            id: `pdv-${newId}-${i}-${Date.now()}`,
-                            numero: i,
-                            codigo: codigo,
-                            nomeAntigo: codigo,
-                            nomeAtualizado: '',
-                            numeroSerie: `SN-${randomSerial}`,
-                            status: i === 1 ? 'andamento' : 'pendente',
-                            observacao: '',
-                            lojaId: newId
-                        });
-                    }
-                    renderCards();
-                    closeAddCardModal();
-                    showNotification(`🆕 Loja ${numero} criada localmente!`);
-                    atualizarMetricasPainel();
-                    atualizarDashboard();
-                }
-            } catch (error) {
-                console.error('Erro ao criar loja:', error);
-                showNotification('❌ Erro ao criar loja: ' + (error.message || 'Erro desconhecido'));
-            }
-        }
-
-        // ============================================================
         // SALVAR ORDEM DOS CARDS
         // ============================================================
         async function salvarOrdemCards(status, cardIds) {
             if (!supabaseClient) return;
-            
-            // Autenticar antes de salvar
             await autenticarSupabase();
-            
             try {
                 for (let i = 0; i < cardIds.length; i++) {
                     await supabaseClient
@@ -1953,6 +1951,7 @@
             });
             updateResponsavelFilter();
             atualizarMetricasPainel();
+            populateResponsavelSelects();
             populateTecnicoSelects();
             setupDragAndDrop();
         }
@@ -2058,10 +2057,7 @@
             if (!cardData) return;
             if (cardData.status !== targetStatus) {
                 cardData.status = targetStatus;
-                
-                // Autenticar antes de atualizar
                 await autenticarSupabase();
-                
                 if (supabaseClient) {
                     try {
                         await supabaseClient.from('lojas').update({ status: targetStatus }).eq('id', cardId);
@@ -2080,85 +2076,6 @@
             atualizarMetricasPainel();
             atualizarDashboard();
             draggedCard = null;
-        }
-
-        // ============================================================
-        // FUNÇÕES ADICIONAIS (resumidas para não estourar o limite)
-        // ============================================================
-        // ... (as funções restantes são mantidas do código anterior)
-        // As funções abaixo são mantidas do código original, apenas com a adição de autenticação onde necessário
-
-        function atualizarResponsavelNoModal() {
-            const select = document.getElementById('modalAssignTecnico');
-            const tecnicoId = select.value;
-            if (!tecnicoId) {
-                document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-                if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
-                }
-                return;
-            }
-            const tecnico = USERS.find(u => u.id === tecnicoId);
-            if (tecnico) {
-                document.getElementById('modalResponsavel').textContent = tecnico.nome;
-                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-                if (avatarImg && avatarImg.tagName === 'IMG') {
-                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
-                }
-            }
-        }
-
-        function atualizarMetricasPainel() {
-            const total = initialCards.length;
-            const execucao = initialCards.filter(c => c.status === 'execucao').length;
-            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
-            const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
-
-            const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
-            const numTecnicos = tecnicos.size || 1;
-            const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
-
-            document.getElementById('metricConclusao').textContent = `${taxaConclusao}%`;
-            document.getElementById('metricBarConclusao').style.width = `${taxaConclusao}%`;
-            document.getElementById('metricAndamento').textContent = execucao;
-            document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` : '0%';
-            document.getElementById('metricProdutividade').innerHTML = `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
-            document.getElementById('metricTotalLojas').textContent = total;
-            document.getElementById('metricConcluidas').textContent = concluidas;
-            document.getElementById('metricPendentes').textContent = total - concluidas;
-            document.getElementById('metricBadgeConcluidas').textContent = `✅ ${taxaConclusao}%`;
-            document.getElementById('metricBadgePendentes').textContent = `⏳ ${100 - taxaConclusao}%`;
-            document.getElementById('totalLojasDisplay').textContent = total;
-            document.getElementById('concluidasDisplay').textContent = concluidas;
-
-            const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
-            document.getElementById('ticketCount').textContent = tickets.length;
-            const ticketList = document.getElementById('ticketList');
-            if (tickets.length === 0) {
-                ticketList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto ✅</div>';
-            } else {
-                ticketList.innerHTML = tickets.slice(0, 5).map(card => `
-                    <div class="ticket-item flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
-                        <div><span class="font-medium text-white text-[9px] md:text-xs">${card.id}</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">${card.loja}</span></div>
-                        <span class="${card.status === 'bloqueada' ? 'priority-critical' : 'priority-high'} text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">${card.status === 'bloqueada' ? 'Bloqueado' : 'Execução'}</span>
-                    </div>
-                `).join('');
-            }
-
-            const activities = [...initialCards].reverse().slice(0, 3);
-            const activityList = document.getElementById('activityList');
-            if (activities.length === 0) {
-                activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
-            } else {
-                const statusLabels = { 'agendada': 'agendada', 'execucao': 'em execução', 'bloqueada': 'bloqueada', 'revisao': 'em revisão', 'concluida': 'concluída' };
-                activityList.innerHTML = activities.map(card => `
-                    <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-b border-[#2d313e] last:border-0">
-                        <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${card.status === 'concluida' ? 'bg-emerald-400' : card.status === 'execucao' ? 'bg-amber-400' : card.status === 'bloqueada' ? 'bg-rose-400' : 'bg-sky-400'} mt-1"></span>
-                        <div><span class="text-white text-[9px] md:text-xs">${card.loja}</span><span class="text-slate-400 text-[8px] md:text-xs"> ${statusLabels[card.status] || card.status}</span><span class="text-[8px] md:text-[10px] text-slate-500 block">${card.data || 'Hoje'}</span></div>
-                    </div>
-                `).join('');
-            }
         }
 
         // ============================================================
@@ -2221,6 +2138,7 @@
             const sortedTecnicos = Object.keys(tecnicosMap).sort((a, b) => tecnicosMap[b].total - tecnicosMap[a].total);
             document.getElementById('totalTecnicos').textContent = `${sortedTecnicos.length} técnicos`;
 
+            // Gráfico de barras
             const ctx = document.getElementById('barChart').getContext('2d');
             if (barChartInstance) barChartInstance.destroy();
             barChartInstance = new Chart(ctx, {
@@ -2246,6 +2164,7 @@
                 }
             });
 
+            // Gráfico de pizza
             const ctx2 = document.getElementById('doughnutChart').getContext('2d');
             if (doughnutChartInstance) doughnutChartInstance.destroy();
             const statusLabels = ['Agendadas', 'Em Execução', 'Bloqueadas', 'Revisão', 'Concluídas'];
@@ -2257,6 +2176,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12, padding: 6 } } }, cutout: '60%' }
             });
 
+            // Detalhamento por técnico
             const detailList = document.getElementById('tecnicoDetailList');
             if (sortedTecnicos.length === 0) {
                 detailList.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Nenhum técnico com lojas atribuídas</p>';
@@ -2318,21 +2238,6 @@
             if (currentValue && responsaveis.includes(currentValue)) {
                 select.value = currentValue;
             }
-        }
-
-        function populateResponsavelSelects() {
-            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
-            selects.forEach(select => {
-                const currentValue = select.value;
-                select.innerHTML = '<option value="">Selecione um responsável...</option>';
-                RESPONSAVEIS.forEach(resp => {
-                    const option = document.createElement('option');
-                    option.value = resp.id;
-                    option.textContent = resp.nome;
-                    select.appendChild(option);
-                });
-                if (currentValue) select.value = currentValue;
-            });
         }
 
         function switchTab(tabName) {
@@ -2501,12 +2406,12 @@
             const newName = prompt('Novo nome:', user.nome);
             if (newName && newName.trim()) {
                 user.nome = newName.trim();
-                
                 await autenticarSupabase();
                 if (supabaseClient && !user.id.startsWith('local-')) {
                     await supabaseClient.from('usuarios').update({ nome: newName.trim() }).eq('id', user.id);
                 }
                 renderUserList();
+                populateResponsavelSelects();
                 populateTecnicoSelects();
                 showNotification(`✏️ Usuário atualizado para ${newName}`);
             }
@@ -2523,13 +2428,14 @@
                 }
                 USERS = USERS.filter(u => u.id !== userId);
                 renderUserList();
+                populateResponsavelSelects();
                 populateTecnicoSelects();
                 showNotification(`🗑️ Usuário ${user.nome} removido`);
             }
         }
 
         // ============================================================
-        // PDVs (funções básicas)
+        // PDVs
         // ============================================================
         async function addPdv() {
             if (!currentCardId) { showNotification('❌ Nenhuma loja selecionada!'); return; }
@@ -2658,7 +2564,6 @@
             if (newValue !== null && newValue.trim() !== '') {
                 pdv.nomeAntigo = newValue.trim();
                 pdvsPorLoja[lojaId] = pdvs;
-                
                 await autenticarSupabase();
                 if (supabaseClient && !pdv.id.startsWith('pdv-')) {
                     await supabaseClient.from('pdvs').update({ nome_antigo: newValue.trim() }).eq('id', pdv.id);
@@ -2677,7 +2582,6 @@
             if (newValue !== null) {
                 pdv.nomeAtualizado = newValue.trim();
                 pdvsPorLoja[lojaId] = pdvs;
-                
                 await autenticarSupabase();
                 if (supabaseClient && !pdv.id.startsWith('pdv-')) {
                     await supabaseClient.from('pdvs').update({ nome_atualizado: newValue.trim() }).eq('id', pdv.id);
@@ -2693,7 +2597,6 @@
             if (pdv) {
                 pdv.status = status;
                 pdvsPorLoja[lojaId] = pdvs;
-                
                 await autenticarSupabase();
                 if (supabaseClient && !pdv.id.startsWith('pdv-')) {
                     await supabaseClient.from('pdvs').update({ status: status }).eq('id', pdv.id);
@@ -2710,7 +2613,6 @@
             if (pdv) {
                 pdv.numeroSerie = value;
                 pdvsPorLoja[lojaId] = pdvs;
-                
                 await autenticarSupabase();
                 if (supabaseClient && !pdv.id.startsWith('pdv-')) {
                     await supabaseClient.from('pdvs').update({ numero_serie: value }).eq('id', pdv.id);
@@ -2725,7 +2627,6 @@
             const pdvs = pdvsPorLoja[lojaId] || [];
             const removed = pdvs.find(p => p.id === pdvId);
             pdvsPorLoja[lojaId] = pdvs.filter(p => p.id !== pdvId);
-            
             await autenticarSupabase();
             if (supabaseClient && !pdvId.startsWith('pdv-')) {
                 await supabaseClient.from('pdvs').delete().eq('id', pdvId);
@@ -2741,7 +2642,6 @@
             if (confirm(`Definir todos os PDVs como "${labels[status]}"?`)) {
                 pdvs.forEach(p => p.status = status);
                 pdvsPorLoja[currentCardId] = pdvs;
-                
                 await autenticarSupabase();
                 if (supabaseClient) {
                     for (const pdv of pdvs) {
@@ -2825,7 +2725,6 @@
             const descricaoEl = document.getElementById('modalDescription');
             const novaDescricao = descricaoEl ? descricaoEl.value : card.descricao || '';
             card.descricao = novaDescricao;
-            
             await autenticarSupabase();
             if (supabaseClient) {
                 await supabaseClient.from('lojas').update({ descricao: novaDescricao }).eq('id', card.id);
@@ -2840,8 +2739,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'execucao';
-                
-                // Autenticar antes de atualizar
                 autenticarSupabase().then(() => {
                     if (supabaseClient) {
                         supabaseClient.from('lojas').update({ status: 'execucao' }).eq('id', card.id).then(() => {
@@ -2867,7 +2764,6 @@
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
                 card.status = 'bloqueada';
-                
                 autenticarSupabase().then(() => {
                     if (supabaseClient) {
                         supabaseClient.from('lojas').update({ status: 'bloqueada' }).eq('id', card.id).then(() => {
@@ -2898,7 +2794,6 @@
                     if (!confirm('Ainda há PDVs pendentes. Deseja concluir a loja mesmo assim?')) return;
                 }
                 card.status = 'concluida';
-                
                 autenticarSupabase().then(() => {
                     if (supabaseClient) {
                         supabaseClient.from('lojas').update({ status: 'concluida' }).eq('id', card.id).then(() => {
@@ -2946,7 +2841,7 @@
         }
 
         // ============================================================
-        // UPLOAD E CHAT
+        // UPLOAD, CHAT, NOTIFICAÇÕES
         // ============================================================
         function handleFileUpload(event) {
             const files = event.target.files;
@@ -2992,9 +2887,6 @@
             showNotification('💬 Mensagem enviada!');
         }
 
-        // ============================================================
-        // NOTIFICAÇÕES
-        // ============================================================
         function showNotification(message) {
             const existing = document.querySelector('.toast-notification');
             if (existing) existing.remove();
@@ -3017,9 +2909,6 @@
             setTimeout(() => toast.remove(), 5000);
         }
 
-        // ============================================================
-        // LOGOUT
-        // ============================================================
         function handleLogout() {
             if (confirm('Deseja realmente sair?')) {
                 sessionStorage.removeItem('rocc_user');
@@ -3144,132 +3033,7 @@
         }
 
         // ============================================================
-        // INICIALIZAÇÃO
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 ROCC carregado!');
-            const params = new URLSearchParams(window.location.search);
-            const token = params.get('token');
-            const lojaId = params.get('loja');
-            const savedUser = sessionStorage.getItem('rocc_user');
-
-            if (token && lojaId) {
-                carregarTudo().then(() => ativarModoTecnico(lojaId, token));
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContent').style.display = 'flex';
-                return;
-            }
-
-            if (savedUser) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    currentUser = user;
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
-                    document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' :
-                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
-                    carregarTudo();
-                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
-                } catch (e) { console.warn('Sessão inválida', e); }
-            }
-
-            document.getElementById('loginBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                handleLogin();
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const loginScreen = document.getElementById('loginScreen');
-                    if (loginScreen.style.display !== 'none') handleLogin();
-                }
-                if (e.key === 'Escape') {
-                    closeCardDetail();
-                    closeUserManagement();
-                    closeAddCardModal();
-                    closeResetPasswordModal();
-                }
-            });
-
-            document.querySelectorAll('.modal-overlay').forEach(modal => {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        this.classList.remove('active');
-                        document.body.style.overflow = '';
-                    }
-                });
-            });
-        });
-
-        // ============================================================
-        // EXPOSIÇÃO GLOBAL
-        // ============================================================
-        window.handleLogin = handleLogin;
-        window.handleLogout = handleLogout;
-        window.openCardDetail = openCardDetail;
-        window.closeCardDetail = closeCardDetail;
-        window.switchTab = switchTab;
-        window.startStoreFromModal = startStoreFromModal;
-        window.blockStoreFromModal = blockStoreFromModal;
-        window.completeStoreFromModal = completeStoreFromModal;
-        window.updateResponsibleFromModal = updateResponsibleFromModal;
-        window.openAddCardModal = openAddCardModal;
-        window.closeAddCardModal = closeAddCardModal;
-        window.confirmAddCard = confirmAddCard;
-        window.filterCards = filterCards;
-        window.editMetric = editMetric;
-        window.togglePanel = togglePanel;
-        window.openUserManagement = openUserManagement;
-        window.closeUserManagement = closeUserManagement;
-        window.addUser = addUser;
-        window.editUser = editUser;
-        window.removeUser = removeUser;
-        window.openResetPasswordForUser = openResetPasswordForUser;
-        window.closeResetPasswordModal = closeResetPasswordModal;
-        window.confirmResetPassword = confirmResetPassword;
-        window.showQuickAction = showQuickAction;
-        window.exportToExcel = exportToExcel;
-        window.addPdv = addPdv;
-        window.removePdv = removePdv;
-        window.updatePdvStatus = updatePdvStatus;
-        window.updatePdvSerial = updatePdvSerial;
-        window.setAllPdvsStatus = setAllPdvsStatus;
-        window.renderPdvs = renderPdvs;
-        window.atualizarMetricasPainel = atualizarMetricasPainel;
-        window.atualizarDashboard = atualizarDashboard;
-        window.toggleDashboardTab = toggleDashboardTab;
-        window.gerarLinkTecnico = gerarLinkTecnico;
-        window.copiarLink = copiarLink;
-        window.enviarWhatsApp = enviarWhatsApp;
-        window.identificarTecnico = identificarTecnico;
-        window.abrirAssinaturaTecnico = abrirAssinaturaTecnico;
-        window.fecharAssinaturaTecnico = fecharAssinaturaTecnico;
-        window.limparAssinatura = limparAssinatura;
-        window.alternarDigitacao = alternarDigitacao;
-        window.aplicarDigitacao = aplicarDigitacao;
-        window.confirmarAssinatura = confirmarAssinatura;
-        window.finalizarRATTecnico = finalizarRATTecnico;
-        window.handleFileUpload = handleFileUpload;
-        window.sendMessage = sendMessage;
-        window.showNotification = showNotification;
-        window.initAssinaturaCanvas = initAssinaturaCanvas;
-        window.verificarAssinaturas = verificarAssinaturas;
-        window.deleteCard = deleteCard;
-        window.editPdvAntigo = editPdvAntigo;
-        window.editPdvAtualizado = editPdvAtualizado;
-        window.assignTecnicoFromModal = assignTecnicoFromModal;
-        window.removerTecnicoFromModal = removerTecnicoFromModal;
-        window.atualizarResponsavelNoModal = atualizarResponsavelNoModal;
-        window.populateTecnicoSelects = populateTecnicoSelects;
-        window.getTecnicos = getTecnicos;
-        window.salvarOrdemCards = salvarOrdemCards;
-        window.autenticarSupabase = autenticarSupabase;
-
-        // ============================================================
-        // ASSINATURA (mantida do original)
+        // ASSINATURA
         // ============================================================
         let assinaturas = {
             gerente: { data: null, canvas: null, ctx: null, isDrawing: false, lastX: 0, lastY: 0 },
@@ -3537,7 +3301,6 @@
         }
 
         function gerarConteudoRAT(loja, pdvs, assinaturaGerente, assinaturaTecnico, tecnico, checklist, logoHtml) {
-            // Mantido do original
             const statusLabels = { 'pendente': 'Pendente', 'andamento': 'Em Andamento', 'concluido': 'Concluído', 'bloqueado': 'Bloqueado' };
             const dataAtual = new Date().toLocaleDateString('pt-BR');
             const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -3648,6 +3411,187 @@
                 </body></html>
             `;
         }
+
+        // ============================================================
+        // ATUALIZAR MÉTRICAS DO PAINEL
+        // ============================================================
+        function atualizarMetricasPainel() {
+            const total = initialCards.length;
+            const execucao = initialCards.filter(c => c.status === 'execucao').length;
+            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
+            const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+
+            const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
+            const numTecnicos = tecnicos.size || 1;
+            const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
+
+            document.getElementById('metricConclusao').textContent = `${taxaConclusao}%`;
+            document.getElementById('metricBarConclusao').style.width = `${taxaConclusao}%`;
+            document.getElementById('metricAndamento').textContent = execucao;
+            document.getElementById('metricAndamentoPct').textContent = total > 0 ? `${Math.round((execucao / total) * 100)}%` : '0%';
+            document.getElementById('metricProdutividade').innerHTML = `${produtividade} <span class="text-[8px] md:text-[10px] text-slate-400">lojas/téc</span>`;
+            document.getElementById('metricTotalLojas').textContent = total;
+            document.getElementById('metricConcluidas').textContent = concluidas;
+            document.getElementById('metricPendentes').textContent = total - concluidas;
+            document.getElementById('metricBadgeConcluidas').textContent = `✅ ${taxaConclusao}%`;
+            document.getElementById('metricBadgePendentes').textContent = `⏳ ${100 - taxaConclusao}%`;
+            document.getElementById('totalLojasDisplay').textContent = total;
+            document.getElementById('concluidasDisplay').textContent = concluidas;
+
+            const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
+            document.getElementById('ticketCount').textContent = tickets.length;
+            const ticketList = document.getElementById('ticketList');
+            if (tickets.length === 0) {
+                ticketList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhum ticket em aberto ✅</div>';
+            } else {
+                ticketList.innerHTML = tickets.slice(0, 5).map(card => `
+                    <div class="ticket-item flex items-center justify-between text-[10px] md:text-sm border-b border-[#2d313e] pb-0.5 md:pb-1.5 px-1">
+                        <div><span class="font-medium text-white text-[9px] md:text-xs">${card.id}</span><span class="text-[8px] md:text-[10px] text-slate-400 ml-0.5 md:ml-1">${card.loja}</span></div>
+                        <span class="${card.status === 'bloqueada' ? 'priority-critical' : 'priority-high'} text-[8px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full">${card.status === 'bloqueada' ? 'Bloqueado' : 'Execução'}</span>
+                    </div>
+                `).join('');
+            }
+
+            const activities = [...initialCards].reverse().slice(0, 3);
+            const activityList = document.getElementById('activityList');
+            if (activities.length === 0) {
+                activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
+            } else {
+                const statusLabels = { 'agendada': 'agendada', 'execucao': 'em execução', 'bloqueada': 'bloqueada', 'revisao': 'em revisão', 'concluida': 'concluída' };
+                activityList.innerHTML = activities.map(card => `
+                    <div class="activity-item flex items-start gap-1 md:gap-2 text-[10px] md:text-sm px-1 py-0.5 border-b border-[#2d313e] last:border-0">
+                        <span class="inline-block w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${card.status === 'concluida' ? 'bg-emerald-400' : card.status === 'execucao' ? 'bg-amber-400' : card.status === 'bloqueada' ? 'bg-rose-400' : 'bg-sky-400'} mt-1"></span>
+                        <div><span class="text-white text-[9px] md:text-xs">${card.loja}</span><span class="text-slate-400 text-[8px] md:text-xs"> ${statusLabels[card.status] || card.status}</span><span class="text-[8px] md:text-[10px] text-slate-500 block">${card.data || 'Hoje'}</span></div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 ROCC carregado!');
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const lojaId = params.get('loja');
+            const savedUser = sessionStorage.getItem('rocc_user');
+
+            if (token && lojaId) {
+                carregarTudo().then(() => ativarModoTecnico(lojaId, token));
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'flex';
+                return;
+            }
+
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    currentUser = user;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
+                    document.getElementById('userNameDisplay').textContent = user.nome;
+                    document.getElementById('userRoleDisplay').textContent =
+                        user.role === 'admin' ? 'Administrador' :
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                    carregarTudo();
+                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+                } catch (e) { console.warn('Sessão inválida', e); }
+            }
+
+            document.getElementById('loginBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogin();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const loginScreen = document.getElementById('loginScreen');
+                    if (loginScreen.style.display !== 'none') handleLogin();
+                }
+                if (e.key === 'Escape') {
+                    closeCardDetail();
+                    closeUserManagement();
+                    closeAddCardModal();
+                    closeResetPasswordModal();
+                }
+            });
+
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+        });
+
+        // ============================================================
+        // EXPOSIÇÃO GLOBAL
+        // ============================================================
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.openCardDetail = openCardDetail;
+        window.closeCardDetail = closeCardDetail;
+        window.switchTab = switchTab;
+        window.startStoreFromModal = startStoreFromModal;
+        window.blockStoreFromModal = blockStoreFromModal;
+        window.completeStoreFromModal = completeStoreFromModal;
+        window.updateResponsibleFromModal = updateResponsibleFromModal;
+        window.openAddCardModal = openAddCardModal;
+        window.closeAddCardModal = closeAddCardModal;
+        window.confirmAddCard = confirmAddCard;
+        window.filterCards = filterCards;
+        window.editMetric = editMetric;
+        window.togglePanel = togglePanel;
+        window.openUserManagement = openUserManagement;
+        window.closeUserManagement = closeUserManagement;
+        window.addUser = addUser;
+        window.editUser = editUser;
+        window.removeUser = removeUser;
+        window.openResetPasswordForUser = openResetPasswordForUser;
+        window.closeResetPasswordModal = closeResetPasswordModal;
+        window.confirmResetPassword = confirmResetPassword;
+        window.showQuickAction = showQuickAction;
+        window.exportToExcel = exportToExcel;
+        window.addPdv = addPdv;
+        window.removePdv = removePdv;
+        window.updatePdvStatus = updatePdvStatus;
+        window.updatePdvSerial = updatePdvSerial;
+        window.setAllPdvsStatus = setAllPdvsStatus;
+        window.renderPdvs = renderPdvs;
+        window.atualizarMetricasPainel = atualizarMetricasPainel;
+        window.atualizarDashboard = atualizarDashboard;
+        window.toggleDashboardTab = toggleDashboardTab;
+        window.gerarLinkTecnico = gerarLinkTecnico;
+        window.copiarLink = copiarLink;
+        window.enviarWhatsApp = enviarWhatsApp;
+        window.identificarTecnico = identificarTecnico;
+        window.abrirAssinaturaTecnico = abrirAssinaturaTecnico;
+        window.fecharAssinaturaTecnico = fecharAssinaturaTecnico;
+        window.limparAssinatura = limparAssinatura;
+        window.alternarDigitacao = alternarDigitacao;
+        window.aplicarDigitacao = aplicarDigitacao;
+        window.confirmarAssinatura = confirmarAssinatura;
+        window.finalizarRATTecnico = finalizarRATTecnico;
+        window.handleFileUpload = handleFileUpload;
+        window.sendMessage = sendMessage;
+        window.showNotification = showNotification;
+        window.initAssinaturaCanvas = initAssinaturaCanvas;
+        window.verificarAssinaturas = verificarAssinaturas;
+        window.deleteCard = deleteCard;
+        window.editPdvAntigo = editPdvAntigo;
+        window.editPdvAtualizado = editPdvAtualizado;
+        window.assignTecnicoFromModal = assignTecnicoFromModal;
+        window.removerTecnicoFromModal = removerTecnicoFromModal;
+        window.atualizarResponsavelNoModal = atualizarResponsavelNoModal;
+        window.populateTecnicoSelects = populateTecnicoSelects;
+        window.populateResponsavelSelects = populateResponsavelSelects;
+        window.getTecnicos = getTecnicos;
+        window.salvarOrdemCards = salvarOrdemCards;
+        window.autenticarSupabase = autenticarSupabase;
     </script>
 </body>
 </html>
