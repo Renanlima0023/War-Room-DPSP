@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* ===== TEMA ESCURO ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0f1117;
@@ -755,7 +756,6 @@
             border-color: #f87171;
         }
 
-        /* Badge para mostrar que o usuário é o responsável */
         .responsible-badge {
             font-size: 9px;
             padding: 1px 8px;
@@ -764,6 +764,24 @@
             color: #818cf8;
             border: 1px solid rgba(79,70,229,0.2);
             margin-left: 4px;
+        }
+
+        .btn-salvar-responsavel {
+            background: rgba(34,197,94,0.2);
+            color: #34d399;
+            border: 1px solid rgba(34,197,94,0.3);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-salvar-responsavel:hover {
+            background: rgba(34,197,94,0.35);
+            border-color: #34d399;
         }
     </style>
 </head>
@@ -1075,19 +1093,194 @@
                         </div>
                     </div>
 
-                    <div id="tab-pdvs" class="tab-content"><div class="space-y-4"><div class="pdv-summary-bar"><div class="stat"><span class="dot" style="background:#4f46e5;"></span><strong id="pdvTotalCount">0</strong> total</div><div class="stat"><span class="dot" style="background:#34d399;"></span><strong id="pdvDoneCount">0</strong> concluídos</div><div class="stat"><span class="dot" style="background:#60a5fa;"></span><strong id="pdvProgressCount">0</strong> andamento</div><div class="stat"><span class="dot" style="background:#fbbf24;"></span><strong id="pdvPendingCount">0</strong> pendentes</div><div class="stat"><span class="dot" style="background:#f87171;"></span><strong id="pdvBlockedCount">0</strong> bloqueados</div><div class="pdv-progress-ring" id="pdvProgressRing" style="--pct: 0%;"><div class="inner" id="pdvProgressPct">0%</div></div></div><div class="flex justify-between items-center"><span class="text-xs text-slate-400">Gerencie os PDVs da loja</span><button class="text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-full hover:bg-indigo-600/40 transition" onclick="addPdv()"><i class="fas fa-plus mr-1"></i> Adicionar PDV</button></div><div class="pdv-table-header"><span class="col-old">PDV Antigo</span><span class="col-new">PDV Atualizado</span><span class="col-serial">Nº Série</span><span class="col-status">Status</span><span class="col-actions"></span></div><div class="pdv-grid" id="pdvListContainer"></div><div class="flex gap-2 flex-wrap"><button class="text-xs bg-emerald-600/20 text-emerald-400 px-3 py-1 rounded-full hover:bg-emerald-600/40 transition" onclick="setAllPdvsStatus('concluido')"><i class="fas fa-check-double mr-1"></i> Concluir todos</button><button class="text-xs bg-amber-600/20 text-amber-400 px-3 py-1 rounded-full hover:bg-amber-600/40 transition" onclick="setAllPdvsStatus('pendente')"><i class="fas fa-undo mr-1"></i> Resetar todos</button><button class="text-xs bg-rose-600/20 text-rose-400 px-3 py-1 rounded-full hover:bg-rose-600/40 transition" onclick="setAllPdvsStatus('bloqueado')"><i class="fas fa-ban mr-1"></i> Bloquear todos</button></div></div></div>
+                    <!-- TAB PDVs -->
+                    <div id="tab-pdvs" class="tab-content">
+                        <div class="space-y-4">
+                            <div class="pdv-summary-bar">
+                                <div class="stat"><span class="dot" style="background:#4f46e5;"></span><strong id="pdvTotalCount">0</strong> total</div>
+                                <div class="stat"><span class="dot" style="background:#34d399;"></span><strong id="pdvDoneCount">0</strong> concluídos</div>
+                                <div class="stat"><span class="dot" style="background:#60a5fa;"></span><strong id="pdvProgressCount">0</strong> andamento</div>
+                                <div class="stat"><span class="dot" style="background:#fbbf24;"></span><strong id="pdvPendingCount">0</strong> pendentes</div>
+                                <div class="stat"><span class="dot" style="background:#f87171;"></span><strong id="pdvBlockedCount">0</strong> bloqueados</div>
+                                <div class="pdv-progress-ring" id="pdvProgressRing" style="--pct: 0%;">
+                                    <div class="inner" id="pdvProgressPct">0%</div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-400">Gerencie os PDVs da loja</span>
+                                <button class="text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-full hover:bg-indigo-600/40 transition" onclick="addPdv()"><i class="fas fa-plus mr-1"></i> Adicionar PDV</button>
+                            </div>
+                            <div class="pdv-table-header">
+                                <span class="col-old">PDV Antigo</span>
+                                <span class="col-new">PDV Atualizado</span>
+                                <span class="col-serial">Nº Série</span>
+                                <span class="col-status">Status</span>
+                                <span class="col-actions"></span>
+                            </div>
+                            <div class="pdv-grid" id="pdvListContainer"></div>
+                            <div class="flex gap-2 flex-wrap">
+                                <button class="text-xs bg-emerald-600/20 text-emerald-400 px-3 py-1 rounded-full hover:bg-emerald-600/40 transition" onclick="setAllPdvsStatus('concluido')"><i class="fas fa-check-double mr-1"></i> Concluir todos</button>
+                                <button class="text-xs bg-amber-600/20 text-amber-400 px-3 py-1 rounded-full hover:bg-amber-600/40 transition" onclick="setAllPdvsStatus('pendente')"><i class="fas fa-undo mr-1"></i> Resetar todos</button>
+                                <button class="text-xs bg-rose-600/20 text-rose-400 px-3 py-1 rounded-full hover:bg-rose-600/40 transition" onclick="setAllPdvsStatus('bloqueado')"><i class="fas fa-ban mr-1"></i> Bloquear todos</button>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div id="tab-checklist" class="tab-content"><div class="space-y-3"><div class="flex justify-between items-center"><span class="text-sm text-slate-400">Progresso: <span class="text-white font-medium" id="checklistProgress">0/0</span></span><button class="text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1 rounded-full hover:bg-indigo-600/40 transition" onclick="addChecklistItem()"><i class="fas fa-plus mr-1"></i> Adicionar item</button></div><div class="space-y-2" id="checklistContainer"></div></div></div>
+                    <!-- TAB CHECKLIST -->
+                    <div id="tab-checklist" class="tab-content">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-slate-400">Progresso: <span class="text-white font-medium" id="checklistProgress">0/0</span></span>
+                                <button class="text-xs bg-indigo-600/20 text-indigo-400 px-3 py-1 rounded-full hover:bg-indigo-600/40 transition" onclick="addChecklistItem()"><i class="fas fa-plus mr-1"></i> Adicionar item</button>
+                            </div>
+                            <div class="space-y-2" id="checklistContainer"></div>
+                        </div>
+                    </div>
 
-                    <div id="tab-dependencias" class="tab-content"><div class="space-y-3"><div class="flex items-center gap-2 text-sm text-slate-400 mb-2"><i class="fas fa-info-circle text-indigo-400"></i><span>Esta tarefa depende da conclusão das seguintes atividades:</span></div><div id="dependenciasContainer"><div class="dependency-badge bg-amber-600/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-lg flex items-center gap-2"><i class="fas fa-link"></i><span>Configuração de rede concluída</span><span class="text-[10px] bg-amber-600/20 px-2 py-0.5 rounded-full">Em andamento</span></div><div class="dependency-badge bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-lg flex items-center gap-2 mt-2"><i class="fas fa-check-circle text-emerald-400"></i><span>Compra de equipamentos aprovada</span><span class="text-[10px] bg-emerald-600/20 px-2 py-0.5 rounded-full">Concluído</span></div></div><button class="text-xs bg-[#2d313e] text-slate-300 px-3 py-1.5 rounded-full hover:bg-[#3d4150] transition"><i class="fas fa-plus mr-1"></i> Adicionar dependência</button></div></div>
+                    <!-- TAB DEPENDÊNCIAS -->
+                    <div id="tab-dependencias" class="tab-content">
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                                <i class="fas fa-info-circle text-indigo-400"></i>
+                                <span>Esta tarefa depende da conclusão das seguintes atividades:</span>
+                            </div>
+                            <div id="dependenciasContainer">
+                                <div class="dependency-badge bg-amber-600/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-lg flex items-center gap-2">
+                                    <i class="fas fa-link"></i>
+                                    <span>Configuração de rede concluída</span>
+                                    <span class="text-[10px] bg-amber-600/20 px-2 py-0.5 rounded-full">Em andamento</span>
+                                </div>
+                                <div class="dependency-badge bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-lg flex items-center gap-2 mt-2">
+                                    <i class="fas fa-check-circle text-emerald-400"></i>
+                                    <span>Compra de equipamentos aprovada</span>
+                                    <span class="text-[10px] bg-emerald-600/20 px-2 py-0.5 rounded-full">Concluído</span>
+                                </div>
+                            </div>
+                            <button class="text-xs bg-[#2d313e] text-slate-300 px-3 py-1.5 rounded-full hover:bg-[#3d4150] transition">
+                                <i class="fas fa-plus mr-1"></i> Adicionar dependência
+                            </button>
+                        </div>
+                    </div>
 
-                    <div id="tab-evidencias" class="tab-content"><div class="space-y-3"><div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"><i class="fas fa-cloud-upload-alt text-4xl text-indigo-400 mb-2"></i><p class="text-sm text-slate-400">Clique ou arraste arquivos aqui</p><p class="text-xs text-slate-500">Fotos, checklists, relatórios, termos de aceite...</p><input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)" /></div><div id="evidenciasList" class="space-y-2"></div></div></div>
+                    <!-- TAB EVIDÊNCIAS -->
+                    <div id="tab-evidencias" class="tab-content">
+                        <div class="space-y-3">
+                            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-indigo-400 mb-2"></i>
+                                <p class="text-sm text-slate-400">Clique ou arraste arquivos aqui</p>
+                                <p class="text-xs text-slate-500">Fotos, checklists, relatórios, termos de aceite...</p>
+                                <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileUpload(event)" />
+                            </div>
+                            <div id="evidenciasList" class="space-y-2"></div>
+                        </div>
+                    </div>
 
-                    <div id="tab-chat" class="tab-content"><div class="flex flex-col h-[300px] md:h-[400px]"><div class="flex-1 overflow-y-auto space-y-2 md:space-y-3 p-1 md:p-2" id="chatMessages"><div class="chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg"><img src="https://ui-avatars.com/api/?name=Renan&background=4F46E5&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" /><div class="flex-1"><div class="flex items-center gap-1 md:gap-2"><span class="font-medium text-white text-[10px] md:text-sm">Renan</span><span class="text-[8px] md:text-xs text-slate-500">10:32</span></div><p class="text-[10px] md:text-sm text-slate-300">Configuração de rede concluída. PDVs prontos.</p></div></div><div class="chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg"><img src="https://ui-avatars.com/api/?name=Camila&background=8B5CF6&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" /><div class="flex-1"><div class="flex items-center gap-1 md:gap-2"><span class="font-medium text-white text-[10px] md:text-sm">Camila</span><span class="text-[8px] md:text-xs text-slate-500">10:45</span></div><p class="text-[10px] md:text-sm text-slate-300">Vou iniciar a instalação do It Lean agora.</p></div></div></div><div class="border-t border-[#2d313e] pt-3 flex gap-2"><input type="text" class="chat-input flex-1 px-3 py-2 rounded-lg text-sm bg-[#0f1117] border border-[#2d313e] placeholder-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Digite sua mensagem..." id="chatInput" onkeypress="if(event.key==='Enter') sendMessage()" /><button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button></div></div></div>
+                    <!-- TAB CHAT -->
+                    <div id="tab-chat" class="tab-content">
+                        <div class="flex flex-col h-[300px] md:h-[400px]">
+                            <div class="flex-1 overflow-y-auto space-y-2 md:space-y-3 p-1 md:p-2" id="chatMessages">
+                                <div class="chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg">
+                                    <img src="https://ui-avatars.com/api/?name=Renan&background=4F46E5&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" />
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-1 md:gap-2">
+                                            <span class="font-medium text-white text-[10px] md:text-sm">Renan</span>
+                                            <span class="text-[8px] md:text-xs text-slate-500">10:32</span>
+                                        </div>
+                                        <p class="text-[10px] md:text-sm text-slate-300">Configuração de rede concluída. PDVs prontos.</p>
+                                    </div>
+                                </div>
+                                <div class="chat-message flex items-start gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg">
+                                    <img src="https://ui-avatars.com/api/?name=Camila&background=8B5CF6&color=fff&size=28" class="w-6 h-6 md:w-8 md:h-8 rounded-full" />
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-1 md:gap-2">
+                                            <span class="font-medium text-white text-[10px] md:text-sm">Camila</span>
+                                            <span class="text-[8px] md:text-xs text-slate-500">10:45</span>
+                                        </div>
+                                        <p class="text-[10px] md:text-sm text-slate-300">Vou iniciar a instalação do It Lean agora.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border-t border-[#2d313e] pt-3 flex gap-2">
+                                <input type="text" class="chat-input flex-1 px-3 py-2 rounded-lg text-sm bg-[#0f1117] border border-[#2d313e] placeholder-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Digite sua mensagem..." id="chatInput" onkeypress="if(event.key==='Enter') sendMessage()" />
+                                <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div id="tab-historico" class="tab-content"><div class="space-y-2" id="historicoContainer"><div class="history-item p-1.5 border-l-2 border-indigo-500"><div class="flex items-center gap-1 text-[10px] md:text-sm"><span class="text-white font-medium">Tarefa criada</span><span class="text-slate-400">por Sistema</span><span class="text-[8px] text-slate-500">07:30 - 10/07/2026</span></div><p class="text-[10px] text-slate-400 ml-1">Loja criada com status "Agendada"</p></div><div class="history-item p-1.5 border-l-2 border-amber-500"><div class="flex items-center gap-1 text-[10px] md:text-sm"><span class="text-white font-medium">Status alterado</span><span class="text-slate-400">por Renan</span><span class="text-[8px] text-slate-500">09:15 - 10/07/2026</span></div><p class="text-[10px] text-slate-400 ml-1">Agendada → Em Execução</p></div><div class="history-item p-1.5 border-l-2 border-emerald-500"><div class="flex items-center gap-1 text-[10px] md:text-sm"><span class="text-white font-medium">PDV atualizado</span><span class="text-slate-400">por Renan</span><span class="text-[8px] text-slate-500">10:00 - 10/07/2026</span></div><p class="text-[10px] text-slate-400 ml-1">PDV 01 - Status: Pendente → Concluído</p></div><div class="history-item p-1.5 border-l-2 border-purple-500"><div class="flex items-center gap-1 text-[10px] md:text-sm"><span class="text-white font-medium">Checklist atualizado</span><span class="text-slate-400">por Camila</span><span class="text-[8px] text-slate-500">10:30 - 10/07/2026</span></div><p class="text-[10px] text-slate-400 ml-1">Item "Configurar rede dos PDVs" concluído</p></div></div></div>
+                    <!-- TAB HISTÓRICO -->
+                    <div id="tab-historico" class="tab-content">
+                        <div class="space-y-2" id="historicoContainer">
+                            <div class="history-item p-1.5 border-l-2 border-indigo-500">
+                                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                                    <span class="text-white font-medium">Tarefa criada</span>
+                                    <span class="text-slate-400">por Sistema</span>
+                                    <span class="text-[8px] text-slate-500">07:30 - 10/07/2026</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 ml-1">Loja criada com status "Agendada"</p>
+                            </div>
+                            <div class="history-item p-1.5 border-l-2 border-amber-500">
+                                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                                    <span class="text-white font-medium">Status alterado</span>
+                                    <span class="text-slate-400">por Renan</span>
+                                    <span class="text-[8px] text-slate-500">09:15 - 10/07/2026</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 ml-1">Agendada → Em Execução</p>
+                            </div>
+                            <div class="history-item p-1.5 border-l-2 border-emerald-500">
+                                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                                    <span class="text-white font-medium">PDV atualizado</span>
+                                    <span class="text-slate-400">por Renan</span>
+                                    <span class="text-[8px] text-slate-500">10:00 - 10/07/2026</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 ml-1">PDV 01 - Status: Pendente → Concluído</p>
+                            </div>
+                            <div class="history-item p-1.5 border-l-2 border-purple-500">
+                                <div class="flex items-center gap-1 text-[10px] md:text-sm">
+                                    <span class="text-white font-medium">Checklist atualizado</span>
+                                    <span class="text-slate-400">por Camila</span>
+                                    <span class="text-[8px] text-slate-500">10:30 - 10/07/2026</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 ml-1">Item "Configurar rede dos PDVs" concluído</p>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div id="tab-link" class="tab-content"><div class="space-y-4"><div class="bg-indigo-600/10 border border-indigo-500/20 rounded-lg p-4 text-center"><i class="fas fa-link text-indigo-400 text-3xl mb-2"></i><h3 class="text-white font-medium text-base">Compartilhar com Técnico</h3><p class="text-sm text-slate-400">Gere um link para o técnico acessar APENAS esta loja (sem login)</p></div><div class="bg-[#0f1117] p-4 rounded-lg border border-[#2d313e] space-y-3"><div><label class="text-xs font-medium text-slate-400 block mb-1">Nome do Técnico</label><input type="text" id="tecnicoNomeLink" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: João Silva" /></div><button onclick="gerarLinkTecnico()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium flex items-center justify-center gap-2"><i class="fas fa-link"></i> Gerar Link para Técnico</button></div><div id="linkGeradoContainer" style="display:none;"><div class="bg-emerald-600/10 border border-emerald-500/20 rounded-lg p-4"><p class="text-xs text-emerald-400 mb-2"><i class="fas fa-check-circle mr-1"></i> Link gerado!</p><div class="input-copy"><input type="text" id="linkGeradoInput" readonly value="" /><button onclick="copiarLink()"><i class="fas fa-copy"></i></button><button class="btn-whatsapp" onclick="enviarWhatsApp()"><i class="fab fa-whatsapp"></i></button></div><p class="text-[10px] text-slate-500 mt-2">Link válido por <strong>24 horas</strong>. O técnico verá APENAS a loja <strong id="linkLojaNome">Loja 1002</strong>.</p><p class="text-[10px] text-emerald-400 mt-1">Técnico: <strong id="linkTecnicoNomeDisplay">João Silva</strong></p></div></div></div></div>
+                    <!-- TAB LINK -->
+                    <div id="tab-link" class="tab-content">
+                        <div class="space-y-4">
+                            <div class="bg-indigo-600/10 border border-indigo-500/20 rounded-lg p-4 text-center">
+                                <i class="fas fa-link text-indigo-400 text-3xl mb-2"></i>
+                                <h3 class="text-white font-medium text-base">Compartilhar com Técnico</h3>
+                                <p class="text-sm text-slate-400">Gere um link para o técnico acessar APENAS esta loja (sem login)</p>
+                            </div>
+                            <div class="bg-[#0f1117] p-4 rounded-lg border border-[#2d313e] space-y-3">
+                                <div>
+                                    <label class="text-xs font-medium text-slate-400 block mb-1">Nome do Técnico</label>
+                                    <input type="text" id="tecnicoNomeLink" class="dark-input w-full px-3 py-2 rounded-lg text-sm" placeholder="Ex: João Silva" />
+                                </div>
+                                <button onclick="gerarLinkTecnico()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium flex items-center justify-center gap-2">
+                                    <i class="fas fa-link"></i> Gerar Link para Técnico
+                                </button>
+                            </div>
+                            <div id="linkGeradoContainer" style="display:none;">
+                                <div class="bg-emerald-600/10 border border-emerald-500/20 rounded-lg p-4">
+                                    <p class="text-xs text-emerald-400 mb-2"><i class="fas fa-check-circle mr-1"></i> Link gerado!</p>
+                                    <div class="input-copy">
+                                        <input type="text" id="linkGeradoInput" readonly value="" />
+                                        <button onclick="copiarLink()"><i class="fas fa-copy"></i></button>
+                                        <button class="btn-whatsapp" onclick="enviarWhatsApp()"><i class="fab fa-whatsapp"></i></button>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-2">
+                                        Link válido por <strong>24 horas</strong>. O técnico verá APENAS a loja <strong id="linkLojaNome">Loja 1002</strong>.
+                                    </p>
+                                    <p class="text-[10px] text-emerald-400 mt-1">
+                                        Técnico: <strong id="linkTecnicoNomeDisplay">João Silva</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1348,7 +1541,6 @@
         // POPULAR SELECT DE RESPONSÁVEIS - APENAS USUÁRIOS COM LOGIN
         // ============================================================
         function populateResponsavelSelects() {
-            // Buscar apenas usuários com login cadastrado (que estão na tabela usuarios)
             const usuariosComLogin = USERS.filter(u => u.email && u.email.trim() !== '');
             
             const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
@@ -1359,13 +1551,11 @@
                 if (usuariosComLogin.length === 0) {
                     select.innerHTML = '<option value="">Nenhum usuário cadastrado</option>';
                 } else {
-                    // Ordenar por nome
                     usuariosComLogin.sort((a, b) => a.nome.localeCompare(b.nome));
                     
                     usuariosComLogin.forEach(user => {
                         const option = document.createElement('option');
                         option.value = user.id;
-                        // Mostrar o nome e a role entre parênteses
                         const roleLabel = {
                             'admin': 'Admin',
                             'gerente': 'Gerente',
@@ -1377,7 +1567,6 @@
                     });
                 }
                 
-                // Restaurar valor selecionado se ainda existir
                 if (currentValue && usuariosComLogin.some(u => u.id === currentValue)) {
                     select.value = currentValue;
                 }
@@ -1385,18 +1574,14 @@
         }
 
         // ============================================================
-        // POPULAR SELECT DE TÉCNICOS - APENAS USUÁRIOS COM ROLE TÉCNICO
+        // POPULAR SELECT DE TÉCNICOS
         // ============================================================
         function populateTecnicoSelects() {
-            // Buscar apenas usuários com role = 'tecnico' e email cadastrado
             const tecnicos = USERS.filter(u => 
                 u.role === 'tecnico' && 
                 u.email && 
                 u.email.trim() !== ''
             );
-            
-            console.log('👤 Técnicos disponíveis para atribuição:', tecnicos.length);
-            tecnicos.forEach(t => console.log('  -', t.nome, '|', t.email));
             
             const select = document.getElementById('modalAssignTecnico');
             if (!select) return;
@@ -1419,7 +1604,6 @@
                 select.value = currentValue;
             }
             
-            // Atualizar também o filtro do dashboard
             const dashFilter = document.getElementById('dashTecnicoFilter');
             if (dashFilter) {
                 const currentDash = dashFilter.value;
@@ -1439,7 +1623,7 @@
         }
 
         // ============================================================
-        // FUNÇÃO CONFIRM ADD CARD - CORRIGIDA
+        // FUNÇÃO CONFIRM ADD CARD
         // ============================================================
         async function confirmAddCard() {
             const numero = document.getElementById('newLojaNumero').value.trim();
@@ -1456,7 +1640,6 @@
                 return;
             }
 
-            // Buscar o usuário (responsável) na lista de usuários
             const usuario = USERS.find(u => u.id === responsavelId);
             if (!usuario) { 
                 showNotification('❌ Usuário responsável não encontrado!');
@@ -1480,24 +1663,9 @@
                         uf: uf,
                         pdvs: pdvs,
                         comentarios: 0,
-                        data_agendada: data || null
+                        data_agendada: data || null,
+                        ordem: 999
                     };
-
-                    // Tentar adicionar ordem se a coluna existir
-                    let temOrdem = false;
-                    try {
-                        const { data: testData } = await supabaseClient
-                            .from('lojas')
-                            .select('ordem')
-                            .limit(1);
-                        temOrdem = true;
-                    } catch (e) {
-                        console.log('⚠️ Coluna ordem não existe');
-                    }
-
-                    if (temOrdem) {
-                        lojaData.ordem = 999;
-                    }
 
                     const { data: inserted, error } = await supabaseClient
                         .from('lojas')
@@ -1573,6 +1741,158 @@
             } catch (error) {
                 console.error('Erro ao criar loja:', error);
                 showNotification('❌ Erro ao criar loja: ' + (error.message || 'Erro desconhecido'));
+            }
+        }
+
+        // ============================================================
+        // FUNÇÃO ATRIBUIR TÉCNICO - CORRIGIDA
+        // ============================================================
+        async function assignTecnicoFromModal() {
+            if (!currentCardId) {
+                showNotification('❌ Nenhuma loja selecionada!');
+                return;
+            }
+            
+            const select = document.getElementById('modalAssignTecnico');
+            const tecnicoId = select.value;
+            const card = initialCards.find(c => c.id === currentCardId);
+            
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            if (!tecnicoId) {
+                showNotification('⚠️ Selecione um técnico na lista');
+                return;
+            }
+
+            const tecnico = USERS.find(u => u.id === tecnicoId);
+            if (!tecnico) {
+                showNotification('❌ Técnico não encontrado!');
+                return;
+            }
+
+            if (card.responsavel_id === tecnicoId) {
+                showNotification(`ℹ️ ${tecnico.nome} já está atribuído a esta loja.`);
+                return;
+            }
+
+            // Mostrar loading
+            showNotification(`⏳ Atribuindo ${tecnico.nome}...`);
+
+            try {
+                await autenticarSupabase();
+
+                // ATUALIZAR NO SUPABASE
+                const { error } = await supabaseClient
+                    .from('lojas')
+                    .update({ 
+                        responsavel_id: tecnico.id,
+                        responsavel_nome: tecnico.nome 
+                    })
+                    .eq('id', card.id);
+
+                if (error) {
+                    console.error('Erro ao atribuir técnico no Supabase:', error);
+                    showNotification('❌ Erro ao salvar no banco de dados!');
+                    return;
+                }
+
+                // Atualizar localmente
+                card.responsavel = tecnico.nome;
+                card.responsavel_id = tecnico.id;
+
+                // Atualizar o modal
+                document.getElementById('modalResponsavel').textContent = tecnico.nome;
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
+                }
+
+                // RECARREGAR OS DADOS DO BANCO PARA GARANTIR CONSISTÊNCIA
+                await loadLojas();
+                
+                renderCards();
+                atualizarDashboard();
+                atualizarMetricasPainel();
+                
+                showNotification(`✅ Técnico ${tecnico.nome} atribuído à ${card.loja}!`);
+                
+            } catch (e) {
+                console.error('Erro ao atribuir técnico:', e);
+                showNotification('❌ Erro ao atribuir técnico!');
+            }
+        }
+
+        // ============================================================
+        // REMOVER TÉCNICO
+        // ============================================================
+        async function removerTecnicoFromModal() {
+            if (!currentCardId) {
+                showNotification('❌ Nenhuma loja selecionada!');
+                return;
+            }
+            
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            if (!card.responsavel_id) {
+                showNotification('ℹ️ Esta loja não tem técnico atribuído.');
+                return;
+            }
+
+            if (!confirm(`Remover o técnico "${card.responsavel}" da loja ${card.loja}?`)) {
+                return;
+            }
+
+            try {
+                await autenticarSupabase();
+
+                const nomeRemovido = card.responsavel;
+
+                // ATUALIZAR NO SUPABASE
+                const { error } = await supabaseClient
+                    .from('lojas')
+                    .update({ 
+                        responsavel_id: null, 
+                        responsavel_nome: 'Não atribuído' 
+                    })
+                    .eq('id', card.id);
+
+                if (error) {
+                    console.error('Erro ao remover técnico no Supabase:', error);
+                    showNotification('❌ Erro ao remover técnico!');
+                    return;
+                }
+
+                // Atualizar localmente
+                card.responsavel = 'Não atribuído';
+                card.responsavel_id = null;
+
+                // Atualizar o modal
+                document.getElementById('modalResponsavel').textContent = 'Não atribuído';
+                const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
+                if (avatarImg && avatarImg.tagName === 'IMG') {
+                    avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
+                }
+                document.getElementById('modalAssignTecnico').value = '';
+
+                // RECARREGAR OS DADOS DO BANCO
+                await loadLojas();
+                
+                renderCards();
+                atualizarDashboard();
+                atualizarMetricasPainel();
+                
+                showNotification(`✅ Técnico ${nomeRemovido} removido da loja ${card.loja}!`);
+                
+            } catch (e) {
+                console.error('Erro ao remover técnico:', e);
+                showNotification('❌ Erro ao remover técnico!');
             }
         }
 
@@ -1703,142 +2023,6 @@
                     avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
                 }
             }
-        }
-
-        // ============================================================
-        // ATRIBUIR TÉCNICO
-        // ============================================================
-        async function assignTecnicoFromModal() {
-            if (!currentCardId) {
-                showNotification('❌ Nenhuma loja selecionada!');
-                return;
-            }
-            const select = document.getElementById('modalAssignTecnico');
-            const tecnicoId = select.value;
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (!card) {
-                showNotification('❌ Loja não encontrada!');
-                return;
-            }
-            if (!tecnicoId) {
-                showNotification('⚠️ Selecione um técnico na lista');
-                return;
-            }
-            const tecnico = USERS.find(u => u.id === tecnicoId);
-            if (!tecnico) {
-                showNotification('❌ Técnico não encontrado!');
-                return;
-            }
-            if (card.responsavel_id === tecnicoId) {
-                showNotification(`ℹ️ ${tecnico.nome} já está atribuído a esta loja.`);
-                return;
-            }
-            
-            // Guardar o nome anterior para notificação
-            const nomeAnterior = card.responsavel || 'Não atribuído';
-            
-            card.responsavel = tecnico.nome;
-            card.responsavel_id = tecnico.id;
-            
-            await autenticarSupabase();
-            
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient
-                        .from('lojas')
-                        .update({ 
-                            responsavel_id: tecnico.id,
-                            responsavel_nome: tecnico.nome 
-                        })
-                        .eq('id', card.id);
-                    if (error) {
-                        console.error('Erro ao atribuir técnico:', error);
-                        showNotification('❌ Erro ao atribuir técnico!');
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Erro ao atribuir técnico:', e);
-                    showNotification('❌ Erro ao atribuir técnico!');
-                    return;
-                }
-            }
-            
-            document.getElementById('modalResponsavel').textContent = tecnico.nome;
-            
-            // Atualizar avatar
-            const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-            if (avatarImg && avatarImg.tagName === 'IMG') {
-                avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tecnico.nome)}&background=4F46E5&color=fff&size=20`;
-            }
-            
-            await loadLojas();
-            renderCards();
-            atualizarDashboard();
-            atualizarMetricasPainel();
-            showNotification(`✅ Técnico atribuído: ${nomeAnterior} → ${tecnico.nome}`);
-        }
-
-        // ============================================================
-        // REMOVER TÉCNICO
-        // ============================================================
-        async function removerTecnicoFromModal() {
-            if (!currentCardId) {
-                showNotification('❌ Nenhuma loja selecionada!');
-                return;
-            }
-            const card = initialCards.find(c => c.id === currentCardId);
-            if (!card) {
-                showNotification('❌ Loja não encontrada!');
-                return;
-            }
-            if (!card.responsavel_id) {
-                showNotification('ℹ️ Esta loja não tem técnico atribuído.');
-                return;
-            }
-            if (!confirm(`Remover o técnico "${card.responsavel}" da loja ${card.loja}?`)) {
-                return;
-            }
-            
-            const nomeRemovido = card.responsavel;
-            card.responsavel = 'Não atribuído';
-            card.responsavel_id = null;
-            
-            await autenticarSupabase();
-            
-            if (supabaseClient) {
-                try {
-                    const { error } = await supabaseClient
-                        .from('lojas')
-                        .update({ 
-                            responsavel_id: null, 
-                            responsavel_nome: 'Não atribuído' 
-                        })
-                        .eq('id', card.id);
-                    if (error) {
-                        console.error('Erro ao remover técnico:', error);
-                        showNotification('❌ Erro ao remover técnico!');
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Erro ao remover técnico:', e);
-                    showNotification('❌ Erro ao remover técnico!');
-                    return;
-                }
-            }
-            
-            document.getElementById('modalResponsavel').textContent = 'Não atribuído';
-            
-            const avatarImg = document.querySelector('#modalResponsavel')?.previousElementSibling;
-            if (avatarImg && avatarImg.tagName === 'IMG') {
-                avatarImg.src = 'https://ui-avatars.com/api/?name=Admin&background=64748b&color=fff&size=20';
-            }
-            
-            document.getElementById('modalAssignTecnico').value = '';
-            await loadLojas();
-            renderCards();
-            atualizarDashboard();
-            atualizarMetricasPainel();
-            showNotification(`✅ Técnico ${nomeRemovido} removido da loja ${card.loja}!`);
         }
 
         // ============================================================
@@ -2138,7 +2322,6 @@
             const sortedTecnicos = Object.keys(tecnicosMap).sort((a, b) => tecnicosMap[b].total - tecnicosMap[a].total);
             document.getElementById('totalTecnicos').textContent = `${sortedTecnicos.length} técnicos`;
 
-            // Gráfico de barras
             const ctx = document.getElementById('barChart').getContext('2d');
             if (barChartInstance) barChartInstance.destroy();
             barChartInstance = new Chart(ctx, {
@@ -2164,7 +2347,6 @@
                 }
             });
 
-            // Gráfico de pizza
             const ctx2 = document.getElementById('doughnutChart').getContext('2d');
             if (doughnutChartInstance) doughnutChartInstance.destroy();
             const statusLabels = ['Agendadas', 'Em Execução', 'Bloqueadas', 'Revisão', 'Concluídas'];
@@ -2176,7 +2358,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12, padding: 6 } } }, cutout: '60%' }
             });
 
-            // Detalhamento por técnico
             const detailList = document.getElementById('tecnicoDetailList');
             if (sortedTecnicos.length === 0) {
                 detailList.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Nenhum técnico com lojas atribuídas</p>';
@@ -2688,8 +2869,6 @@
                     assignSelect.value = cardData.responsavel_id;
                 } else {
                     assignSelect.value = '';
-                    cardData.responsavel = 'Não atribuído';
-                    cardData.responsavel_id = null;
                 }
             } else {
                 assignSelect.value = '';
@@ -3033,7 +3212,68 @@
         }
 
         // ============================================================
-        // ASSINATURA
+        // INICIALIZAÇÃO
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 ROCC carregado!');
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const lojaId = params.get('loja');
+            const savedUser = sessionStorage.getItem('rocc_user');
+
+            if (token && lojaId) {
+                carregarTudo().then(() => ativarModoTecnico(lojaId, token));
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'flex';
+                return;
+            }
+
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    currentUser = user;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'flex';
+                    document.getElementById('userNameDisplay').textContent = user.nome;
+                    document.getElementById('userRoleDisplay').textContent =
+                        user.role === 'admin' ? 'Administrador' :
+                        user.role === 'gerente' ? 'Gerente' :
+                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                    carregarTudo();
+                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+                } catch (e) { console.warn('Sessão inválida', e); }
+            }
+
+            document.getElementById('loginBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogin();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const loginScreen = document.getElementById('loginScreen');
+                    if (loginScreen.style.display !== 'none') handleLogin();
+                }
+                if (e.key === 'Escape') {
+                    closeCardDetail();
+                    closeUserManagement();
+                    closeAddCardModal();
+                    closeResetPasswordModal();
+                }
+            });
+
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+        });
+
+        // ============================================================
+        // ASSINATURA (mantida do original - resumida)
         // ============================================================
         let assinaturas = {
             gerente: { data: null, canvas: null, ctx: null, isDrawing: false, lastX: 0, lastY: 0 },
@@ -3301,6 +3541,7 @@
         }
 
         function gerarConteudoRAT(loja, pdvs, assinaturaGerente, assinaturaTecnico, tecnico, checklist, logoHtml) {
+            // Mantido do original
             const statusLabels = { 'pendente': 'Pendente', 'andamento': 'Em Andamento', 'concluido': 'Concluído', 'bloqueado': 'Bloqueado' };
             const dataAtual = new Date().toLocaleDateString('pt-BR');
             const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -3466,67 +3707,6 @@
                 `).join('');
             }
         }
-
-        // ============================================================
-        // INICIALIZAÇÃO
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 ROCC carregado!');
-            const params = new URLSearchParams(window.location.search);
-            const token = params.get('token');
-            const lojaId = params.get('loja');
-            const savedUser = sessionStorage.getItem('rocc_user');
-
-            if (token && lojaId) {
-                carregarTudo().then(() => ativarModoTecnico(lojaId, token));
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContent').style.display = 'flex';
-                return;
-            }
-
-            if (savedUser) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    currentUser = user;
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'flex';
-                    document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' :
-                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
-                    carregarTudo();
-                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
-                } catch (e) { console.warn('Sessão inválida', e); }
-            }
-
-            document.getElementById('loginBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                handleLogin();
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const loginScreen = document.getElementById('loginScreen');
-                    if (loginScreen.style.display !== 'none') handleLogin();
-                }
-                if (e.key === 'Escape') {
-                    closeCardDetail();
-                    closeUserManagement();
-                    closeAddCardModal();
-                    closeResetPasswordModal();
-                }
-            });
-
-            document.querySelectorAll('.modal-overlay').forEach(modal => {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        this.classList.remove('active');
-                        document.body.style.overflow = '';
-                    }
-                });
-            });
-        });
 
         // ============================================================
         // EXPOSIÇÃO GLOBAL
