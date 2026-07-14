@@ -14,23 +14,24 @@
            TEMA ENGEMON IT - BASEADO NAS CORES DA IMAGEM
            ============================================================ */
 
-        /* Cores principais */
+        /* Cores principais - agora dinâmicas via CSS variables */
         :root {
-            --cor-primaria: #043554;      /* Azul Marinho */
+            --cor-primaria: #043554;
             --cor-primaria-claro: #0a4a6e;
-            --cor-secundaria: #5d30a5;    /* Roxo */
+            --cor-secundaria: #5d30a5;
             --cor-secundaria-claro: #7a4fc9;
-            --cor-destaque: #d32976;      /* Rosa */
+            --cor-destaque: #d32976;
             --cor-destaque-claro: #e84a8f;
-            --cor-alerta: #ff7300;        /* Laranja */
+            --cor-alerta: #ff7300;
             --cor-alerta-claro: #ff9440;
-            --cor-suave: #f9d1b7;         /* Pêssego */
+            --cor-suave: #f9d1b7;
             --cor-suave-escuro: #e8b89a;
             --cor-fundo: #041a2e;
             --cor-card: #0a2740;
             --cor-borda: #1a4a6e;
             --cor-texto: #e8f0f8;
             --cor-texto-claro: #8ab4d6;
+            --cor-avatar: #5d30a5;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,6 +42,182 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        /* ===== MODO TELA CHEIA ===== */
+        .fullscreen-mode .kanban-scroll {
+            padding: 8px 12px !important;
+        }
+
+        .fullscreen-mode .kanban-column {
+            min-width: 150px !important;
+        }
+
+        .fullscreen-mode .kanban-card {
+            padding: 8px 10px !important;
+            font-size: 11px !important;
+        }
+
+        .fullscreen-mode .kanban-card .font-bold {
+            font-size: 11px !important;
+        }
+
+        .fullscreen-mode .kanban-card .text-xs {
+            font-size: 9px !important;
+        }
+
+        .fullscreen-mode .bottom-panel {
+            max-height: 120px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .panel-content {
+            opacity: 1 !important;
+            pointer-events: all !important;
+        }
+
+        .fullscreen-mode .bottom-panel.collapsed {
+            max-height: 32px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .grid {
+            gap: 4px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .panel-card {
+            padding: 4px 8px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .panel-title {
+            font-size: 8px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .text-xs {
+            font-size: 9px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .text-sm {
+            font-size: 11px !important;
+        }
+
+        .fullscreen-mode .bottom-panel .text-2xl {
+            font-size: 18px !important;
+        }
+
+        .fullscreen-mode .fab {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 16px !important;
+            bottom: 16px !important;
+            right: 16px !important;
+        }
+
+        .fullscreen-mode .dark-header {
+            padding: 4px 8px !important;
+        }
+
+        .fullscreen-mode .dark-header .logo-engemon {
+            max-height: 28px !important;
+        }
+
+        .fullscreen-mode .dark-header h1 {
+            font-size: 12px !important;
+        }
+
+        .fullscreen-mode .dark-header .btn-export,
+        .fullscreen-mode .dark-header .btn-sync,
+        .fullscreen-mode .dark-header .btn-dashboard-tab,
+        .fullscreen-mode .dark-header .btn-config {
+            padding: 4px 10px !important;
+            font-size: 10px !important;
+        }
+
+        .fullscreen-mode .dark-header input,
+        .fullscreen-mode .dark-header select {
+            padding: 4px 8px !important;
+            font-size: 10px !important;
+            width: 120px !important;
+        }
+
+        .fullscreen-mode .dark-header .flex.items-center.gap-2 {
+            gap: 4px !important;
+        }
+
+        .fullscreen-mode .dark-header .border-l {
+            padding-left: 6px !important;
+        }
+
+        .fullscreen-mode .dark-header .w-6.h-6 {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        .fullscreen-mode .dark-header .hidden.sm\:block {
+            display: none !important;
+        }
+
+        .fullscreen-mode .dark-header .install-prompt {
+            padding: 4px 10px !important;
+            font-size: 10px !important;
+        }
+
+        .fullscreen-mode .dark-header .install-prompt i {
+            font-size: 14px !important;
+        }
+
+        .fullscreen-mode .dark-header .install-prompt .install-text {
+            font-size: 10px !important;
+        }
+
+        .fullscreen-mode .dark-header .metric-edit {
+            font-size: 10px !important;
+        }
+
+        .fullscreen-mode .kanban-column-inner {
+            min-height: 180px !important;
+        }
+
+        .fullscreen-mode .kanban-column .dark-header {
+            padding: 4px 8px !important;
+        }
+
+        .fullscreen-mode .kanban-column .dark-header h3 {
+            font-size: 10px !important;
+        }
+
+        .fullscreen-mode .kanban-column .dark-header span {
+            font-size: 9px !important;
+        }
+
+        /* ===== BOTÃO TELA CHEIA ===== */
+        .btn-fullscreen {
+            background: rgba(93, 48, 165, 0.2);
+            color: var(--cor-secundaria-claro);
+            border: 1px solid rgba(93, 48, 165, 0.3);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-fullscreen:hover {
+            background: rgba(93, 48, 165, 0.35);
+            border-color: var(--cor-secundaria);
+            transform: scale(1.02);
+        }
+
+        .btn-fullscreen.active {
+            background: rgba(211, 41, 118, 0.2);
+            border-color: rgba(211, 41, 118, 0.3);
+            color: var(--cor-destaque);
+        }
+
+        .btn-fullscreen.active:hover {
+            background: rgba(211, 41, 118, 0.35);
         }
 
         /* Cards e containers */
@@ -197,10 +374,14 @@
             display: none !important;
         }
 
+        .modo-tecnico .kanban-column {
+            min-width: 180px !important;
+        }
+
         /* ===== KANBAN CARDS ===== */
         .kanban-card {
             cursor: grab;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border-left: 6px solid transparent;
             position: relative;
             user-select: none;
@@ -233,7 +414,7 @@
 
         .kanban-column-inner {
             min-height: 250px;
-            transition: background 0.2s ease;
+            transition: background 0.15s ease;
             border-radius: 8px;
             padding: 4px;
         }
@@ -242,6 +423,75 @@
             background: rgba(93, 48, 165, 0.1);
             border: 2px dashed var(--cor-secundaria);
         }
+
+        /* ===== MENU DE TRÊS PONTINHOS ===== */
+        .card-menu-btn {
+            position: absolute;
+            top: 6px;
+            right: 32px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cor-texto-claro);
+            border: 1px solid var(--cor-borda);
+            cursor: pointer;
+            font-size: 11px;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+
+        .kanban-card:hover .card-menu-btn { opacity: 1; }
+
+        .card-menu-btn:hover {
+            background: var(--cor-card);
+            border-color: var(--cor-secundaria);
+            color: #fff;
+        }
+
+        .card-menu-dropdown {
+            position: absolute;
+            top: 30px;
+            right: 0;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            min-width: 150px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 20;
+            padding: 4px 0;
+        }
+
+        .card-menu-dropdown.active { display: block; }
+
+        .card-menu-dropdown .menu-item {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: var(--cor-texto);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+
+        .card-menu-dropdown .menu-item:hover {
+            background: rgba(93, 48, 165, 0.2);
+            color: #fff;
+        }
+
+        .card-menu-dropdown .menu-item.danger { color: var(--cor-destaque); }
+        .card-menu-dropdown .menu-item.danger:hover { background: rgba(211, 41, 118, 0.2); }
+        .card-menu-dropdown .menu-item .fa-edit { color: var(--cor-suave); }
 
         /* ===== PAINEL INFERIOR ===== */
         .bottom-panel {
@@ -302,11 +552,13 @@
             overflow-x: auto;
             overflow-y: auto;
             padding: 16px 24px;
+            transition: padding 0.3s ease;
         }
 
         .kanban-column {
             min-width: 200px;
             flex: 1;
+            transition: min-width 0.3s ease;
         }
 
         @media (max-width: 768px) {
@@ -461,6 +713,7 @@
             justify-content: center;
             font-size: 20px;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .fab:hover {
@@ -578,34 +831,6 @@
             background: rgba(211, 41, 118, 0.35);
             border-color: var(--cor-destaque);
         }
-
-        /* ===== DELETE BUTTON ===== */
-        .delete-btn {
-            opacity: 0;
-            transition: all 0.2s ease;
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            background: rgba(0,0,0,0.7);
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--cor-destaque);
-            border: 1px solid var(--cor-destaque);
-            cursor: pointer;
-            font-size: 11px;
-            z-index: 10;
-        }
-
-        .delete-btn:hover {
-            background: #7f1d1d;
-            color: white;
-        }
-
-        .kanban-card:hover .delete-btn { opacity: 1; }
 
         /* ===== DASHBOARD ===== */
         #dashboardTab {
@@ -1466,9 +1691,10 @@
         }
 
         .logo-engemon {
-            max-height: 60px;
+            max-height: 40px;
             width: auto;
             object-fit: contain;
+            cursor: pointer;
         }
 
         /* ===== STATUS PILLS ===== */
@@ -1491,6 +1717,320 @@
         .status-pill.bloqueada { background: rgba(211, 41, 118, 0.2); color: var(--cor-destaque); border: 1px solid rgba(211, 41, 118, 0.3); }
         .status-pill.revisao { background: rgba(93, 48, 165, 0.2); color: var(--cor-secundaria-claro); border: 1px solid rgba(93, 48, 165, 0.3); }
         .status-pill.concluida { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+
+        /* ===== CONFIGURAÇÃO ===== */
+        .btn-config {
+            background: rgba(249, 209, 183, 0.1);
+            color: var(--cor-texto-claro);
+            border: 1px solid var(--cor-borda);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-config:hover {
+            background: rgba(249, 209, 183, 0.2);
+            border-color: var(--cor-suave);
+            color: #fff;
+        }
+
+        .color-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--cor-fundo);
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda);
+            margin-bottom: 8px;
+        }
+
+        .color-picker-item label {
+            font-size: 12px;
+            color: var(--cor-texto-claro);
+            min-width: 120px;
+        }
+
+        .color-picker-item input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--cor-borda);
+            border-radius: 8px;
+            cursor: pointer;
+            background: transparent;
+            padding: 2px;
+        }
+
+        .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker-item input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 6px;
+        }
+
+        .btn-reset-colors {
+            background: rgba(211, 41, 118, 0.2);
+            color: var(--cor-destaque);
+            border: 1px solid rgba(211, 41, 118, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset-colors:hover {
+            background: rgba(211, 41, 118, 0.35);
+        }
+
+        /* ===== NOTIFICAÇÃO EM TEMPO REAL ===== */
+        .notification-badge {
+            position: relative;
+        }
+
+        .notification-badge .badge-count {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--cor-destaque);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--cor-borda);
+            font-size: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            background: var(--cor-card);
+        }
+
+        .notification-item .notif-time {
+            font-size: 10px;
+            color: var(--cor-texto-claro);
+        }
+
+        /* ===== INSTALL APP ===== */
+        .install-prompt {
+            background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-destaque));
+            border-radius: 8px;
+            padding: 12px 20px;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .install-prompt:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(93, 48, 165, 0.4);
+        }
+
+        .install-prompt i {
+            font-size: 20px;
+        }
+
+        .install-prompt .install-text {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ===== MODO TÉCNICO - OCULTAR ELEMENTOS ===== */
+        .modo-tecnico .btn-config,
+        .modo-tecnico .btn-dashboard-tab,
+        .modo-tecnico .btn-export,
+        .modo-tecnico .btn-sync {
+            display: none !important;
+        }
+
+        /* ===== ANIMAÇÃO DE ENTRADA DOS CARDS ===== */
+        .kanban-card {
+            animation: cardAppear 0.3s ease;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ===== SCROLL INDICATOR ===== */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(93, 48, 165, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 30;
+            display: none;
+            animation: pulse 2s ease-in-out infinite;
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .scroll-indicator.show {
+            display: block;
+        }
+
+        .fullscreen-mode .scroll-indicator {
+            bottom: 60px;
+        }
+
+        /* ===== BOTÃO DE ROLAGEM RÁPIDA ===== */
+        .btn-scroll-top {
+            position: fixed;
+            bottom: 140px;
+            right: 20px;
+            background: rgba(93, 48, 165, 0.3);
+            color: var(--cor-texto-claro);
+            border: 1px solid var(--cor-borda);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 25;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-scroll-top:hover {
+            background: rgba(93, 48, 165, 0.5);
+            transform: scale(1.1);
+        }
+
+        .btn-scroll-top.show {
+            display: flex;
+        }
+
+        .fullscreen-mode .btn-scroll-top {
+            bottom: 100px;
+        }
+
+        /* ===== MODAL DE EDIÇÃO DO CARD ===== */
+        .edit-card-modal .modal-content {
+            max-width: 600px;
+        }
+
+        .edit-card-modal .form-group {
+            margin-bottom: 16px;
+        }
+
+        .edit-card-modal .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cor-texto-claro);
+            margin-bottom: 4px;
+        }
+
+        .edit-card-modal .form-group input,
+        .edit-card-modal .form-group select,
+        .edit-card-modal .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .edit-card-modal .form-group input:focus,
+        .edit-card-modal .form-group select:focus,
+        .edit-card-modal .form-group textarea:focus {
+            border-color: var(--cor-secundaria);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(93, 48, 165, 0.3);
+        }
+
+        .edit-card-modal .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .edit-card-modal .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .edit-card-modal .btn-save-edit {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: var(--cor-secundaria);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-card-modal .btn-save-edit:hover {
+            background: var(--cor-secundaria-claro);
+            transform: translateY(-1px);
+        }
+
+        .edit-card-modal .btn-save-edit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .edit-card-modal .form-group .field-hint {
+            font-size: 10px;
+            color: var(--cor-texto-claro);
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 640px) {
+            .edit-card-modal .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1542,9 +2082,13 @@
     <!-- APP -->
     <div id="appContent">
         <!-- TOP BAR -->
-        <header class="dark-header border-b px-3 md:px-6 py-2 md:py-3 flex flex-wrap items-center justify-between flex-shrink-0 z-50">
+        <header class="dark-header border-b px-3 md:px-6 py-2 md:py-3 flex flex-wrap items-center justify-between flex-shrink-0 z-50" id="mainHeader">
             <div class="flex items-center gap-2 md:gap-3">
-                <div class="bg-[#5d30a5] text-white p-1.5 md:p-2 rounded-lg text-base md:text-lg font-bold">ROCC</div>
+                <!-- LOGO ENGEMON IT -->
+                <img src="https://iwomsbgytjkvssgjynie.supabase.co/storage/v1/object/sign/logo/LOGOS-01.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jYmJlY2M2My00ODAyLTQ0ZDgtYWExYi1jNmU2OTg3ODliZDYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJsb2dvL0xPR09TLTAxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI5Mjc5MTAsImV4cCI6MTg0NTk5OTkxMH0.kI0uv2J4VbL9driOucDGywUrn7IlFUJPfUR09mUcYGE" 
+                     alt="Engemon IT" 
+                     class="logo-engemon" 
+                     onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\'text-white font-bold text-lg\'>ENGEMON IT</span>'" />
                 <h1 class="font-bold text-white text-sm md:text-base hidden sm:block" id="pageTitle">Kanban</h1>
                 <div class="flex items-center gap-1 md:gap-2">
                     <span class="bg-emerald-600/20 text-emerald-400 text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium border border-emerald-500/30 flex items-center gap-1">
@@ -1562,9 +2106,26 @@
                 </div>
             </div>
             <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                <!-- BOTÃO TELA CHEIA -->
+                <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()" title="Expandir tela para ver mais cards">
+                    <i class="fas fa-expand"></i>
+                    <span class="hidden sm:inline">Expandir</span>
+                </button>
+
+                <!-- INSTALL APP -->
+                <div class="install-prompt" id="installPrompt" onclick="installApp()">
+                    <i class="fas fa-download"></i>
+                    <span class="install-text">Instalar App</span>
+                </div>
+                
                 <button class="btn-dashboard-tab" onclick="toggleDashboardTab()" id="dashboardTabBtn">
                     <i class="fas fa-chart-bar"></i> Dashboard
                 </button>
+                
+                <button class="btn-config" onclick="abrirConfiguracoes()" id="configBtn" style="display:none;">
+                    <i class="fas fa-cog"></i> Configurações
+                </button>
+                
                 <div class="flex items-center gap-1 md:gap-2">
                     <input type="text" placeholder="🔍 Buscar..." class="dark-input px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm w-28 md:w-40 focus:w-36 md:focus:w-56 transition-all" id="searchStoreFilter" oninput="filterCards()" />
                     <select class="dark-select px-1 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm max-w-[120px] md:max-w-[180px]" id="responsibleFilter" onchange="filterCards()">
@@ -1585,7 +2146,11 @@
                     <i class="fas fa-sign-out-alt"></i>
                     <span class="hidden sm:inline">Sair</span>
                 </button>
-                <div class="flex items-center gap-2 border-l pl-2 md:pl-3 border-[#1a4a6e]">
+                <div class="flex items-center gap-2 border-l pl-2 md:pl-3 border-[#1a4a6e] notification-badge">
+                    <button class="relative" onclick="toggleNotifications()" title="Notificações">
+                        <i class="fas fa-bell text-[#a78bfa] text-lg"></i>
+                        <span class="badge-count" id="notifCount" style="display:none;">0</span>
+                    </button>
                     <img src="https://ui-avatars.com/api/?name=Admin&background=5d30a5&color=fff&size=28&bold=true" class="rounded-full border border-[#5d30a5]/30 w-6 h-6 md:w-8 md:h-8" id="userAvatar" />
                     <div class="text-xs md:text-sm leading-tight hidden sm:block">
                         <p class="font-semibold text-white" id="userNameDisplay">Administrador</p>
@@ -1595,12 +2160,33 @@
             </div>
         </header>
 
+        <!-- NOTIFICAÇÕES DROPDOWN -->
+        <div id="notificationsDropdown" class="absolute right-4 top-16 bg-[#0a2740] border border-[#1a4a6e] rounded-xl shadow-2xl w-80 max-h-96 overflow-hidden z-50" style="display:none;">
+            <div class="p-3 border-b border-[#1a4a6e] flex justify-between items-center">
+                <h3 class="font-semibold text-white text-sm">🔔 Notificações</h3>
+                <button onclick="marcarTodasLidas()" class="text-[10px] text-[#a78bfa] hover:text-white">Marcar todas como lidas</button>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <div class="notification-item text-slate-400 text-center py-4 text-sm">Nenhuma notificação</div>
+            </div>
+        </div>
+
         <!-- KANBAN -->
         <div class="kanban-wrapper" id="kanbanWrapper">
             <div class="kanban-scroll" id="kanbanScroll">
                 <div class="flex gap-3 md:gap-4 min-w-[700px] md:min-w-[900px] h-full" id="kanbanContainer"></div>
             </div>
         </div>
+
+        <!-- INDICADOR DE SCROLL -->
+        <div class="scroll-indicator" id="scrollIndicator">
+            <i class="fas fa-chevron-left mr-2"></i> Role para os lados para ver mais <i class="fas fa-chevron-right ml-2"></i>
+        </div>
+
+        <!-- BOTÃO DE ROLAGEM PARA O TOPO -->
+        <button class="btn-scroll-top" id="scrollTopBtn" onclick="scrollToTop()" title="Voltar ao topo">
+            <i class="fas fa-arrow-up"></i>
+        </button>
 
         <!-- DASHBOARD TAB -->
         <div id="dashboardTab">
@@ -1727,8 +2313,74 @@
         </div>
 
         <!-- BOTÃO FLUTUANTE -->
-        <div class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-40">
+        <div class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-40" id="fabContainer">
             <button class="fab" onclick="showQuickAction()"><i class="fas fa-plus"></i></button>
+        </div>
+
+        <!-- MODAL DE EDIÇÃO DO CARD -->
+        <div id="editCardModal" class="modal-overlay edit-card-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-edit text-[#f9d1b7] mr-2"></i>Editar Loja</h2>
+                    <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#1a4a6e]" onclick="fecharEditCard()"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome da Loja *</label>
+                        <input type="text" id="editLojaNome" placeholder="Ex: Loja 1001" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cidade *</label>
+                            <input type="text" id="editLojaCidade" placeholder="Ex: São Paulo" />
+                        </div>
+                        <div class="form-group">
+                            <label>UF *</label>
+                            <input type="text" id="editLojaUf" maxlength="2" placeholder="SP" style="text-transform:uppercase" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Regional</label>
+                        <input type="text" id="editLojaRegional" placeholder="Ex: Sudeste" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Responsável</label>
+                            <select id="editLojaResponsavel" class="dark-select">
+                                <option value="">Selecione um responsável...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="editLojaStatus" class="dark-select">
+                                <option value="agendada">Agendada</option>
+                                <option value="execucao">Em Execução</option>
+                                <option value="bloqueada">Bloqueada</option>
+                                <option value="revisao">Revisão</option>
+                                <option value="concluida">Concluída</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Agendada</label>
+                            <input type="date" id="editLojaData" />
+                        </div>
+                        <div class="form-group">
+                            <label>Quantidade de PDVs</label>
+                            <input type="number" id="editLojaPdvs" min="0" placeholder="0" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Observações</label>
+                        <textarea id="editLojaDescricao" rows="3" placeholder="Adicione observações sobre a loja..."></textarea>
+                    </div>
+                    <button class="btn-save-edit" id="btnSalvarEdit" onclick="salvarEditCard()">
+                        <i class="fas fa-save mr-2"></i> Salvar Alterações
+                    </button>
+                    <input type="hidden" id="editCardId" value="" />
+                </div>
+            </div>
         </div>
 
         <!-- MODAL CARD -->
@@ -1907,9 +2559,10 @@
                                 </div>
                             </div>
                             <div class="border-t border-[#1a4a6e] pt-3 flex gap-2">
-                                <input type="text" class="chat-input flex-1 px-3 py-2 rounded-lg text-sm bg-[#041a2e] border border-[#1a4a6e] placeholder-slate-500 focus:border-[#5d30a5] focus:outline-none" placeholder="Digite sua mensagem..." id="chatInput" onkeypress="if(event.key==='Enter') sendMessage()" />
+                                <input type="text" class="chat-input flex-1 px-3 py-2 rounded-lg text-sm bg-[#041a2e] border border-[#1a4a6e] placeholder-slate-500 focus:border-[#5d30a5] focus:outline-none" placeholder="Digite sua mensagem... (use @ para mencionar)" id="chatInput" onkeypress="if(event.key==='Enter') sendMessage()" />
                                 <button class="bg-[#5d30a5] hover:bg-[#7a4fc9] text-white px-4 py-2 rounded-lg transition" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
                             </div>
+                            <div class="text-[10px] text-slate-500 mt-1 text-center">Use @nome para mencionar alguém</div>
                         </div>
                     </div>
 
@@ -2078,6 +2731,60 @@
             </div>
         </div>
 
+        <!-- MODAL CONFIGURAÇÕES -->
+        <div id="configModal" class="modal-overlay">
+            <div class="modal-content max-w-lg">
+                <div class="modal-header">
+                    <h2 class="text-base md:text-xl font-bold text-white"><i class="fas fa-palette text-[#f9d1b7] mr-2"></i>Configurações</h2>
+                    <button class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-[#1a4a6e]" onclick="fecharConfiguracoes()"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-sm text-slate-400 mb-4">Personalize as cores do sistema</p>
+                    <div id="colorPickerList">
+                        <div class="color-picker-item">
+                            <label>Cor Primária</label>
+                            <input type="color" id="colorPrimaria" value="#043554" onchange="aplicarCor('primaria', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('primaria')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor Secundária</label>
+                            <input type="color" id="colorSecundaria" value="#5d30a5" onchange="aplicarCor('secundaria', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('secundaria')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor de Destaque</label>
+                            <input type="color" id="colorDestaque" value="#d32976" onchange="aplicarCor('destaque', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('destaque')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor de Alerta</label>
+                            <input type="color" id="colorAlerta" value="#ff7300" onchange="aplicarCor('alerta', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('alerta')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor de Fundo</label>
+                            <input type="color" id="colorFundo" value="#041a2e" onchange="aplicarCor('fundo', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('fundo')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor dos Cards</label>
+                            <input type="color" id="colorCard" value="#0a2740" onchange="aplicarCor('card', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('card')">↺</button>
+                        </div>
+                        <div class="color-picker-item">
+                            <label>Cor do Texto</label>
+                            <input type="color" id="colorTexto" value="#e8f0f8" onchange="aplicarCor('texto', this.value)" />
+                            <button class="btn-reset-colors" onclick="resetarCor('texto')">↺</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button class="bg-[#5d30a5] hover:bg-[#7a4fc9] text-white px-4 py-2 rounded-lg transition text-sm" onclick="salvarConfiguracoes()"><i class="fas fa-save mr-1"></i> Salvar</button>
+                        <button class="bg-[#d32976]/20 hover:bg-[#d32976]/40 text-[#d32976] px-4 py-2 rounded-lg transition text-sm border border-[#d32976]/30" onclick="resetarTodasCores()"><i class="fas fa-undo mr-1"></i> Resetar Tudo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL RESET SENHA -->
         <div id="resetPasswordModal" class="modal-overlay">
             <div class="modal-content max-w-md">
@@ -2096,7 +2803,74 @@
 
     <script>
         // ============================================================
-        // CONEXÃO SUPABASE - CORRIGIDA
+        // TELA CHEIA - FULLSCREEN
+        // ============================================================
+        let isFullscreen = false;
+
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            const app = document.getElementById('appContent');
+            const btn = document.getElementById('fullscreenBtn');
+            
+            if (isFullscreen) {
+                app.classList.add('fullscreen-mode');
+                btn.innerHTML = '<i class="fas fa-compress"></i><span class="hidden sm:inline">Compactar</span>';
+                btn.classList.add('active');
+                showNotification('📺 Modo expandido ativado! Mais cards visíveis.');
+                
+                setTimeout(() => {
+                    const container = document.getElementById('kanbanContainer');
+                    if (container && container.scrollWidth > container.clientWidth) {
+                        document.getElementById('scrollIndicator').classList.add('show');
+                        setTimeout(() => {
+                            document.getElementById('scrollIndicator').classList.remove('show');
+                        }, 5000);
+                    }
+                }, 500);
+            } else {
+                app.classList.remove('fullscreen-mode');
+                btn.innerHTML = '<i class="fas fa-expand"></i><span class="hidden sm:inline">Expandir</span>';
+                btn.classList.remove('active');
+                document.getElementById('scrollIndicator').classList.remove('show');
+                showNotification('📺 Modo normal restaurado');
+            }
+            
+            try {
+                localStorage.setItem('rocc_fullscreen', isFullscreen ? 'true' : 'false');
+            } catch (e) {}
+        }
+
+        function scrollToTop() {
+            const scroll = document.getElementById('kanbanScroll');
+            if (scroll) {
+                scroll.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            document.getElementById('scrollTopBtn').classList.remove('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const scroll = document.getElementById('kanbanScroll');
+            if (scroll) {
+                scroll.addEventListener('scroll', function() {
+                    const btn = document.getElementById('scrollTopBtn');
+                    if (this.scrollTop > 300) {
+                        btn.classList.add('show');
+                    } else {
+                        btn.classList.remove('show');
+                    }
+                });
+            }
+        });
+
+        try {
+            const saved = localStorage.getItem('rocc_fullscreen');
+            if (saved === 'true') {
+                setTimeout(() => toggleFullscreen(), 1000);
+            }
+        } catch (e) {}
+
+        // ============================================================
+        // CONEXÃO SUPABASE
         // ============================================================
         const SUPABASE_URL = 'https://iwomsbgytjkvssgjynie.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_xRgkEy5RnB2etoGsCxscaA_goFHDpgq';
@@ -2113,7 +2887,257 @@
         let dashboardVisible = false;
         let supabaseAutenticado = true;
         let isModoTecnico = false;
+        let notificacoes = [];
+        let notificacoesLidas = 0;
 
+        // ============================================================
+        // CONFIGURAÇÕES DE COR
+        // ============================================================
+        const CORES_PADRAO = {
+            primaria: '#043554',
+            secundaria: '#5d30a5',
+            destaque: '#d32976',
+            alerta: '#ff7300',
+            fundo: '#041a2e',
+            card: '#0a2740',
+            texto: '#e8f0f8'
+        };
+
+        let coresAtuais = { ...CORES_PADRAO };
+
+        function carregarCoresSalvas() {
+            try {
+                const salvas = localStorage.getItem('rocc_cores');
+                if (salvas) {
+                    coresAtuais = { ...CORES_PADRAO, ...JSON.parse(salvas) };
+                }
+            } catch (e) { console.warn('Erro ao carregar cores:', e); }
+        }
+
+        function salvarCores() {
+            try {
+                localStorage.setItem('rocc_cores', JSON.stringify(coresAtuais));
+            } catch (e) { console.warn('Erro ao salvar cores:', e); }
+        }
+
+        function aplicarCores() {
+            const root = document.documentElement;
+            root.style.setProperty('--cor-primaria', coresAtuais.primaria);
+            root.style.setProperty('--cor-primaria-claro', coresAtuais.primaria + 'cc');
+            root.style.setProperty('--cor-secundaria', coresAtuais.secundaria);
+            root.style.setProperty('--cor-secundaria-claro', coresAtuais.secundaria + 'cc');
+            root.style.setProperty('--cor-destaque', coresAtuais.destaque);
+            root.style.setProperty('--cor-destaque-claro', coresAtuais.destaque + 'cc');
+            root.style.setProperty('--cor-alerta', coresAtuais.alerta);
+            root.style.setProperty('--cor-alerta-claro', coresAtuais.alerta + 'cc');
+            root.style.setProperty('--cor-fundo', coresAtuais.fundo);
+            root.style.setProperty('--cor-card', coresAtuais.card);
+            root.style.setProperty('--cor-texto', coresAtuais.texto);
+            root.style.setProperty('--cor-texto-claro', coresAtuais.texto + '99');
+        }
+
+        function aplicarCor(tipo, valor) {
+            coresAtuais[tipo] = valor;
+            aplicarCores();
+            const inputMap = {
+                primaria: 'colorPrimaria',
+                secundaria: 'colorSecundaria',
+                destaque: 'colorDestaque',
+                alerta: 'colorAlerta',
+                fundo: 'colorFundo',
+                card: 'colorCard',
+                texto: 'colorTexto'
+            };
+            if (inputMap[tipo]) {
+                document.getElementById(inputMap[tipo]).value = valor;
+            }
+        }
+
+        function resetarCor(tipo) {
+            coresAtuais[tipo] = CORES_PADRAO[tipo];
+            aplicarCores();
+            const inputMap = {
+                primaria: 'colorPrimaria',
+                secundaria: 'colorSecundaria',
+                destaque: 'colorDestaque',
+                alerta: 'colorAlerta',
+                fundo: 'colorFundo',
+                card: 'colorCard',
+                texto: 'colorTexto'
+            };
+            if (inputMap[tipo]) {
+                document.getElementById(inputMap[tipo]).value = CORES_PADRAO[tipo];
+            }
+            salvarCores();
+            showNotification(`🔄 Cor resetada para o padrão`);
+        }
+
+        function resetarTodasCores() {
+            if (!confirm('Resetar todas as cores para o padrão?')) return;
+            coresAtuais = { ...CORES_PADRAO };
+            aplicarCores();
+            Object.keys(CORES_PADRAO).forEach(key => {
+                const inputMap = {
+                    primaria: 'colorPrimaria',
+                    secundaria: 'colorSecundaria',
+                    destaque: 'colorDestaque',
+                    alerta: 'colorAlerta',
+                    fundo: 'colorFundo',
+                    card: 'colorCard',
+                    texto: 'colorTexto'
+                };
+                if (inputMap[key]) {
+                    document.getElementById(inputMap[key]).value = CORES_PADRAO[key];
+                }
+            });
+            salvarCores();
+            showNotification('🔄 Todas as cores foram resetadas!');
+        }
+
+        function salvarConfiguracoes() {
+            salvarCores();
+            showNotification('✅ Configurações salvas!');
+            fecharConfiguracoes();
+        }
+
+        function abrirConfiguracoes() {
+            document.getElementById('colorPrimaria').value = coresAtuais.primaria;
+            document.getElementById('colorSecundaria').value = coresAtuais.secundaria;
+            document.getElementById('colorDestaque').value = coresAtuais.destaque;
+            document.getElementById('colorAlerta').value = coresAtuais.alerta;
+            document.getElementById('colorFundo').value = coresAtuais.fundo;
+            document.getElementById('colorCard').value = coresAtuais.card;
+            document.getElementById('colorTexto').value = coresAtuais.texto;
+            document.getElementById('configModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharConfiguracoes() {
+            document.getElementById('configModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // ============================================================
+        // NOTIFICAÇÕES EM TEMPO REAL
+        // ============================================================
+        function addNotificacao(mensagem, tipo = 'info', link = null) {
+            const notif = {
+                id: Date.now(),
+                mensagem: mensagem,
+                tipo: tipo,
+                link: link,
+                data: new Date(),
+                lida: false
+            };
+            notificacoes.unshift(notif);
+            atualizarBadgeNotificacoes();
+            renderNotificacoes();
+            showNotification(mensagem);
+            
+            if (link) {
+                notif.link = link;
+            }
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('ROCC - Nova notificação', {
+                    body: mensagem,
+                    icon: 'https://iwomsbgytjkvssgjynie.supabase.co/storage/v1/object/sign/logo/LOGOS-01.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jYmJlY2M2My00ODAyLTQ0ZDgtYWExYi1jNmU2OTg3ODliZDYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJsb2dvL0xPR09TLTAxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI5Mjc5MTAsImV4cCI6MTg0NTk5OTkxMH0.kI0uv2J4VbL9driOucDGywUrn7IlFUJPfUR09mUcYGE'
+                });
+            }
+        }
+
+        function atualizarBadgeNotificacoes() {
+            const naoLidas = notificacoes.filter(n => !n.lida).length;
+            const badge = document.getElementById('notifCount');
+            if (naoLidas > 0) {
+                badge.style.display = 'flex';
+                badge.textContent = naoLidas;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderNotificacoes() {
+            const list = document.getElementById('notificationList');
+            if (notificacoes.length === 0) {
+                list.innerHTML = '<div class="notification-item text-slate-400 text-center py-4 text-sm">Nenhuma notificação</div>';
+                return;
+            }
+            list.innerHTML = notificacoes.map(notif => `
+                <div class="notification-item ${notif.lida ? 'opacity-60' : ''}" onclick="${notif.link ? `window.location.href='${notif.link}'` : ''}">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[#a78bfa]">${notif.tipo === 'info' ? 'ℹ️' : notif.tipo === 'success' ? '✅' : notif.tipo === 'warning' ? '⚠️' : '🔔'}</span>
+                        <div class="flex-1">
+                            <p class="text-sm text-white">${notif.mensagem}</p>
+                            <span class="notif-time">${new Date(notif.data).toLocaleString('pt-BR')}</span>
+                            ${!notif.lida ? '<span class="text-[10px] bg-[#5d30a5] text-white px-1.5 py-0.5 rounded-full ml-2">Nova</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationsDropdown');
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                dropdown.style.display = 'block';
+                renderNotificacoes();
+            }
+        }
+
+        function marcarTodasLidas() {
+            notificacoes.forEach(n => n.lida = true);
+            atualizarBadgeNotificacoes();
+            renderNotificacoes();
+            showNotification('✅ Todas as notificações marcadas como lidas');
+        }
+
+        // ============================================================
+        // INSTALL APP
+        // ============================================================
+        let deferredPrompt = null;
+
+        function iniciarInstallApp() {
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                document.getElementById('installPrompt').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('installPrompt').style.display = 'flex';
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installPrompt').style.display = 'flex';
+            });
+            
+            window.addEventListener('appinstalled', () => {
+                document.getElementById('installPrompt').style.display = 'none';
+                showNotification('✅ App instalado com sucesso!');
+            });
+        }
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showNotification('✅ Instalando aplicativo...');
+                    } else {
+                        showNotification('❌ Instalação cancelada');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                showNotification('📱 Clique no menu do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial"');
+            }
+        }
+
+        // ============================================================
+        // INICIALIZAR SUPABASE
+        // ============================================================
         function iniciarSupabase() {
             if (window.supabase && typeof window.supabase.createClient === 'function') {
                 supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -2193,10 +3217,25 @@
                         user.role === 'admin' ? 'Administrador' :
                         user.role === 'gerente' ? 'Gerente' :
                         user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                    
+                    if (user.role === 'admin') {
+                        document.getElementById('configBtn').style.display = 'inline-flex';
+                    } else {
+                        document.getElementById('configBtn').style.display = 'none';
+                    }
+                    
                     await carregarTudo();
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
                     showNotification(`👋 Bem-vindo, ${user.nome}!`);
+                    
+                    carregarCoresSalvas();
+                    aplicarCores();
+                    iniciarInstallApp();
+                    
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission();
+                    }
                 } else {
                     errorEl.textContent = '❌ E-mail ou senha inválidos!';
                     btn.disabled = false;
@@ -2216,7 +3255,7 @@
         function populateResponsavelSelects() {
             const usuariosComLogin = USERS.filter(u => u.email && u.email.trim() !== '');
             
-            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"]');
+            const selects = document.querySelectorAll('select[id$="Responsavel"], select[id="responsibleInput"], select[id="newLojaResponsavel"], select[id="editLojaResponsavel"]');
             selects.forEach(select => {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Selecione um responsável...</option>';
@@ -2409,6 +3448,12 @@
                     showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs! Responsável: ${usuario.nome}`);
                     atualizarMetricasPainel();
                     atualizarDashboard();
+                    
+                    const tecnicos = USERS.filter(u => u.role === 'tecnico' && u.id !== usuario.id);
+                    tecnicos.forEach(t => {
+                        addNotificacao(`📋 Nova loja ${nomeLoja} criada por ${usuario.nome}`, 'info');
+                    });
+                    
                     return;
                 }
             } catch (error) {
@@ -2418,7 +3463,291 @@
         }
 
         // ============================================================
-        // ATRIBUIR TÉCNICO - CORRIGIDA (SALVA NO BANCO)
+        // DUPLICAR CARD
+        // ============================================================
+        async function duplicarCard(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            if (!confirm(`Duplicar ${card.loja}?`)) return;
+
+            try {
+                await autenticarSupabase();
+                
+                const novoNome = `${card.loja} (cópia)`;
+                const novoCodigo = `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`;
+                
+                if (supabaseClient) {
+                    const lojaData = {
+                        nome: novoNome,
+                        codigo: novoCodigo,
+                        responsavel_id: card.responsavel_id || null,
+                        responsavel_nome: card.responsavel || null,
+                        status: 'agendada',
+                        regional: card.regional || '',
+                        cidade: card.cidade || '',
+                        uf: card.uf || '',
+                        pdvs: card.pdvs || 0,
+                        comentarios: 0,
+                        data_agendada: card.data_agendada || null,
+                        descricao: card.descricao || '',
+                        ordem: 999
+                    };
+
+                    const { data: inserted, error } = await supabaseClient
+                        .from('lojas')
+                        .insert(lojaData)
+                        .select()
+                        .single();
+
+                    if (error) {
+                        console.error('Erro ao duplicar loja:', error);
+                        showNotification('❌ Erro ao duplicar loja!');
+                        return;
+                    }
+
+                    const newCard = {
+                        id: inserted.id,
+                        loja: novoNome,
+                        responsavel: card.responsavel || 'Não atribuído',
+                        responsavel_id: card.responsavel_id || null,
+                        status: 'agendada',
+                        regional: card.regional || '',
+                        cidade: card.cidade || '',
+                        uf: card.uf || '',
+                        pdvs: card.pdvs || 0,
+                        comentarios: 0,
+                        data: card.data || 'Hoje',
+                        data_agendada: card.data_agendada || null,
+                        descricao: card.descricao || '',
+                        ordem: inserted.ordem || 0
+                    };
+
+                    initialCards.push(newCard);
+                    pdvsPorLoja[inserted.id] = [];
+
+                    const pdvsOriginais = pdvsPorLoja[card.id] || [];
+                    for (const pdv of pdvsOriginais) {
+                        const codigo = pdv.codigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
+                        const { data: pdvData, error: pdvError } = await supabaseClient
+                            .from('pdvs')
+                            .insert({
+                                loja_id: inserted.id,
+                                codigo: codigo,
+                                nome_antigo: pdv.nomeAntigo || codigo,
+                                nome_atualizado: pdv.nomeAtualizado || '',
+                                numero_serie: pdv.numeroSerie || `SN-${String(Math.floor(1000 + Math.random() * 9000))}`,
+                                status: 'pendente',
+                                observacao: pdv.observacao || ''
+                            })
+                            .select()
+                            .single();
+
+                        if (!pdvError && pdvData) {
+                            pdvsPorLoja[inserted.id].push({
+                                id: pdvData.id,
+                                numero: pdv.numero || 1,
+                                codigo: codigo,
+                                nomeAntigo: pdv.nomeAntigo || codigo,
+                                nomeAtualizado: pdv.nomeAtualizado || '',
+                                numeroSerie: pdv.numeroSerie || `SN-${String(Math.floor(1000 + Math.random() * 9000))}`,
+                                status: 'pendente',
+                                observacao: pdv.observacao || '',
+                                lojaId: inserted.id
+                            });
+                        }
+                    }
+
+                    renderCards();
+                    showNotification(`📋 ${card.loja} duplicada como ${novoNome}!`);
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                    
+                    addNotificacao(`📋 Loja ${card.loja} foi duplicada por ${currentUser?.nome || 'Administrador'}`, 'success');
+                }
+            } catch (error) {
+                console.error('Erro ao duplicar loja:', error);
+                showNotification('❌ Erro ao duplicar loja!');
+            }
+        }
+
+        // ============================================================
+        // ABRIR EDIÇÃO DO CARD
+        // ============================================================
+        function abrirEditCard(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            // Verificar permissão
+            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+                showNotification('⛔ Apenas Administradores e Gerentes podem editar lojas!');
+                return;
+            }
+
+            // Preencher o formulário com os dados atuais
+            document.getElementById('editCardId').value = card.id;
+            document.getElementById('editLojaNome').value = card.loja || '';
+            document.getElementById('editLojaCidade').value = card.cidade || '';
+            document.getElementById('editLojaUf').value = card.uf || '';
+            document.getElementById('editLojaRegional').value = card.regional || '';
+            document.getElementById('editLojaStatus').value = card.status || 'agendada';
+            document.getElementById('editLojaData').value = card.data_agendada || '';
+            document.getElementById('editLojaPdvs').value = card.pdvs || 0;
+            document.getElementById('editLojaDescricao').value = card.descricao || '';
+
+            // Preencher select de responsável
+            populateResponsavelSelects();
+            if (card.responsavel_id) {
+                document.getElementById('editLojaResponsavel').value = card.responsavel_id;
+            } else {
+                document.getElementById('editLojaResponsavel').value = '';
+            }
+
+            // Abrir modal
+            document.getElementById('editCardModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // ============================================================
+        // SALVAR EDIÇÃO DO CARD
+        // ============================================================
+        async function salvarEditCard() {
+            const cardId = document.getElementById('editCardId').value;
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            const nome = document.getElementById('editLojaNome').value.trim();
+            const cidade = document.getElementById('editLojaCidade').value.trim();
+            const uf = document.getElementById('editLojaUf').value.trim().toUpperCase();
+            const regional = document.getElementById('editLojaRegional').value.trim();
+            const status = document.getElementById('editLojaStatus').value;
+            const data = document.getElementById('editLojaData').value;
+            const pdvs = parseInt(document.getElementById('editLojaPdvs').value) || 0;
+            const descricao = document.getElementById('editLojaDescricao').value.trim();
+            const responsavelId = document.getElementById('editLojaResponsavel').value;
+
+            if (!nome || !cidade || !uf || uf.length !== 2) {
+                showNotification('❌ Preencha Nome, Cidade e UF corretamente!');
+                return;
+            }
+
+            const usuario = USERS.find(u => u.id === responsavelId);
+
+            try {
+                await autenticarSupabase();
+
+                // Atualizar no Supabase
+                if (supabaseClient) {
+                    const updateData = {
+                        nome: nome,
+                        cidade: cidade,
+                        uf: uf,
+                        regional: regional,
+                        status: status,
+                        data_agendada: data || null,
+                        pdvs: pdvs,
+                        descricao: descricao,
+                        responsavel_id: responsavelId || null,
+                        responsavel_nome: usuario ? usuario.nome : null
+                    };
+
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update(updateData)
+                        .eq('id', cardId);
+
+                    if (error) {
+                        console.error('Erro ao salvar:', error);
+                        showNotification('❌ Erro ao salvar: ' + error.message);
+                        return;
+                    }
+                }
+
+                // Atualizar localmente
+                card.loja = nome;
+                card.cidade = cidade;
+                card.uf = uf;
+                card.regional = regional;
+                card.status = status;
+                card.data_agendada = data || null;
+                card.data = data ? formatarDataBR(data) : 'Hoje';
+                card.pdvs = pdvs;
+                card.descricao = descricao;
+                card.responsavel = usuario ? usuario.nome : 'Não atribuído';
+                card.responsavel_id = responsavelId || null;
+
+                // Recarregar PDVs se necessário
+                if (pdvs > (pdvsPorLoja[cardId] || []).length) {
+                    // Adicionar PDVs faltantes
+                    const currentPdvs = pdvsPorLoja[cardId] || [];
+                    for (let i = currentPdvs.length + 1; i <= pdvs; i++) {
+                        const codigo = `PDV ${String(i).padStart(2, '0')}`;
+                        const randomSerial = String(Math.floor(1000 + Math.random() * 9000));
+                        if (supabaseClient) {
+                            const { data: pdvData, error: pdvError } = await supabaseClient
+                                .from('pdvs')
+                                .insert({
+                                    loja_id: cardId,
+                                    codigo: codigo,
+                                    nome_antigo: codigo,
+                                    nome_atualizado: '',
+                                    numero_serie: `SN-${randomSerial}`,
+                                    status: 'pendente',
+                                    observacao: ''
+                                })
+                                .select()
+                                .single();
+                            if (!pdvError && pdvData) {
+                                pdvsPorLoja[cardId].push({
+                                    id: pdvData.id,
+                                    numero: i,
+                                    codigo: codigo,
+                                    nomeAntigo: codigo,
+                                    nomeAtualizado: '',
+                                    numeroSerie: `SN-${randomSerial}`,
+                                    status: 'pendente',
+                                    observacao: '',
+                                    lojaId: cardId
+                                });
+                            }
+                        }
+                    }
+                }
+
+                renderCards();
+                fecharEditCard();
+                showNotification(`✅ ${nome} atualizada com sucesso!`);
+                atualizarMetricasPainel();
+                atualizarDashboard();
+                
+                addNotificacao(`✏️ Loja ${nome} foi editada por ${currentUser?.nome || 'Sistema'}`, 'info');
+
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                showNotification('❌ Erro ao salvar alterações!');
+            }
+        }
+
+        // ============================================================
+        // FECHAR EDIÇÃO DO CARD
+        // ============================================================
+        function fecharEditCard() {
+            document.getElementById('editCardModal').classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('editCardId').value = '';
+        }
+
+        // ============================================================
+        // ATRIBUIR TÉCNICO
         // ============================================================
         async function assignTecnicoFromModal() {
             if (!currentCardId) {
@@ -2487,6 +3816,8 @@
                 
                 showNotification(`✅ Técnico ${tecnico.nome} atribuído com sucesso!`);
                 
+                addNotificacao(`🔔 Você foi atribuído à loja ${card.loja}`, 'info');
+                
             } catch (e) {
                 console.error('❌ Erro:', e);
                 showNotification('❌ Erro ao atribuir técnico!');
@@ -2494,7 +3825,7 @@
         }
 
         // ============================================================
-        // REMOVER TÉCNICO - CORRIGIDA
+        // REMOVER TÉCNICO
         // ============================================================
         async function removerTecnicoFromModal() {
             if (!currentCardId) {
@@ -2579,7 +3910,7 @@
         }
 
         // ============================================================
-        // LOAD LOJAS - CORRIGIDA
+        // LOAD LOJAS
         // ============================================================
         async function loadLojas() {
             if (!supabaseClient) {
@@ -2741,6 +4072,8 @@
                     document.getElementById('newUserName').value = '';
                     document.getElementById('newUserEmail').value = '';
                     showNotification(`👤 Usuário ${name} criado com sucesso!`);
+                    
+                    addNotificacao(`👤 Novo usuário ${name} criado com role ${role}`, 'success');
                     return;
                 } catch (e) {
                     console.error('Erro ao criar usuário:', e);
@@ -2759,7 +4092,7 @@
         }
 
         // ============================================================
-        // SALVAR ORDEM DOS CARDS
+        // SALVAR ORDEM DOS CARDS - OTIMIZADO
         // ============================================================
         async function salvarOrdemCards(status, cardIds) {
             if (!supabaseClient) return;
@@ -2778,7 +4111,7 @@
         }
 
         // ============================================================
-        // RENDER CARDS
+        // RENDER CARDS - COM MENU DE TRÊS PONTINHOS E EDIÇÃO
         // ============================================================
         function renderCards() {
             const container = document.getElementById('kanbanContainer');
@@ -2833,7 +4166,7 @@
             const corResponsavel = { 'Renan Silva': '5d30a5', 'Camila Santos': 'd32976', 'José Oliveira': 'dc2626', 'Mariana Costa': 'ec4899', 'Carlos Souza': 'f59e0b' } [card.responsavel] || '64748b';
             const cidadeUf = `${card.cidade || ''}${card.uf ? ` - ${card.uf}` : ''}`;
             const canDelete = (currentUser && (currentUser.role === 'admin' || currentUser.role === 'gerente'));
-            const deleteBtn = canDelete ? `<div class="delete-btn" onclick="event.stopPropagation(); deleteCard('${card.id}')" title="Excluir"><i class="fas fa-trash"></i></div>` : '';
+            const canEdit = (currentUser && (currentUser.role === 'admin' || currentUser.role === 'gerente'));
             const tecnicoNome = card.responsavel || 'Não atribuído';
 
             let regionalHtml = '';
@@ -2843,11 +4176,22 @@
                 regionalHtml = `<span class="text-[8px] md:text-[10px] dark-badge px-1.5 md:px-2 py-0.5 rounded-full">${card.regional}</span>`;
             }
 
+            const menuHtml = `
+                <div class="card-menu-btn" onclick="event.stopPropagation(); toggleCardMenu(event, '${card.id}')">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+                <div class="card-menu-dropdown" id="menu-${card.id}">
+                    ${canEdit ? `<button class="menu-item" onclick="event.stopPropagation(); abrirEditCard('${card.id}')"><i class="fas fa-edit"></i> Editar</button>` : ''}
+                    ${canDelete ? `<button class="menu-item danger" onclick="event.stopPropagation(); deleteCard('${card.id}')"><i class="fas fa-trash"></i> Remover</button>` : ''}
+                    <button class="menu-item" onclick="event.stopPropagation(); duplicarCard('${card.id}')"><i class="fas fa-copy"></i> Duplicar</button>
+                </div>
+            `;
+
             return `
                 <div class="kanban-card ${statusClass} p-2 md:p-3 rounded-lg" 
                      data-id="${card.id}" data-responsavel="${card.responsavel}" data-loja="${card.loja}" data-status="${card.status}" data-ordem="${card.ordem || 0}"
                      draggable="true" onclick="openCardDetail('${card.id}')">
-                    ${deleteBtn}
+                    ${menuHtml}
                     <div class="flex justify-between items-start">
                         <span class="font-bold text-xs md:text-sm text-white ${storeNameClass}">${card.loja}</span>
                         ${regionalHtml}
@@ -2870,9 +4214,34 @@
         }
 
         // ============================================================
-        // DRAG & DROP
+        // TOGGLE MENU DO CARD
+        // ============================================================
+        function toggleCardMenu(event, cardId) {
+            event.stopPropagation();
+            document.querySelectorAll('.card-menu-dropdown.active').forEach(el => {
+                if (el.id !== `menu-${cardId}`) {
+                    el.classList.remove('active');
+                }
+            });
+            const menu = document.getElementById(`menu-${cardId}`);
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.card-menu-btn') && !e.target.closest('.card-menu-dropdown')) {
+                document.querySelectorAll('.card-menu-dropdown.active').forEach(el => {
+                    el.classList.remove('active');
+                });
+            }
+        });
+
+        // ============================================================
+        // DRAG & DROP - OTIMIZADO
         // ============================================================
         let draggedCard = null;
+        let dragTimeout = null;
 
         function setupDragAndDrop() {
             const columns = document.querySelectorAll('.kanban-column-inner');
@@ -2905,21 +4274,38 @@
         function handleDragEnd(e) {
             this.classList.remove('dragging');
             document.querySelectorAll('.kanban-column-inner').forEach(col => col.classList.remove('drag-over'));
+            if (dragTimeout) {
+                clearTimeout(dragTimeout);
+                dragTimeout = null;
+            }
         }
 
-        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-        function handleDragEnter(e) { e.preventDefault(); this.classList.add('drag-over'); }
-        function handleDragLeave(e) { this.classList.remove('drag-over'); }
+        function handleDragOver(e) { 
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = 'move'; 
+        }
+        
+        function handleDragEnter(e) { 
+            e.preventDefault(); 
+            this.classList.add('drag-over'); 
+        }
+        
+        function handleDragLeave(e) { 
+            this.classList.remove('drag-over'); 
+        }
 
         async function handleDrop(e) {
             e.preventDefault();
             this.classList.remove('drag-over');
             if (!draggedCard) return;
+            
             const cardId = draggedCard.dataset.id;
             const targetStatus = this.dataset.status;
             const cardData = initialCards.find(c => c.id === cardId);
             if (!cardData) return;
-            if (cardData.status !== targetStatus) {
+            
+            const statusMudou = cardData.status !== targetStatus;
+            if (statusMudou) {
                 cardData.status = targetStatus;
                 await autenticarSupabase();
                 if (supabaseClient) {
@@ -2928,15 +4314,33 @@
                     } catch (e) { console.warn('Erro ao atualizar status:', e); }
                 }
             }
+            
             const columnCards = this.querySelectorAll('.kanban-card');
             const cardIds = Array.from(columnCards).map(el => el.dataset.id);
-            await salvarOrdemCards(targetStatus, cardIds);
+            
             columnCards.forEach((el, index) => {
                 const card = initialCards.find(c => c.id === el.dataset.id);
                 if (card) card.ordem = index;
             });
+            
+            if (dragTimeout) {
+                clearTimeout(dragTimeout);
+            }
+            dragTimeout = setTimeout(async () => {
+                await salvarOrdemCards(targetStatus, cardIds);
+                dragTimeout = null;
+            }, 300);
+            
             renderCards();
-            showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+            
+            if (statusMudou) {
+                showNotification(`📦 ${cardData.loja} movida para ${targetStatus}`);
+                const responsavel = cardData.responsavel;
+                if (responsavel && responsavel !== 'Não atribuído') {
+                    addNotificacao(`📦 ${cardData.loja} foi movida para "${targetStatus}" por ${currentUser?.nome || 'Sistema'}`, 'info');
+                }
+            }
+            
             atualizarMetricasPainel();
             atualizarDashboard();
             draggedCard = null;
@@ -3176,6 +4580,8 @@
             document.getElementById('linkGeradoInput').value = linkCompleto;
             document.getElementById('linkTecnicoNomeDisplay').textContent = tecnicoNome;
             showNotification(`✅ Link gerado para ${tecnicoNome}!`);
+            
+            addNotificacao(`🔗 Link gerado para ${tecnicoNome} acessar ${card.loja}`, 'success');
         }
 
         function copiarLink() {
@@ -3296,7 +4702,7 @@
         }
 
         // ============================================================
-        // PDVs (resumido)
+        // PDVs
         // ============================================================
         async function addPdv() {
             if (!currentCardId) { showNotification('❌ Nenhuma loja selecionada!'); return; }
@@ -3606,6 +5012,7 @@
                             showNotification('🚀 Loja iniciada!');
                             atualizarMetricasPainel();
                             atualizarDashboard();
+                            addNotificacao(`🚀 Loja ${card.loja} iniciada em execução`, 'info');
                         });
                     } else {
                         renderCards();
@@ -3631,6 +5038,7 @@
                             showNotification('⛔ Loja bloqueada!');
                             atualizarMetricasPainel();
                             atualizarDashboard();
+                            addNotificacao(`⛔ Loja ${card.loja} foi bloqueada`, 'warning');
                         });
                     } else {
                         renderCards();
@@ -3661,6 +5069,7 @@
                             showNotification('🎉 Loja concluída!');
                             atualizarMetricasPainel();
                             atualizarDashboard();
+                            addNotificacao(`🎉 Loja ${card.loja} foi concluída com sucesso!`, 'success');
                         });
                     } else {
                         renderCards();
@@ -3696,6 +5105,8 @@
                 showNotification(`🗑️ ${card.loja} excluída!`);
                 atualizarMetricasPainel();
                 atualizarDashboard();
+                
+                addNotificacao(`🗑️ Loja ${card.loja} foi excluída por ${currentUser?.nome || 'Sistema'}`, 'warning');
             }
         }
 
@@ -3724,6 +5135,18 @@
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if (!msg) return;
+            
+            const mentions = msg.match(/@(\w+)/g);
+            if (mentions) {
+                mentions.forEach(mention => {
+                    const nome = mention.substring(1);
+                    const usuario = USERS.find(u => u.nome.toLowerCase().includes(nome.toLowerCase()));
+                    if (usuario && usuario.id !== currentUser?.id) {
+                        addNotificacao(`💬 ${currentUser?.nome || 'Alguém'} mencionou você no chat: "${msg}"`, 'info');
+                    }
+                });
+            }
+            
             const container = document.getElementById('chatMessages');
             const div = document.createElement('div');
             div.className = 'chat-message flex items-start gap-3 p-2 rounded-lg border-b border-[#1a4a6e]';
@@ -3815,6 +5238,7 @@
                 showNotification(`✅ Senha de ${user.nome} resetada!`);
                 closeResetPasswordModal();
                 renderUserList();
+                addNotificacao(`🔑 Senha de ${user.nome} foi resetada por ${currentUser?.nome || 'Sistema'}`, 'warning');
             }
         }
 
@@ -3840,6 +5264,8 @@
             
             const dashboardBtn = document.getElementById('dashboardTabBtn');
             if (dashboardBtn) dashboardBtn.style.display = 'none';
+            const configBtn = document.getElementById('configBtn');
+            if (configBtn) configBtn.style.display = 'none';
             
             document.getElementById('tecnicoCardTitle').textContent = loja.loja;
             document.getElementById('tecnicoCardId').textContent = loja.id;
@@ -3930,7 +5356,15 @@
                         user.role === 'admin' ? 'Administrador' :
                         user.role === 'gerente' ? 'Gerente' :
                         user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
+                    
+                    if (user.role === 'admin') {
+                        document.getElementById('configBtn').style.display = 'inline-flex';
+                    }
+                    
                     carregarTudo();
+                    carregarCoresSalvas();
+                    aplicarCores();
+                    iniciarInstallApp();
                     showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
                 } catch (e) { console.warn('Sessão inválida', e); }
             }
@@ -3950,6 +5384,8 @@
                     closeUserManagement();
                     closeAddCardModal();
                     closeResetPasswordModal();
+                    fecharConfiguracoes();
+                    fecharEditCard();
                 }
             });
 
@@ -3961,6 +5397,18 @@
                     }
                 });
             });
+            
+            const scroll = document.getElementById('kanbanScroll');
+            if (scroll) {
+                scroll.addEventListener('scroll', function() {
+                    const btn = document.getElementById('scrollTopBtn');
+                    if (this.scrollTop > 300) {
+                        btn.classList.add('show');
+                    } else {
+                        btn.classList.remove('show');
+                    }
+                });
+            }
         });
 
         // ============================================================
@@ -4229,6 +5677,8 @@
                 janela.document.close();
                 fecharAssinaturaTecnico();
                 showNotification('✅ RAT gerado com sucesso! Clique em "Imprimir" e salve como PDF.');
+                
+                addNotificacao(`📄 RAT gerado para ${loja.loja} pelo técnico ${tecnicoNome}`, 'success');
             } else {
                 showNotification('❌ Permita pop-ups para gerar o RAT');
             }
@@ -4457,6 +5907,10 @@
         window.initAssinaturaCanvas = initAssinaturaCanvas;
         window.verificarAssinaturas = verificarAssinaturas;
         window.deleteCard = deleteCard;
+        window.duplicarCard = duplicarCard;
+        window.abrirEditCard = abrirEditCard;
+        window.fecharEditCard = fecharEditCard;
+        window.salvarEditCard = salvarEditCard;
         window.editPdvAntigo = editPdvAntigo;
         window.editPdvAtualizado = editPdvAtualizado;
         window.assignTecnicoFromModal = assignTecnicoFromModal;
@@ -4471,6 +5925,19 @@
         window.sincronizarDados = sincronizarDados;
         window.carregarTudo = carregarTudo;
         window.loadLojas = loadLojas;
+        window.toggleCardMenu = toggleCardMenu;
+        window.abrirConfiguracoes = abrirConfiguracoes;
+        window.fecharConfiguracoes = fecharConfiguracoes;
+        window.aplicarCor = aplicarCor;
+        window.resetarCor = resetarCor;
+        window.resetarTodasCores = resetarTodasCores;
+        window.salvarConfiguracoes = salvarConfiguracoes;
+        window.installApp = installApp;
+        window.toggleNotifications = toggleNotifications;
+        window.marcarTodasLidas = marcarTodasLidas;
+        window.addNotificacao = addNotificacao;
+        window.toggleFullscreen = toggleFullscreen;
+        window.scrollToTop = scrollToTop;
     </script>
 </body>
 </html>
