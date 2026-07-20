@@ -667,6 +667,36 @@
         .role-gerente { background: var(--cor-destaque); color: white; }
         .role-tecnico { background: #0ea5e9; color: white; }
         .role-visualizador { background: #64748b; color: white; }
+        .role-monitoramento { background: #0d9488; color: white; }
+
+        /* ===== MODO MONITORAMENTO (SOMENTE VISUALIZAÇÃO) ===== */
+        body.role-monitor .hide-for-monitor { display: none !important; }
+        body.role-monitor .kanban-card { cursor: pointer; }
+        body.role-monitor .card-menu-btn { display: none !important; }
+        body.role-monitor #modalDescription,
+        body.role-monitor .pdv-serial input,
+        body.role-monitor .pdv-old,
+        body.role-monitor .pdv-new {
+            pointer-events: none;
+            opacity: 0.85;
+        }
+        body.role-monitor .pdv-status-select,
+        body.role-monitor select.pdv-select-monitor {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .monitor-banner {
+            background: rgba(13, 148, 136, 0.15);
+            border: 1px solid rgba(13, 148, 136, 0.4);
+            color: #2dd4bf;
+            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         /* ===== METRICS ===== */
         .metric-edit {
@@ -2131,6 +2161,9 @@
                     <select class="dark-select px-1 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm max-w-[120px] md:max-w-[180px]" id="responsibleFilter" onchange="filterCards()">
                         <option value="">Todos</option>
                     </select>
+                    <select class="dark-select px-1 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm max-w-[90px] md:max-w-[120px]" id="ufFilter" onchange="filterCards()" title="Filtrar por UF">
+                        <option value="">Todas UF</option>
+                    </select>
                 </div>
                 <button class="btn-export" onclick="exportToExcel()">
                     <i class="fas fa-file-excel"></i> Exportar Excel
@@ -2424,7 +2457,7 @@
                                         <span id="modalResponsavel">Renan Silva</span>
                                     </div>
                                 </div>
-                                <div>
+                                <div class="hide-for-monitor">
                                     <label class="text-[10px] md:text-sm font-medium text-slate-400 block mb-0.5">Atribuir Técnico</label>
                                     <div class="flex flex-wrap gap-2">
                                         <select id="modalAssignTecnico" class="dark-select flex-1 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm min-w-[150px]" onchange="atualizarResponsavelNoModal()">
@@ -2446,7 +2479,7 @@
                                     <div class="bg-[#041a2e] p-1.5 md:p-3 rounded-lg border border-[#1a4a6e]"><span class="text-slate-400 text-[8px] md:text-xs">Data</span><p class="text-white font-medium text-xs md:text-sm" id="modalData">10/07/2026</p></div>
                                 </div>
                             </div>
-                            <div class="space-y-2 md:space-y-3">
+                            <div class="space-y-2 md:space-y-3 hide-for-monitor">
                                 <h4 class="text-[10px] md:text-sm font-medium text-slate-400">Ações</h4>
                                 <button class="w-full bg-[#5d30a5] hover:bg-[#7a4fc9] text-white px-3 py-1.5 rounded-lg transition text-xs md:text-sm" onclick="startStoreFromModal()"><i class="fas fa-play mr-1"></i>Iniciar Execução</button>
                                 <button class="w-full bg-[#d32976]/20 hover:bg-[#d32976]/40 text-[#d32976] px-3 py-1.5 rounded-lg transition border border-[#d32976]/30 text-xs md:text-sm" onclick="blockStoreFromModal()"><i class="fas fa-ban mr-1"></i>Bloquear</button>
@@ -2470,7 +2503,7 @@
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-slate-400">Gerencie os PDVs da loja</span>
-                                <button class="text-xs bg-[#5d30a5]/20 text-[#a78bfa] px-3 py-1.5 rounded-full hover:bg-[#5d30a5]/40 transition" onclick="addPdv()"><i class="fas fa-plus mr-1"></i> Adicionar PDV</button>
+                                <button class="text-xs bg-[#5d30a5]/20 text-[#a78bfa] px-3 py-1.5 rounded-full hover:bg-[#5d30a5]/40 transition hide-for-monitor" onclick="addPdv()"><i class="fas fa-plus mr-1"></i> Adicionar PDV</button>
                             </div>
                             <div class="pdv-table-header">
                                 <span class="col-old">PDV Antigo</span>
@@ -2480,7 +2513,7 @@
                                 <span class="col-actions"></span>
                             </div>
                             <div class="pdv-grid" id="pdvListContainer"></div>
-                            <div class="flex gap-2 flex-wrap">
+                            <div class="flex gap-2 flex-wrap hide-for-monitor">
                                 <button class="text-xs bg-emerald-600/20 text-emerald-400 px-3 py-1 rounded-full hover:bg-emerald-600/40 transition" onclick="setAllPdvsStatus('concluido')"><i class="fas fa-check-double mr-1"></i> Concluir todos</button>
                                 <button class="text-xs bg-amber-600/20 text-amber-400 px-3 py-1 rounded-full hover:bg-amber-600/40 transition" onclick="setAllPdvsStatus('pendente')"><i class="fas fa-undo mr-1"></i> Resetar todos</button>
                                 <button class="text-xs bg-[#d32976]/20 text-[#d32976] px-3 py-1 rounded-full hover:bg-[#d32976]/40 transition" onclick="setAllPdvsStatus('bloqueado')"><i class="fas fa-ban mr-1"></i> Bloquear todos</button>
@@ -2723,7 +2756,7 @@
                     <div class="flex flex-wrap gap-2 mb-4">
                         <input type="text" id="newUserName" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="Nome" />
                         <input type="email" id="newUserEmail" class="dark-input px-3 py-2 rounded-lg text-sm flex-1 min-w-[120px]" placeholder="E-mail" />
-                        <select id="newUserRole" class="dark-select px-3 py-2 rounded-lg text-sm"><option value="admin">Administrador</option><option value="gerente">Gerente</option><option value="tecnico" selected>Técnico</option><option value="visualizador">Visualizador</option></select>
+                        <select id="newUserRole" class="dark-select px-3 py-2 rounded-lg text-sm"><option value="admin">Administrador</option><option value="gerente">Gerente</option><option value="tecnico" selected>Técnico</option><option value="visualizador">Visualizador</option><option value="monitoramento">Monitoramento (Service Desk)</option></select>
                         <button class="bg-[#5d30a5] hover:bg-[#7a4fc9] text-white px-4 py-2 rounded-lg transition text-sm" onclick="addUser()"><i class="fas fa-plus mr-1"></i> Adicionar</button>
                     </div>
                     <div class="space-y-2" id="userList"></div>
@@ -2879,6 +2912,30 @@
         let barChartInstance = null;
         let doughnutChartInstance = null;
         let currentUser = null;
+
+        // ============================================================
+        // MODO MONITORAMENTO (SERVICE DESK - SOMENTE VISUALIZAÇÃO)
+        // ============================================================
+        function isMonitor() {
+            return !!(currentUser && currentUser.role === 'monitoramento');
+        }
+
+        function roleLabelDisplay(role) {
+            return role === 'admin' ? 'Administrador' :
+                   role === 'gerente' ? 'Gerente' :
+                   role === 'tecnico' ? 'Técnico' :
+                   role === 'monitoramento' ? 'Monitoramento' : 'Visualizador';
+        }
+
+        function aplicarModoUsuario(user) {
+            const roleDisplayEl = document.getElementById('userRoleDisplay');
+            if (roleDisplayEl) roleDisplayEl.textContent = roleLabelDisplay(user.role);
+
+            const configBtn = document.getElementById('configBtn');
+            if (configBtn) configBtn.style.display = user.role === 'admin' ? 'inline-flex' : 'none';
+
+            document.body.classList.toggle('role-monitor', user.role === 'monitoramento');
+        }
         let currentCardId = null;
         let initialCards = [];
         let pdvsPorLoja = {};
@@ -3213,16 +3270,7 @@
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('appContent').style.display = 'flex';
                     document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' :
-                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
-                    
-                    if (user.role === 'admin') {
-                        document.getElementById('configBtn').style.display = 'inline-flex';
-                    } else {
-                        document.getElementById('configBtn').style.display = 'none';
-                    }
+                    aplicarModoUsuario(user);
                     
                     await carregarTudo();
                     btn.disabled = false;
@@ -3272,7 +3320,8 @@
                             'admin': 'Admin',
                             'gerente': 'Gerente',
                             'tecnico': 'Técnico',
-                            'visualizador': 'Visualizador'
+                            'visualizador': 'Visualizador',
+                            'monitoramento': 'Monitoramento'
                         } [user.role] || user.role;
                         option.textContent = `${user.nome} (${roleLabel})`;
                         select.appendChild(option);
@@ -3405,7 +3454,8 @@
                         data: data ? formatarDataBR(data) : 'Hoje',
                         data_agendada: data || null,
                         descricao: '',
-                        ordem: inserted.ordem || 0
+                        ordem: inserted.ordem || 0,
+                        checklist: []
                     };
 
                     initialCards.push(newCard);
@@ -3523,7 +3573,8 @@
                         data: card.data || 'Hoje',
                         data_agendada: card.data_agendada || null,
                         descricao: card.descricao || '',
-                        ordem: inserted.ordem || 0
+                        ordem: inserted.ordem || 0,
+                        checklist: []
                     };
 
                     initialCards.push(newCard);
@@ -3750,6 +3801,7 @@
         // ATRIBUIR TÉCNICO
         // ============================================================
         async function assignTecnicoFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) {
                 showNotification('❌ Nenhuma loja selecionada!');
                 return;
@@ -3828,6 +3880,7 @@
         // REMOVER TÉCNICO
         // ============================================================
         async function removerTecnicoFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) {
                 showNotification('❌ Nenhuma loja selecionada!');
                 return;
@@ -3912,6 +3965,29 @@
         // ============================================================
         // LOAD LOJAS
         // ============================================================
+        function mapRowToCard(row) {
+            return {
+                id: row.id,
+                loja: row.nome,
+                codigo: row.codigo,
+                responsavel: row.responsavel_nome || 'Não atribuído',
+                responsavel_id: row.responsavel_id,
+                status: row.status || 'agendada',
+                regional: row.regional || '',
+                cidade: row.cidade || '',
+                uf: row.uf || '',
+                pdvs: row.pdvs || 0,
+                comentarios: row.comentarios || 0,
+                data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                data_agendada: row.data_agendada,
+                prioridade: row.prioridade,
+                subtipo: row.subtipo,
+                descricao: row.descricao,
+                ordem: row.ordem || 0,
+                checklist: Array.isArray(row.checklist) ? row.checklist : []
+            };
+        }
+
         async function loadLojas() {
             if (!supabaseClient) {
                 console.warn('⚠️ Supabase não conectado');
@@ -3930,25 +4006,7 @@
                 }
 
                 if (data) {
-                    initialCards = data.map(row => ({
-                        id: row.id,
-                        loja: row.nome,
-                        codigo: row.codigo,
-                        responsavel: row.responsavel_nome || 'Não atribuído',
-                        responsavel_id: row.responsavel_id,
-                        status: row.status || 'agendada',
-                        regional: row.regional || '',
-                        cidade: row.cidade || '',
-                        uf: row.uf || '',
-                        pdvs: row.pdvs || 0,
-                        comentarios: row.comentarios || 0,
-                        data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
-                        data_agendada: row.data_agendada,
-                        prioridade: row.prioridade,
-                        subtipo: row.subtipo,
-                        descricao: row.descricao,
-                        ordem: row.ordem || 0
-                    }));
+                    initialCards = data.map(row => mapRowToCard(row));
                     
                     console.log('✅ Lojas carregadas do banco:', initialCards.length);
                     renderCards();
@@ -3958,6 +4016,62 @@
             } catch (e) {
                 console.warn('⚠️ Erro ao carregar lojas:', e);
             }
+        }
+
+        // ============================================================
+        // REALTIME - NOTIFICAÇÕES ENTRE USUÁRIOS (SERVICE DESK, ETC)
+        // ============================================================
+        let lojasRealtimeChannel = null;
+        const statusLabelsNotif = { 'agendada': 'Agendada', 'execucao': 'Em Execução', 'bloqueada': 'Bloqueada', 'revisao': 'Revisão', 'concluida': 'Concluída' };
+
+        function iniciarRealtimeLojas() {
+            if (!supabaseClient) return;
+            if (lojasRealtimeChannel) {
+                try { supabaseClient.removeChannel(lojasRealtimeChannel); } catch (e) {}
+            }
+            lojasRealtimeChannel = supabaseClient
+                .channel('lojas-realtime-' + Date.now())
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lojas' }, (payload) => {
+                    const row = payload.new;
+                    if (!row || initialCards.some(c => c.id === row.id)) return;
+                    const novoCard = mapRowToCard(row);
+                    initialCards.push(novoCard);
+                    if (!pdvsPorLoja[row.id]) pdvsPorLoja[row.id] = [];
+                    renderCards();
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                    const uf = row.uf ? ` - ${row.uf}` : '';
+                    addNotificacao(`🆕 Loja ${row.nome} foi agendada (${row.cidade || ''}${uf})`, 'info');
+                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'lojas' }, (payload) => {
+                    const row = payload.new;
+                    const antigo = payload.old;
+                    if (!row) return;
+                    const card = initialCards.find(c => c.id === row.id);
+                    const statusMudou = card && antigo && card.status !== row.status;
+                    if (card) {
+                        Object.assign(card, mapRowToCard(row));
+                    } else {
+                        initialCards.push(mapRowToCard(row));
+                    }
+                    renderCards();
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                    if (statusMudou) {
+                        const label = statusLabelsNotif[row.status] || row.status;
+                        addNotificacao(`📦 ${row.nome} mudou para "${label}"`, 'info');
+                    }
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'lojas' }, (payload) => {
+                    const row = payload.old;
+                    if (!row) return;
+                    initialCards = initialCards.filter(c => c.id !== row.id);
+                    delete pdvsPorLoja[row.id];
+                    renderCards();
+                    atualizarMetricasPainel();
+                    atualizarDashboard();
+                })
+                .subscribe();
         }
 
         // ============================================================
@@ -3973,6 +4087,7 @@
             populateResponsavelSelects();
             populateTecnicoSelects();
             atualizarDashboard();
+            iniciarRealtimeLojas();
             console.log('✅ Todos os dados carregados!');
         }
 
@@ -4134,7 +4249,7 @@
                         <div class="kanban-column-inner p-1 md:p-2 flex-1 space-y-1.5 md:space-y-2 overflow-y-auto" data-status="${status}" id="col-${status}">
                             ${cards.map(card => renderCardHtml(card)).join('')}
                         </div>
-                        <div class="p-1 md:p-2 border-t border-[#1a4a6e] text-center">
+                        <div class="p-1 md:p-2 border-t border-[#1a4a6e] text-center${isMonitor() ? ' hide-for-monitor' : ''}">
                             <button class="text-[10px] md:text-xs text-[#a78bfa] hover:text-[#c4b5fd] transition w-full" onclick="openAddCardModal('${status}')"><i class="fas fa-plus mr-0.5"></i> Adicionar</button>
                         </div>
                     </div>
@@ -4167,6 +4282,7 @@
             const cidadeUf = `${card.cidade || ''}${card.uf ? ` - ${card.uf}` : ''}`;
             const canDelete = (currentUser && (currentUser.role === 'admin' || currentUser.role === 'gerente'));
             const canEdit = (currentUser && (currentUser.role === 'admin' || currentUser.role === 'gerente'));
+            const monitor = isMonitor();
             const tecnicoNome = card.responsavel || 'Não atribuído';
 
             let regionalHtml = '';
@@ -4176,7 +4292,7 @@
                 regionalHtml = `<span class="text-[8px] md:text-[10px] dark-badge px-1.5 md:px-2 py-0.5 rounded-full">${card.regional}</span>`;
             }
 
-            const menuHtml = `
+            const menuHtml = monitor ? '' : `
                 <div class="card-menu-btn" onclick="event.stopPropagation(); toggleCardMenu(event, '${card.id}')">
                     <i class="fas fa-ellipsis-v"></i>
                 </div>
@@ -4189,8 +4305,8 @@
 
             return `
                 <div class="kanban-card ${statusClass} p-2 md:p-3 rounded-lg" 
-                     data-id="${card.id}" data-responsavel="${card.responsavel}" data-loja="${card.loja}" data-status="${card.status}" data-ordem="${card.ordem || 0}"
-                     draggable="true" onclick="openCardDetail('${card.id}')">
+                     data-id="${card.id}" data-responsavel="${card.responsavel}" data-loja="${card.loja}" data-status="${card.status}" data-ordem="${card.ordem || 0}" data-uf="${card.uf || ''}"
+                     draggable="${monitor ? 'false' : 'true'}" onclick="openCardDetail('${card.id}')">
                     ${menuHtml}
                     <div class="flex justify-between items-start">
                         <span class="font-bold text-xs md:text-sm text-white ${storeNameClass}">${card.loja}</span>
@@ -4298,6 +4414,7 @@
             e.preventDefault();
             this.classList.remove('drag-over');
             if (!draggedCard) return;
+            if (isMonitor()) { draggedCard = null; return; }
             
             const cardId = draggedCard.dataset.id;
             const targetStatus = this.dataset.status;
@@ -4480,12 +4597,15 @@
         function filterCards() {
             const searchTerm = document.getElementById('searchStoreFilter').value.toLowerCase();
             const responsible = document.getElementById('responsibleFilter').value;
+            const uf = document.getElementById('ufFilter') ? document.getElementById('ufFilter').value : '';
             document.querySelectorAll('.kanban-card').forEach(card => {
                 const loja = card.dataset.loja?.toLowerCase() || '';
                 const resp = card.dataset.responsavel || '';
+                const cardUf = card.dataset.uf || '';
                 const matchSearch = !searchTerm || loja.includes(searchTerm);
                 const matchResp = !responsible || resp === responsible;
-                card.style.display = (matchSearch && matchResp) ? '' : 'none';
+                const matchUf = !uf || cardUf === uf;
+                card.style.display = (matchSearch && matchResp && matchUf) ? '' : 'none';
             });
         }
 
@@ -4503,6 +4623,24 @@
             if (currentValue && responsaveis.includes(currentValue)) {
                 select.value = currentValue;
             }
+            updateUfFilter();
+        }
+
+        function updateUfFilter() {
+            const select = document.getElementById('ufFilter');
+            if (!select) return;
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Todas UF</option>';
+            const ufs = [...new Set(initialCards.map(c => c.uf))].filter(uf => uf && uf.trim() !== '').sort();
+            ufs.forEach(uf => {
+                const option = document.createElement('option');
+                option.value = uf;
+                option.textContent = uf;
+                select.appendChild(option);
+            });
+            if (currentValue && ufs.includes(currentValue)) {
+                select.value = currentValue;
+            }
         }
 
         function switchTab(tabName) {
@@ -4513,6 +4651,7 @@
             const btnEl = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
             if (btnEl) btnEl.classList.add('active');
             if (tabName === 'pdvs' && currentCardId) renderPdvs(currentCardId);
+            if (tabName === 'checklist' && currentCardId) renderChecklist(currentCardId);
         }
 
         function editMetric(type) {
@@ -4547,6 +4686,7 @@
         }
 
         function openAddCardModal(status) {
+            if (isMonitor()) { showNotification('⛔ Monitoramento é apenas para visualização!'); return; }
             document.getElementById('addCardModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             document.getElementById('newLojaData').value = new Date().toISOString().split('T')[0];
@@ -4643,9 +4783,9 @@
             const list = document.getElementById('userList');
             list.innerHTML = '';
             USERS.forEach(user => {
-                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador' };
-                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador' };
-                const bgColors = { admin: '5d30a5', gerente: 'd32976', tecnico: '0EA5E9', visualizador: '64748B' };
+                const roleLabels = { admin: 'Administrador', gerente: 'Gerente', tecnico: 'Técnico', visualizador: 'Visualizador', monitoramento: 'Monitoramento' };
+                const roleColors = { admin: 'role-admin', gerente: 'role-gerente', tecnico: 'role-tecnico', visualizador: 'role-visualizador', monitoramento: 'role-monitoramento' };
+                const bgColors = { admin: '5d30a5', gerente: 'd32976', tecnico: '0EA5E9', visualizador: '64748B', monitoramento: '0d9488' };
                 const item = document.createElement('div');
                 item.className = 'user-item flex items-center justify-between p-3 rounded-lg border border-[#1a4a6e] hover:border-[#5d30a5]/30 transition';
                 item.innerHTML = `
@@ -4705,6 +4845,7 @@
         // PDVs
         // ============================================================
         async function addPdv() {
+            if (isMonitor()) return;
             if (!currentCardId) { showNotification('❌ Nenhuma loja selecionada!'); return; }
             const pdvs = pdvsPorLoja[currentCardId] || [];
             const nextNum = pdvs.length + 1;
@@ -4786,17 +4927,18 @@
 
             const statusLabels = { 'pendente': 'Pendente', 'andamento': 'Em andamento', 'concluido': 'Concluído', 'bloqueado': 'Bloqueado' };
             const statusColors = { 'pendente': 'pdv-status-pendente', 'andamento': 'pdv-status-andamento', 'concluido': 'pdv-status-concluido', 'bloqueado': 'pdv-status-bloqueado' };
+            const monitor = isMonitor();
 
             container.innerHTML = pdvs.map((pdv, index) => {
                 const nomeAtualizado = pdv.nomeAtualizado || '';
                 const nomeAntigo = pdv.nomeAntigo || `PDV ${String(pdv.numero).padStart(2, '0')}`;
                 return `
                     <div class="pdv-item" data-pdv-id="${pdv.id}">
-                        <div class="pdv-old" onclick="editPdvAntigo('${lojaId}', '${pdv.id}')" title="Clique para editar o PDV antigo">
+                        <div class="pdv-old" ${monitor ? '' : `onclick="editPdvAntigo('${lojaId}', '${pdv.id}')"`} title="${monitor ? '' : 'Clique para editar o PDV antigo'}">
                             <span class="pdv-old-label">Antigo</span> ${nomeAntigo}
                         </div>
                         <span class="pdv-divider">→</span>
-                        <div class="pdv-new" onclick="editPdvAtualizado('${lojaId}', '${pdv.id}')" title="Clique para editar o PDV atualizado">
+                        <div class="pdv-new" ${monitor ? '' : `onclick="editPdvAtualizado('${lojaId}', '${pdv.id}')"`} title="${monitor ? '' : 'Clique para editar o PDV atualizado'}">
                             <span class="pdv-new-label">Atualizado</span> ${nomeAtualizado || '__________'}
                         </div>
                         <span class="pdv-serial">
@@ -4804,25 +4946,24 @@
                             <input type="text" class="bg-transparent border-b border-[#1a4a6e] focus:border-[#5d30a5] outline-none text-xs text-slate-300 w-28" 
                                    value="${pdv.numeroSerie}" 
                                    onchange="updatePdvSerial('${lojaId}', '${pdv.id}', this.value)"
-                                   placeholder="Nº Série" />
+                                   placeholder="Nº Série" ${monitor ? 'disabled' : ''} />
                         </span>
                         <span class="pdv-status ${statusColors[pdv.status]}" title="${statusLabels[pdv.status]}"></span>
                         <select class="bg-transparent text-xs text-slate-300 border border-[#1a4a6e] rounded px-2 py-0.5 focus:border-[#5d30a5] outline-none" 
-                                onchange="updatePdvStatus('${lojaId}', '${pdv.id}', this.value)">
+                                onchange="updatePdvStatus('${lojaId}', '${pdv.id}', this.value)" ${monitor ? 'disabled' : ''}>
                             <option value="pendente" ${pdv.status === 'pendente' ? 'selected' : ''}>⏳ Pendente</option>
                             <option value="andamento" ${pdv.status === 'andamento' ? 'selected' : ''}>🔄 Andamento</option>
                             <option value="concluido" ${pdv.status === 'concluido' ? 'selected' : ''}>✅ Concluído</option>
                             <option value="bloqueado" ${pdv.status === 'bloqueado' ? 'selected' : ''}>⛔ Bloqueado</option>
                         </select>
-                        <button class="text-[#d32976] hover:text-[#e84a8f] text-xs transition ml-1" onclick="removePdv('${lojaId}', '${pdv.id}')" title="Remover PDV">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        ${monitor ? '' : `<button class="text-[#d32976] hover:text-[#e84a8f] text-xs transition ml-1" onclick="removePdv('${lojaId}', '${pdv.id}')" title="Remover PDV"><i class="fas fa-times"></i></button>`}
                     </div>
                 `;
             }).join('');
         }
 
         async function editPdvAntigo(lojaId, pdvId) {
+            if (isMonitor()) return;
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (!pdv) { showNotification('❌ PDV não encontrado!'); return; }
@@ -4841,6 +4982,7 @@
         }
 
         async function editPdvAtualizado(lojaId, pdvId) {
+            if (isMonitor()) return;
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (!pdv) { showNotification('❌ PDV não encontrado!'); return; }
@@ -4859,6 +5001,7 @@
         }
 
         async function updatePdvStatus(lojaId, pdvId, status) {
+            if (isMonitor()) return;
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (pdv) {
@@ -4875,6 +5018,7 @@
         }
 
         async function updatePdvSerial(lojaId, pdvId, value) {
+            if (isMonitor()) return;
             const pdvs = pdvsPorLoja[lojaId] || [];
             const pdv = pdvs.find(p => p.id === pdvId);
             if (pdv) {
@@ -4890,6 +5034,7 @@
         }
 
         async function removePdv(lojaId, pdvId) {
+            if (isMonitor()) return;
             if (!confirm('Remover este PDV?')) return;
             const pdvs = pdvsPorLoja[lojaId] || [];
             const removed = pdvs.find(p => p.id === pdvId);
@@ -4903,6 +5048,7 @@
         }
 
         async function setAllPdvsStatus(status) {
+            if (isMonitor()) return;
             if (!currentCardId) return;
             const pdvs = pdvsPorLoja[currentCardId] || [];
             const labels = { 'pendente': 'Pendente', 'andamento': 'Em andamento', 'concluido': 'Concluído', 'bloqueado': 'Bloqueado' };
@@ -4920,6 +5066,91 @@
                 renderPdvs(currentCardId);
                 showNotification(`✅ Todos os PDVs definidos como ${labels[status]}`);
             }
+        }
+
+        // ============================================================
+        // CHECKLIST DA LOJA
+        // ============================================================
+        async function salvarChecklist(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) return;
+            await autenticarSupabase();
+            if (supabaseClient) {
+                try {
+                    await supabaseClient.from('lojas').update({ checklist: card.checklist || [] }).eq('id', cardId);
+                } catch (e) { console.warn('Erro ao salvar checklist:', e); }
+            }
+        }
+
+        function renderChecklist(cardId) {
+            const container = document.getElementById('checklistContainer');
+            if (!container) return;
+            const card = initialCards.find(c => c.id === cardId);
+            const itens = (card && Array.isArray(card.checklist)) ? card.checklist : [];
+            const total = itens.length;
+            const done = itens.filter(i => i.concluido).length;
+            const monitor = isMonitor();
+
+            const progressEl = document.getElementById('checklistProgress');
+            if (progressEl) progressEl.textContent = `${done}/${total}`;
+            const countEl = document.getElementById('checklistCount');
+            if (countEl) countEl.textContent = total;
+
+            const addBtn = document.querySelector('#tab-checklist button[onclick="addChecklistItem()"]');
+            if (addBtn) addBtn.style.display = monitor ? 'none' : '';
+
+            if (total === 0) {
+                container.innerHTML = `<div class="text-center text-slate-400 py-8 border border-dashed border-[#1a4a6e] rounded-xl">
+                    <i class="fas fa-check-double text-3xl mb-2 text-slate-500"></i>
+                    <p class="text-sm">Nenhum item no checklist</p>
+                    ${monitor ? '' : '<p class="text-xs text-slate-500">Clique em "Adicionar item" para começar</p>'}
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = itens.map(item => `
+                <div class="tecnico-checklist-item" data-item-id="${item.id}">
+                    <input type="checkbox" ${item.concluido ? 'checked' : ''} ${monitor ? 'disabled' : ''}
+                           onchange="toggleChecklistItem('${cardId}', '${item.id}')" />
+                    <span class="text" style="${item.concluido ? 'text-decoration:line-through; opacity:0.6;' : ''}">${item.texto}</span>
+                    ${monitor ? '' : `<button class="text-[#d32976] hover:text-[#e84a8f] text-xs transition ml-2" onclick="removeChecklistItem('${cardId}', '${item.id}')" title="Remover item"><i class="fas fa-times"></i></button>`}
+                </div>
+            `).join('');
+        }
+
+        async function addChecklistItem() {
+            if (isMonitor()) return;
+            if (!currentCardId) { showNotification('❌ Nenhuma loja selecionada!'); return; }
+            const texto = prompt('✏️ Descrição do item do checklist:');
+            if (!texto || !texto.trim()) return;
+            const card = initialCards.find(c => c.id === currentCardId);
+            if (!card) return;
+            if (!Array.isArray(card.checklist)) card.checklist = [];
+            card.checklist.push({ id: `item-${Date.now()}`, texto: texto.trim(), concluido: false });
+            await salvarChecklist(currentCardId);
+            renderChecklist(currentCardId);
+            showNotification('✅ Item adicionado ao checklist!');
+        }
+
+        async function toggleChecklistItem(cardId, itemId) {
+            if (isMonitor()) return;
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card || !Array.isArray(card.checklist)) return;
+            const item = card.checklist.find(i => i.id === itemId);
+            if (!item) return;
+            item.concluido = !item.concluido;
+            await salvarChecklist(cardId);
+            renderChecklist(cardId);
+        }
+
+        async function removeChecklistItem(cardId, itemId) {
+            if (isMonitor()) return;
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card || !Array.isArray(card.checklist)) return;
+            if (!confirm('Remover este item do checklist?')) return;
+            card.checklist = card.checklist.filter(i => i.id !== itemId);
+            await salvarChecklist(cardId);
+            renderChecklist(cardId);
         }
 
         // ============================================================
@@ -4968,7 +5199,13 @@
                 avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=${cor}&color=fff&size=20`;
             }
             document.getElementById('modalDescription').value = cardData.descricao || '';
+            if (isMonitor()) {
+                document.getElementById('modalDescription').setAttribute('readonly', 'readonly');
+            } else {
+                document.getElementById('modalDescription').removeAttribute('readonly');
+            }
             renderPdvs(cardId);
+            renderChecklist(cardId);
             document.getElementById('modalTotalPdvs').textContent = (pdvsPorLoja[cardId] || []).length;
             const concluidos = (pdvsPorLoja[cardId] || []).filter(p => p.status === 'concluido').length;
             document.getElementById('modalPdvsConcluidos').textContent = concluidos;
@@ -4984,6 +5221,7 @@
         }
 
         async function updateResponsibleFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (!card) return;
@@ -5000,6 +5238,7 @@
         }
 
         function startStoreFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
@@ -5026,6 +5265,7 @@
         }
 
         function blockStoreFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
@@ -5052,6 +5292,7 @@
         }
 
         function completeStoreFromModal() {
+            if (isMonitor()) return;
             if (!currentCardId) return;
             const card = initialCards.find(c => c.id === currentCardId);
             if (card) {
@@ -5083,6 +5324,7 @@
         }
 
         async function deleteCard(cardId) {
+            if (isMonitor()) return;
             const card = initialCards.find(c => c.id === cardId);
             if (!card) return;
             if (card.status === 'concluida' && currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
@@ -5352,15 +5594,8 @@
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('appContent').style.display = 'flex';
                     document.getElementById('userNameDisplay').textContent = user.nome;
-                    document.getElementById('userRoleDisplay').textContent =
-                        user.role === 'admin' ? 'Administrador' :
-                        user.role === 'gerente' ? 'Gerente' :
-                        user.role === 'tecnico' ? 'Técnico' : 'Visualizador';
-                    
-                    if (user.role === 'admin') {
-                        document.getElementById('configBtn').style.display = 'inline-flex';
-                    }
-                    
+                    aplicarModoUsuario(user);
+
                     carregarTudo();
                     carregarCoresSalvas();
                     aplicarCores();
