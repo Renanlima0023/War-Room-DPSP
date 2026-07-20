@@ -2283,7 +2283,7 @@
                     <div><h4 class="text-sm font-medium text-slate-400 mb-2"><i class="fas fa-comment mr-1"></i> Observações</h4><div class="dark-input w-full px-3 py-2 rounded-lg text-sm min-h-[50px]" id="tecnicoObservacoes">Instalação em andamento. Cliente aguardando finalização.</div></div>
                 </div>
                 <div class="store-footer">
-                    <button class="btn-rat-tecnico" onclick="abrirAssinaturaTecnico()"><i class="fas fa-pen-fancy"></i> Assinar e Gerar RAT</button>
+                    <button class="btn-rat-tecnico hide-for-monitor" onclick="abrirAssinaturaTecnico()"><i class="fas fa-pen-fancy"></i> Assinar e Gerar RAT</button>
                     <p class="text-[10px] text-slate-500 text-center mt-2"><i class="fas fa-info-circle mr-1"></i> Peça para o gerente assinar no tablet/PC</p>
                 </div>
             </div>
@@ -2441,10 +2441,10 @@
                         <button class="tab-btn" data-tab="pdvs" onclick="switchTab('pdvs')"><i class="fas fa-server mr-1"></i>PDVs <span class="bg-[#1a4a6e] text-[8px] px-1.5 py-0.5 rounded-full ml-0.5" id="pdvCount">0</span></button>
                         <button class="tab-btn" data-tab="checklist" onclick="switchTab('checklist')"><i class="fas fa-check-double mr-1"></i>Checklist <span class="bg-[#1a4a6e] text-[8px] px-1.5 py-0.5 rounded-full ml-0.5" id="checklistCount">0</span></button>
                         <button class="tab-btn" data-tab="dependencias" onclick="switchTab('dependencias')"><i class="fas fa-link mr-1"></i>Dependências</button>
-                        <button class="tab-btn" data-tab="evidencias" onclick="switchTab('evidencias')"><i class="fas fa-camera mr-1"></i>Evidências</button>
-                        <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')"><i class="fas fa-comments mr-1"></i>Chat <span class="bg-[#d32976]/20 text-[#d32976] text-[8px] px-1.5 py-0.5 rounded-full ml-0.5" id="chatCount">0</span></button>
+                        <button class="tab-btn hide-for-monitor" data-tab="evidencias" onclick="switchTab('evidencias')"><i class="fas fa-camera mr-1"></i>Evidências</button>
+                        <button class="tab-btn hide-for-monitor" data-tab="chat" onclick="switchTab('chat')"><i class="fas fa-comments mr-1"></i>Chat <span class="bg-[#d32976]/20 text-[#d32976] text-[8px] px-1.5 py-0.5 rounded-full ml-0.5" id="chatCount">0</span></button>
                         <button class="tab-btn" data-tab="historico" onclick="switchTab('historico')"><i class="fas fa-history mr-1"></i>Histórico</button>
-                        <button class="tab-btn tab-btn-rat" data-tab="link" onclick="switchTab('link')"><i class="fas fa-link mr-1 text-[#a78bfa]"></i>Link</button>
+                        <button class="tab-btn tab-btn-rat hide-for-monitor" data-tab="link" onclick="switchTab('link')"><i class="fas fa-link mr-1 text-[#a78bfa]"></i>Link</button>
                     </div>
 
                     <div id="tab-detalhes" class="tab-content active">
@@ -4644,6 +4644,11 @@
         }
 
         function switchTab(tabName) {
+            const tabsRestritas = ['evidencias', 'chat', 'link'];
+            if (isMonitor() && tabsRestritas.includes(tabName)) {
+                showNotification('⛔ Acesso não disponível para o perfil Monitoramento!');
+                return;
+            }
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             const tabEl = document.getElementById(`tab-${tabName}`);
@@ -4705,6 +4710,7 @@
         }
 
         function gerarLinkTecnico() {
+            if (isMonitor()) return;
             if (!currentCardId) { showNotification('❌ Selecione uma loja primeiro!'); return; }
             const card = initialCards.find(c => c.id === currentCardId);
             if (!card) { showNotification('❌ Loja não encontrada!'); return; }
@@ -5356,6 +5362,7 @@
         // UPLOAD, CHAT, NOTIFICAÇÕES
         // ============================================================
         function handleFileUpload(event) {
+            if (isMonitor()) return;
             const files = event.target.files;
             if (files.length === 0) return;
             const list = document.getElementById('evidenciasList');
@@ -5374,6 +5381,7 @@
         }
 
         function sendMessage() {
+            if (isMonitor()) return;
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if (!msg) return;
@@ -5849,6 +5857,7 @@
         }
 
         function abrirAssinaturaTecnico() {
+            if (isMonitor()) return;
             if (!tecnicoLojaData) { showNotification('❌ Nenhuma loja selecionada'); return; }
             const loja = tecnicoLojaData.loja;
             document.getElementById('assinaturaTecnicoLoja').textContent = loja.loja;
