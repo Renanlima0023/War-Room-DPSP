@@ -707,7 +707,7 @@ Proprietário · **Renan Lima - Rinfotecsolucoes** · Todos os direitos reservad
 
 ## 📞 Suporte
 
-- **E-mail:** renan.lima@engemon.com.br
+- **E-mail:** rinfotecsolucoes@gmail.com
 - **Documentação interna:** [Wiki interna]
 - **Issues:** [GitHub Issues](https://github.com/seu-usuario/rocc/issues)
 
