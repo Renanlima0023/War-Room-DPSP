@@ -681,7 +681,16 @@
                 </div>
                 <div class="store-body space-y-4">
                     <div><h4 class="text-sm font-medium text-slate-400 mb-2"><i class="fas fa-server mr-1"></i> PDVs</h4><div class="space-y-2" id="tecnicoPdvsList"></div></div>
-                    <div><h4 class="text-sm font-medium text-slate-400 mb-2"><i class="fas fa-check-double mr-1"></i> Checklist</h4><div id="tecnicoChecklistList"></div></div>
+                    <div>
+    <div class="flex justify-between items-center mb-2">
+        <h4 class="text-sm font-medium text-slate-400"><i class="fas fa-check-double mr-1"></i> Checklist</h4>
+        <span class="text-xs text-slate-400">Progresso: <strong class="text-white" id="tecnicoChecklistProgress">0/0</strong></span>
+    </div>
+    <div class="w-full bg-[#1a4a6e] h-1.5 rounded-full mb-3 overflow-hidden">
+        <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" id="tecnicoChecklistBar" style="width:0%"></div>
+    </div>
+    <div id="tecnicoChecklistList"></div>
+</div>
                     <div><h4 class="text-sm font-medium text-slate-400 mb-2"><i class="fas fa-comment mr-1"></i> Observações</h4><div class="dark-input w-full px-3 py-2 rounded-lg text-sm min-h-[50px]" id="tecnicoObservacoes">Instalação em andamento. Cliente aguardando finalização.</div></div>
                 </div>
                 <div class="store-footer">
@@ -3942,8 +3951,13 @@
             showNotification(`👷 Bem-vindo, ${nome}!`);
         }
 
+               // ============================================================
+        // CARREGAR DADOS DO TÉCNICO (NOVA VERSÃO)
+        // ============================================================
         function carregarDadosTecnico() {
             const loja = tecnicoLojaData.loja;
+            
+            // ============ PDVs ============
             const pdvs = pdvsPorLoja[loja.id] || [];
             const pdvContainer = document.getElementById('tecnicoPdvsList');
             if (pdvs.length === 0) {
@@ -3961,15 +3975,114 @@
                     </div>
                 `).join('');
             }
-            const checklistContainer = document.getElementById('tecnicoChecklistList');
-            const itensChecklist = ['Configurar rede dos PDVs', 'Instalar Linux nos terminais', 'Instalar It Lean', 'Realizar venda teste', 'Assinar termo de aceite'];
-            checklistContainer.innerHTML = itensChecklist.map(item => `
-                <div class="tecnico-checklist-item">
-                    <input type="checkbox" id="chk_${item.replace(/\s/g, '_')}" />
-                    <label for="chk_${item.replace(/\s/g, '_')}" class="text">${item}</label>
+            
+            // ============ CHECKLIST ============
+            renderChecklistTecnico();
+            
+            // ============ OBSERVAÇÕES ============
+            document.getElementById('tecnicoObservacoes').textContent = loja.descricao || 'Sem observações';
+        }
+
+        // ============================================================
+        // RENDER CHECKLIST DO TÉCNICO (VEM DO CARD)
+        // ============================================================
+        function renderChecklistTecnico() {
+            if (!tecnicoLojaData) return;
+            const loja = tecnicoLojaData.loja;
+            const card = initialCards.find(c => c.id === loja.id);
+            const container = document.getElementById('tecnicoChecklistList');
+            if (!container) return;
+            
+            const itens = (card && Array.isArray(card.checklist)) ? card.checklist : [];
+            const total = itens.length;
+            const concluidos = itens.filter(i => i.concluido).length;
+            const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+            
+            // Atualiza progresso
+            const progressEl = document.getElementById('tecnicoChecklistProgress');
+            if (progressEl) progressEl.textContent = `${concluidos}/${total}`;
+            const barEl = document.getElementById('tecnicoChecklistBar');
+            if (barEl) barEl.style.width = `${pct}%`;
+            
+            // Se não tem itens
+            if (total === 0) {
+                container.innerHTML = `<div class="text-center text-slate-400 py-6 border border-dashed border-[#1a4a6e] rounded-xl">
+                    <i class="fas fa-check-double text-2xl mb-2 text-slate-500"></i>
+                    <p class="text-xs">Nenhum item no checklist ainda</p>
+                    <p class="text-[10px] text-slate-500 mt-1">O backoffice irá adicionar os itens</p>
+                </div>`;
+                return;
+            }
+            
+            // Renderiza itens
+            container.innerHTML = itens.map(item => `
+                <div class="tecnico-checklist-item" data-item-id="${item.id}">
+                    <input type="checkbox" ${item.concluido ? 'checked' : ''}
+                           onchange="toggleChecklistItemTecnico('${item.id}')" />
+                    <span class="text" style="${item.concluido ? 'text-decoration:line-through; opacity:0.6;' : ''}">${item.texto}</span>
                 </div>
             `).join('');
-            document.getElementById('tecnicoObservacoes').textContent = loja.descricao || 'Sem observações';
+        }
+
+        // ============================================================
+        // MARCAR/DESMARCAR ITEM DO CHECKLIST (TÉCNICO)
+        // ============================================================
+        async function toggleChecklistItemTecnico(itemId) {
+            if (!tecnicoLojaData) return;
+            const loja = tecnicoLojaData.loja;
+            const card = initialCards.find(c => c.id === loja.id);
+            if (!card || !Array.isArray(card.checklist)) return;
+            
+            const item = card.checklist.find(i => i.id === itemId);
+            if (!item) return;
+            
+            // Alterna o estado
+            item.concluido = !item.concluido;
+            
+            // Atualiza UI imediatamente
+            renderChecklistTecnico();
+            
+            // Salva no Supabase
+            try {
+                await autenticarSupabase();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ checklist: card.checklist })
+                        .eq('id', card.id);
+                    
+                    if (error) {
+                        console.error('Erro ao salvar checklist:', error);
+                        // Reverte em caso de erro
+                        item.concluido = !item.concluido;
+                        renderChecklistTecnico();
+                        showNotification('❌ Erro ao salvar. Tente novamente.');
+                        return;
+                    }
+                }
+                
+                // Notificação visual
+                if (item.concluido) {
+                    showNotification(`✅ "${item.texto}" concluído!`);
+                } else {
+                    showNotification(`↩ "${item.texto}" desmarcado`);
+                }
+                
+                // Verifica se todos foram concluídos
+                const todosConcluidos = card.checklist.length > 0 && card.checklist.every(i => i.concluido);
+                if (todosConcluidos) {
+                    setTimeout(() => {
+                        showNotification('🎉 Todos os itens do checklist foram concluídos!');
+                    }, 800);
+                }
+                
+            } catch (e) {
+                console.error('Erro:', e);
+                // Reverte em caso de exceção
+                item.concluido = !item.concluido;
+                renderChecklistTecnico();
+                showNotification('❌ Erro de conexão. Tente novamente.');
+            }
         }
 
         // ============================================================
@@ -4579,6 +4692,8 @@
         window.addChecklistItem = addChecklistItem;
         window.toggleChecklistItem = toggleChecklistItem;
         window.removeChecklistItem = removeChecklistItem;
+        window.renderChecklistTecnico = renderChecklistTecnico;
+        window.toggleChecklistItemTecnico = toggleChecklistItemTecnico;
     </script>
 </body>
 </html>
