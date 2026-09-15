@@ -426,7 +426,7 @@ Na primeira execução, se a tabela `usuarios` estiver vazia, o sistema cria um 
 | Campo | Valor |
 |---|---|
 | **E-mail** | `admin@rocc.com` |
-| **Senha** | `admin123` |
+
 
 > 🔒 **Importante:** troque essas credenciais após o primeiro login.
 
@@ -695,19 +695,19 @@ ON CONFLICT (email) DO NOTHING;
 
 ## 👥 Contribuindo
 
-Este é um projeto proprietário da **Engemon IT**. Para sugestões, entre em contato com o time de desenvolvimento.
+Este é um projeto proprietário da **Renan Lima**. Para sugestões, entre em contato com o time de desenvolvimento.
 
 ---
 
 ## 📄 Licença
 
-Proprietário · **Engemon IT** · Todos os direitos reservados © 2026
+Proprietário · **Renan Lima - Rinfotecsolucoes** · Todos os direitos reservados © 2026
 
 ---
 
 ## 📞 Suporte
 
-- **E-mail:** suporte@engemon.com.br
+- **E-mail:** renan.lima@engemon.com.br
 - **Documentação interna:** [Wiki interna]
 - **Issues:** [GitHub Issues](https://github.com/seu-usuario/rocc/issues)
 
