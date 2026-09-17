@@ -155,10 +155,94 @@
         .card-menu-dropdown .menu-item.danger:hover { background: rgba(211, 41, 118, 0.2); }
         .card-menu-dropdown .menu-item .fa-edit { color: var(--cor-suave); }
 
-        .bottom-panel { background: #051f36; border-top: 1px solid var(--cor-borda); transition: all 0.3s ease; position: relative; flex-shrink: 0; }
+        .bottom-panel {
+            background: #051f36;
+            border-top: 1px solid var(--cor-borda);
+            transition: max-height 0.4s ease;
+            position: relative;
+            flex-shrink: 0;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            /* ⚠️ Sem overflow:hidden no container — só no conteúdo */
+        }
+        .bottom-panel.expanded {
+            max-height: 70vh;
+        }
+         .bottom-panel.collapsed {
+            max-height: 48px !important;
+            overflow: visible;
+        }
+        .bottom-panel.expanded {
+            overflow: visible;
+        }
+        .bottom-panel.collapsed .panel-content {
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+            max-height: 0;
+        }
+         .bottom-panel .panel-content {
+            transition: opacity 0.3s ease, max-height 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: calc(70vh - 50px);
+            padding-top: 8px;
+        }
+        .bottom-panel .panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .bottom-panel .panel-content::-webkit-scrollbar-thumb {
+            background: var(--cor-secundaria);
+            border-radius: 8px;
+        }
         .bottom-panel.collapsed { max-height: 48px !important; overflow: hidden; }
         .bottom-panel.collapsed .panel-content { opacity: 0; pointer-events: none; }
-        .toggle-btn { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; color: var(--cor-texto-claro); }
+          .toggle-btn {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-secundaria-claro));
+            border: 2px solid var(--cor-card);
+            border-radius: 24px;
+            height: 34px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            z-index: 999; /* ⬆️ acima dos cards do Kanban */
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(93, 48, 165, 0.6);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            pointer-events: auto;
+        }
+        .toggle-btn:hover {
+            background: linear-gradient(135deg, var(--cor-secundaria-claro), var(--cor-secundaria));
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(93, 48, 165, 0.7);
+        }
+        .toggle-btn .toggle-text {
+            font-size: 11px;
+            color: #fff;
+            font-weight: 600;
+        }
+        .toggle-btn i {
+            color: #fff;
+            font-size: 12px;
+        }
+        .bottom-panel.collapsed .toggle-btn .fa-chevron-up {
+            transform: rotate(180deg);
+            transition: transform 0.3s ease;
+        }
+        .bottom-panel .toggle-btn .fa-chevron-up {
+            transition: transform 0.3s ease;
+        }
         .toggle-btn:hover { background: var(--cor-borda); color: #fff; border-color: var(--cor-secundaria); }
         .bottom-panel.collapsed .toggle-btn .fa-chevron-up { transform: rotate(180deg); }
 
@@ -290,6 +374,495 @@
         .btn-dashboard-tab.active { background: rgba(249, 209, 183, 0.3); border-color: var(--cor-suave); color: #fff; }
         .btn-close-dashboard { background: var(--cor-borda); color: var(--cor-texto-claro); border: none; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
         .btn-close-dashboard:hover { background: var(--cor-borda); color: #fff; }
+
+        /* ===== BOTÃO AGENDAMENTOS ===== */
+        .btn-agendamentos-tab {
+            background: rgba(211, 41, 118, 0.15);
+            color: #f472b6;
+            border: 1px solid rgba(211, 41, 118, 0.3);
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+        .btn-agendamentos-tab:hover {
+            background: rgba(211, 41, 118, 0.3);
+            border-color: var(--cor-destaque);
+        }
+        .btn-agendamentos-tab.active {
+            background: rgba(211, 41, 118, 0.35);
+            border-color: var(--cor-destaque);
+            color: #fff;
+        }
+        .btn-agendamentos-tab .badge-agendamentos {
+            background: var(--cor-destaque);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .btn-agendamentos-tab.alerta-hoje .badge-agendamentos {
+            background: #dc2626;
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* ===== PÁGINA AGENDAMENTOS ===== */
+        #agendamentosTab {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+            background: var(--cor-fundo);
+        }
+        #agendamentosTab.active { display: block; }
+
+        .agendamentos-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .agendamentos-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .agendamentos-header h2 i {
+            color: #f472b6;
+            margin-right: 12px;
+        }
+        .agendamentos-header .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .agendamentos-header .btn-export-agend {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .agendamentos-header .btn-export-agend:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 16px rgba(5,150,105,0.4);
+        }
+        .agendamentos-header .btn-voltar-kanban {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .agendamentos-header .btn-voltar-kanban:hover {
+            background: rgba(96, 165, 250, 0.3);
+            transform: scale(1.03);
+        }
+        /* ===== BOTÃO NOVO AGENDAMENTO ===== */
+        .btn-novo-agendamento {
+            background: linear-gradient(135deg, var(--cor-destaque), var(--cor-destaque-claro));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(211, 41, 118, 0.3);
+        }
+        .btn-novo-agendamento:hover {
+            transform: scale(1.03);
+            box-shadow: 0 6px 20px rgba(211, 41, 118, 0.5);
+        }
+        .btn-novo-agendamento i {
+            font-size: 13px;
+        }
+
+        /* ===== FAB DE AGENDAMENTO ===== */
+        .fab-agendamento {
+            background: linear-gradient(135deg, var(--cor-destaque), var(--cor-destaque-claro)) !important;
+            box-shadow: 0 8px 30px rgba(211, 41, 118, 0.5) !important;
+        }
+        .fab-agendamento:hover {
+            box-shadow: 0 12px 40px rgba(211, 41, 118, 0.7) !important;
+        }
+
+        /* Cards de resumo */
+        .agend-summary {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .agend-summary-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .agend-summary-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--cor-destaque);
+        }
+        .agend-summary-card .num {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .agend-summary-card .lbl {
+            font-size: 10px;
+            color: var(--cor-texto-claro);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .agend-summary-card .num.atrasada { color: #ef4444; }
+        .agend-summary-card .num.aguardando { color: #60a5fa; }
+        .agend-summary-card .num.backlog { color: #ef4444; }
+        .agend-summary-card .num.hoje { color: #fbbf24; }
+        .agend-summary-card .num.amanha { color: #fb923c; }
+        .agend-summary-card .num.semana { color: #34d399; }
+        .agend-summary-card .num.futuro { color: #94a3b8; }
+
+        /* Seções */
+           .agend-section {
+            margin-bottom: 24px;
+            width: 100%;
+            display: block;
+        }
+        .agend-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        .agend-section-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .agend-section-header .count {
+            background: var(--cor-borda);
+            color: var(--cor-texto-claro);
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .agend-section-header.aguardando h3 i { color: #60a5fa; }
+        .agend-section-header.backlog h3 i { color: #ef4444; }
+        .agend-section-header.hoje h3 i { color: #fbbf24; }
+        .agend-section-header.amanha h3 i { color: #fb923c; }
+        .agend-section-header.semana h3 i { color: #34d399; }
+        .agend-section-header.futuro h3 i { color: #94a3b8; }
+
+        /* Cards das lojas */
+        .agend-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        .agend-grid > .agend-card {
+            width: 100% !important;
+            flex: 0 0 auto !important;
+            box-sizing: border-box !important;
+        }
+          .agend-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            transition: all 0.2s ease;
+            border-left: 4px solid var(--cor-borda);
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .agend-card:has(.agend-menu-dropdown.active) {
+            z-index: 100;
+        }
+        .agend-card:hover {
+            border-color: var(--cor-destaque);
+            transform: translateX(4px);
+        }
+        .agend-card.aguardando { border-left-color: #60a5fa; }
+        .agend-card.backlog { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .agend-card.hoje { border-left-color: #fbbf24; }
+        .agend-card.amanha { border-left-color: #fb923c; }
+        .agend-card.semana { border-left-color: #34d399; }
+        .agend-card.futuro { border-left-color: #94a3b8; }
+        .agend-card.atrasada { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+
+        .agend-card .info-loja {
+            flex: 1;
+            min-width: 200px;
+        }
+        .agend-card .info-loja .nome {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .agend-card .info-loja .nome .alerta-atraso {
+            font-size: 10px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 2px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            font-weight: 600;
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+        .agend-card .info-loja .detalhes {
+            font-size: 11px;
+            color: var(--cor-texto-claro);
+            margin-top: 4px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .agend-card .info-loja .detalhes span i {
+            margin-right: 3px;
+            color: #f472b6;
+        }
+        .agend-card .info-loja .motivo-backlog {
+            font-size: 11px;
+            color: #fca5a5;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .agend-card .data-badge {
+            text-align: center;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            padding: 6px 12px;
+            min-width: 70px;
+        }
+        .agend-card .data-badge .dia {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .agend-card .data-badge .mes {
+            font-size: 10px;
+            color: var(--cor-texto-claro);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .agend-card .data-badge.sem-data {
+            background: rgba(96, 165, 250, 0.1);
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+        .agend-card .data-badge.sem-data .dia {
+            font-size: 20px;
+            color: #60a5fa;
+        }
+
+     .agend-card .acoes {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            overflow: visible;
+        }
+        
+        /* ===== MENU 3 PONTINHOS DOS CARDS DE AGENDAMENTO ===== */
+      
+        .agend-menu-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--cor-borda);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cor-texto-claro);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .agend-menu-btn:hover {
+            background: var(--cor-secundaria);
+            border-color: var(--cor-secundaria);
+            color: #fff;
+            transform: scale(1.1);
+        }
+        .agend-menu-dropdown {
+            position: absolute;
+            top: 48px;
+            right: 16px;
+            background: #0a2740;
+            border: 1px solid var(--cor-secundaria);
+            border-radius: 8px;
+            min-width: 140px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(93, 48, 165, 0.3);
+            display: none;
+            z-index: 9999;
+            padding: 4px 0;
+        }
+        .agend-menu-dropdown.active {
+            display: block;
+            animation: menuFadeIn 0.15s ease;
+        }
+        @keyframes menuFadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .agend-menu-dropdown.active {
+            display: block;
+        }
+        .agend-menu-dropdown .agend-menu-item {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: var(--cor-texto);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+        .agend-menu-dropdown .agend-menu-item:hover {
+            background: rgba(93, 48, 165, 0.2);
+            color: #fff;
+        }
+        .agend-menu-dropdown .agend-menu-item.danger {
+            color: #f87171;
+        }
+        .agend-menu-dropdown .agend-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .agend-menu-dropdown .agend-menu-item i {
+            width: 14px;
+        }
+        .agend-card .btn-acao {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .agend-card .btn-acao.primary {
+            background: rgba(93, 48, 165, 0.2);
+            color: #a78bfa;
+            border-color: rgba(93, 48, 165, 0.4);
+        }
+        .agend-card .btn-acao.primary:hover {
+            background: rgba(93, 48, 165, 0.4);
+        }
+        .agend-card .btn-acao.success {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.4);
+        }
+        .agend-card .btn-acao.success:hover {
+            background: rgba(52, 211, 153, 0.4);
+        }
+        .agend-card .btn-acao.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .agend-card .btn-acao.danger:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        .agend-card .btn-acao.warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.4);
+        }
+        .agend-card .btn-acao.warning:hover {
+            background: rgba(251, 191, 36, 0.4);
+        }
+        .agend-card .btn-acao.info {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+            border-color: rgba(96, 165, 250, 0.4);
+        }
+        .agend-card .btn-acao.info:hover {
+            background: rgba(96, 165, 250, 0.4);
+        }
+
+        .agend-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--cor-texto-claro);
+            font-size: 12px;
+            font-style: italic;
+            background: var(--cor-card);
+            border-radius: 8px;
+            border: 1px dashed var(--cor-borda);
+        }
+            @media (max-width: 1024px) {
+            .agend-summary { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .agend-summary { grid-template-columns: repeat(2, 1fr); }
+            #agendamentosTab { padding: 16px; }
+            .agendamentos-header h2 { font-size: 18px; }
+            .agend-card { padding: 10px 12px; }
+        }
 
         .kanban-scroll::-webkit-scrollbar, .modal-content::-webkit-scrollbar { width: 6px; height: 6px; }
         .kanban-scroll::-webkit-scrollbar-track, .modal-content::-webkit-scrollbar-track { background: var(--cor-fundo); }
@@ -556,6 +1129,11 @@
                     <i class="fas fa-chart-bar"></i> Dashboard
                 </button>
                 
+                <button class="btn-agendamentos-tab" onclick="toggleAgendamentosTab()" id="agendamentosTabBtn">
+                    <i class="fas fa-calendar-alt"></i> Agendamentos
+                    <span class="badge-agendamentos" id="badgeAgendamentos" style="display:none;">0</span>
+                </button>
+
                 <button class="btn-config" onclick="abrirConfiguracoes()" id="configBtn" style="display:none;">
                     <i class="fas fa-cog"></i> Configurações
                 </button>
@@ -658,6 +1236,62 @@
                 </div>
             </div>
         </div>
+        <!-- AGENDAMENTOS TAB -->
+        <div id="agendamentosTab">
+            <div class="agendamentos-header">
+                <h2><i class="fas fa-calendar-alt"></i> Agendamentos de Lojas</h2>
+                 <div class="actions">
+                    <button class="btn-voltar-kanban" onclick="voltarParaKanban()" title="Voltar para o Kanban">
+                        <i class="fas fa-arrow-left"></i> Voltar ao Kanban
+                    </button>
+                    <button class="btn-novo-agendamento" onclick="abrirNovoAgendamento()">
+                        <i class="fas fa-plus-circle"></i> Novo Agendamento
+                    </button>
+                    <button class="btn-export-agend" onclick="exportarAgendamentosExcel()">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                    <button class="btn-close-dashboard" onclick="voltarParaKanban()" title="Fechar esta aba">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+
+            <div class="agend-summary" id="agendSummary">
+                <div class="agend-summary-card" onclick="scrollToAgendSection('atrasada')">
+                    <div class="num atrasada" id="agendCountAtrasada">0</div>
+                    <div class="lbl">⚠️ Atrasadas</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('aguardando')">
+                    <div class="num aguardando" id="agendCountAguardando">0</div>
+                    <div class="lbl">Aguardando Data</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('backlog')">
+                    <div class="num backlog" id="agendCountBacklog">0</div>
+                    <div class="lbl">Backlog</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('hoje')">
+                    <div class="num hoje" id="agendCountHoje">0</div>
+                    <div class="lbl">Hoje</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('amanha')">
+                    <div class="num amanha" id="agendCountAmanha">0</div>
+                    <div class="lbl">Amanhã</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('semana')">
+                    <div class="num semana" id="agendCountSemana">0</div>
+                    <div class="lbl">Esta Semana</div>
+                </div>
+                <div class="agend-summary-card" onclick="scrollToAgendSection('futuro')">
+                    <div class="num futuro" id="agendCountFuturo">0</div>
+                    <div class="lbl">Futuro</div>
+                </div>
+            </div>
+
+            <div id="agendSectionsContainer">
+                <!-- Seções renderizadas via JS -->
+            </div>
+        </div>
+
 
         <!-- VISÃO DO TÉCNICO -->
         <div id="tecnicoView" style="display:none; flex:1; overflow-y:auto; padding: 16px 24px;">
@@ -702,7 +1336,10 @@
 
         <!-- PAINEL INFERIOR -->
         <div class="bottom-panel px-3 md:px-6 py-2 md:py-3 flex-shrink-0" id="bottomPanel">
-            <div class="toggle-btn" onclick="togglePanel()"><i class="fas fa-chevron-up text-xs md:text-sm"></i></div>
+                        <div class="toggle-btn" onclick="togglePanel()" id="togglePanelBtn" title="Expandir/Recolher painel">
+                <i class="fas fa-chevron-up"></i>
+                <span class="toggle-text" id="togglePanelText">Recolher</span>
+            </div>
             <div class="panel-content">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 max-w-7xl mx-auto">
                     <div class="panel-card dark-card rounded-xl border p-2 md:p-3">
@@ -760,7 +1397,12 @@
         <div class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-40" id="fabContainer">
             <button class="fab" onclick="showQuickAction()"><i class="fas fa-plus"></i></button>
         </div>
-
+        <!-- BOTÃO FLUTUANTE - AGENDAMENTOS -->
+        <div class="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-40" id="fabAgendamentos" style="display:none;">
+            <button class="fab fab-agendamento" onclick="abrirNovoAgendamento()" title="Novo Agendamento">
+                <i class="fas fa-calendar-plus"></i>
+            </button>
+        </div>
         <!-- MODAL DE EDIÇÃO DO CARD -->
         <div id="editCardModal" class="modal-overlay edit-card-modal">
             <div class="modal-content">
@@ -1671,6 +2313,22 @@
                     btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
                     showNotification(`👋 Bem-vindo, ${user.nome}!`);
                     
+                    // Notificação de agendamentos para hoje
+                    setTimeout(() => {
+                        const lojasHoje = initialCards.filter(c => {
+                            if (!c.data_agendada) return false;
+                            if (c.em_backlog === true) return false;
+                            if (c.status === 'concluida') return false;
+                            const diff = diffDias(c.data_agendada);
+                            return diff !== null && diff <= 0;
+                        });
+                        if (lojasHoje.length > 0) {
+                            const palavras = lojasHoje.length === 1 ? 'loja agendada' : 'lojas agendadas';
+                            showNotification(`📅 Você tem ${lojasHoje.length} ${palavras} para hoje!`);
+                            addNotificacao(`📅 ${lojasHoje.length} ${palavras} para atendimento hoje`, 'warning');
+                        }
+                    }, 1500);
+                    
                     carregarCoresSalvas();
                     aplicarCores();
                     iniciarInstallApp();
@@ -1823,7 +2481,7 @@
                 await autenticarSupabase();
                 
                 if (supabaseClient) {
-                    const lojaData = {
+                                       const lojaData = {
                         nome: nomeLoja,
                         codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
                         responsavel_id: usuario.id,
@@ -1835,7 +2493,10 @@
                         pdvs: pdvs,
                         comentarios: 0,
                         data_agendada: data || null,
-                        ordem: 999
+                        ordem: 999,
+                        em_backlog: false,
+                        motivo_backlog: null,
+                        data_backlog: null
                     };
 
                     const { data: inserted, error } = await supabaseClient
@@ -1850,7 +2511,7 @@
                         return;
                     }
 
-                    const newCard = {
+                                      const newCard = {
                         id: inserted.id,
                         loja: nomeLoja,
                         responsavel: usuario.nome,
@@ -1861,13 +2522,15 @@
                         uf: uf,
                         pdvs: pdvs,
                         comentarios: 0,
-                        data: data ? formatarDataBR(data) : 'Hoje',
+                        data: data ? formatarDataBR(data) : '—',
                         data_agendada: data || null,
                         descricao: '',
                         ordem: inserted.ordem || 0,
-                        checklist: []
+                        checklist: [],
+                        em_backlog: false,
+                        motivo_backlog: null,
+                        data_backlog: null
                     };
-
                     initialCards.push(newCard);
                     pdvsPorLoja[inserted.id] = [];
 
@@ -1908,6 +2571,7 @@
                     showNotification(`🆕 Loja ${numero} criada com ${pdvs} PDVs! Responsável: ${usuario.nome}`);
                     atualizarMetricasPainel();
                     atualizarDashboard();
+                                              atualizarBadgeAgendamentos();
                     
                     addNotificacao(`📋 Nova loja ${nomeLoja} criada por ${usuario.nome}`, 'info');
                     return;
@@ -2174,6 +2838,7 @@
                 showNotification(`✅ ${nome} atualizada com sucesso!`);
                 atualizarMetricasPainel();
                 atualizarDashboard();
+                atualizarBadgeAgendamentos();
                 
                 addNotificacao(`✏️ Loja ${nome} foi editada por ${currentUser?.nome || 'Sistema'}`, 'info');
 
@@ -2366,13 +3031,16 @@
                 uf: row.uf || '',
                 pdvs: row.pdvs || 0,
                 comentarios: row.comentarios || 0,
-                data: row.data_agendada ? formatarDataBR(row.data_agendada) : 'Hoje',
+                data: row.data_agendada ? formatarDataBR(row.data_agendada) : '—',
                 data_agendada: row.data_agendada,
                 prioridade: row.prioridade,
                 subtipo: row.subtipo,
                 descricao: row.descricao,
                 ordem: row.ordem || 0,
-                checklist: Array.isArray(row.checklist) ? row.checklist : []
+                checklist: Array.isArray(row.checklist) ? row.checklist : [],
+                em_backlog: row.em_backlog === true,
+                motivo_backlog: row.motivo_backlog || null,
+                data_backlog: row.data_backlog || null
             };
         }
 
@@ -2427,6 +3095,7 @@
                     renderCards();
                     atualizarMetricasPainel();
                     atualizarDashboard();
+                                                atualizarBadgeAgendamentos();
                     const uf = row.uf ? ` - ${row.uf}` : '';
                     addNotificacao(`🆕 Loja ${row.nome} foi agendada (${row.cidade || ''}${uf})`, 'info');
                 })
@@ -2444,6 +3113,7 @@
                     renderCards();
                     atualizarMetricasPainel();
                     atualizarDashboard();
+                                                atualizarBadgeAgendamentos();
                     if (statusMudou) {
                         const label = statusLabelsNotif[row.status] || row.status;
                         addNotificacao(`📦 ${row.nome} mudou para "${label}"`, 'info');
@@ -2457,6 +3127,7 @@
                     renderCards();
                     atualizarMetricasPainel();
                     atualizarDashboard();
+                    atualizarBadgeAgendamentos();
                 })
                 .subscribe();
         }
@@ -2474,6 +3145,7 @@
             populateResponsavelSelects();
             populateTecnicoSelects();
             atualizarDashboard();
+            atualizarBadgeAgendamentos();
             iniciarRealtimeLojas();
             console.log('✅ Todos os dados carregados!');
         }
@@ -2624,19 +3296,34 @@
         // ============================================================
         // RENDER CARDS
         // ============================================================
-        function renderCards() {
-            const container = document.getElementById('kanbanContainer');
-            if (!container) return;
-            const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
-            const statusLabels = { 'agendada': 'Agendadas', 'execucao': 'Execução', 'bloqueada': 'Bloqueadas', 'revisao': 'Revisão', 'concluida': 'Concluídas' };
-            const statusIcons = { 'agendada': 'fa-calendar-alt text-sky-400', 'execucao': 'fa-spinner text-[#ff7300]', 'bloqueada': 'fa-ban text-[#d32976]', 'revisao': 'fa-check-double text-[#a78bfa]', 'concluida': 'fa-check-circle text-emerald-400' };
+       function deveAparecerNoKanban(card) {
+    if (card.em_backlog === true) {
+        return false;
+    }
+    if (!card.data_agendada) {
+        return false;
+    }
+    const diff = diffDias(card.data_agendada);
+    if (diff === null) return false;
+    return diff <= 0;
+}
 
-            let html = '';
-            statuses.forEach(status => {
-                const cards = initialCards
-                    .filter(c => c.status === status)
-                    .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-                html += `
+function renderCards() {
+    const container = document.getElementById('kanbanContainer');
+    if (!container) return;
+    const statuses = ['agendada', 'execucao', 'bloqueada', 'revisao', 'concluida'];
+    const statusLabels = { 'agendada': 'Agendadas', 'execucao': 'Execução', 'bloqueada': 'Bloqueadas', 'revisao': 'Revisão', 'concluida': 'Concluídas' };
+    const statusIcons = { 'agendada': 'fa-calendar-alt text-sky-400', 'execucao': 'fa-spinner text-[#ff7300]', 'bloqueada': 'fa-ban text-[#d32976]', 'revisao': 'fa-check-double text-[#a78bfa]', 'concluida': 'fa-check-circle text-emerald-400' };
+
+    // FILTRA: só lojas que devem aparecer no Kanban
+    const cardsVisiveis = initialCards.filter(deveAparecerNoKanban);
+
+    let html = '';
+    statuses.forEach(status => {
+        const cards = cardsVisiveis
+            .filter(c => c.status === status)
+            .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        html += `
                     <div class="kanban-column dark-card rounded-xl border p-0 flex flex-col flex-1 min-w-[180px]">
                         <div class="dark-header p-2 md:p-3 rounded-t-xl flex justify-between items-center border-b">
                             <h3 class="font-semibold text-xs md:text-sm text-white"><i class="fas ${statusIcons[status]} mr-1 md:mr-2"></i>${statusLabels[status]}</h3>
@@ -2651,12 +3338,13 @@
                     </div>
                 `;
             });
-            container.innerHTML = html;
+                        container.innerHTML = html;
             statuses.forEach(status => {
-                const count = initialCards.filter(c => c.status === status).length;
+                const count = cardsVisiveis.filter(c => c.status === status).length;
                 const el = document.getElementById(`count-${status}`);
                 if (el) el.textContent = count;
             });
+           
             updateResponsavelFilter();
             atualizarMetricasPainel();
             populateResponsavelSelects();
@@ -2666,6 +3354,15 @@
 
         function renderCardHtml(card) {
             const statusClass = `status-${card.status}`;
+
+            // ============ ALERTA DE ATRASO ============
+            const diff = card.data_agendada ? diffDias(card.data_agendada) : null;
+            const atrasada = diff !== null && diff < 0 && card.status !== 'concluida';
+            const diasAtraso = atrasada ? Math.abs(diff) : 0;
+            const atrasoHtml = atrasada 
+                ? `<span class="card-alerta-atraso"><i class="fas fa-exclamation-triangle"></i> ${diasAtraso}d</span>` 
+                : '';
+            // ==========================================
             const prioridadeMap = { 'Crítico': 'priority-critical', 'Alta': 'priority-high', 'Média': 'priority-medium' };
             const prioridadeClass = card.prioridade ? prioridadeMap[card.prioridade] || '' : '';
             const pdvs = pdvsPorLoja[card.id] || [];
@@ -2706,7 +3403,10 @@
                     ${menuHtml}
                     <div class="flex justify-between items-start">
                         <span class="font-bold text-xs md:text-sm text-white ${storeNameClass}">${card.loja}</span>
-                        ${regionalHtml}
+                        <div class="flex items-center gap-1">
+                            ${atrasoHtml}
+                            ${regionalHtml}
+                        </div>
                     </div>
                     <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">${cidadeUf} · ${totalPdvs} PDVs</p>
                     <div class="flex items-center gap-1 md:gap-2 mt-1 flex-wrap">
@@ -2842,23 +3542,865 @@
         // ============================================================
         // DASHBOARD
         // ============================================================
-        function toggleDashboardTab() {
+              function toggleDashboardTab() {
             const kanbanWrapper = document.getElementById('kanbanWrapper');
             const dashboardTab = document.getElementById('dashboardTab');
             const btn = document.getElementById('dashboardTabBtn');
+            const fabKanban = document.getElementById('fabContainer');
+            const fabAgend = document.getElementById('fabAgendamentos');
+
+            // Fecha agendamentos se estiver aberto
+            if (agendamentosVisible) {
+                agendamentosVisible = false;
+                document.getElementById('agendamentosTab').classList.remove('active');
+                document.getElementById('agendamentosTabBtn').classList.remove('active');
+                if (fabAgend) fabAgend.style.display = 'none';
+            }
+
             dashboardVisible = !dashboardVisible;
             if (dashboardVisible) {
                 kanbanWrapper.style.display = 'none';
                 dashboardTab.classList.add('active');
                 btn.classList.add('active');
                 btn.innerHTML = '<i class="fas fa-times"></i> Fechar Dashboard';
+                if (fabKanban) fabKanban.style.display = 'none';
                 atualizarDashboard();
             } else {
                 kanbanWrapper.style.display = 'block';
                 dashboardTab.classList.remove('active');
                 btn.classList.remove('active');
                 btn.innerHTML = '<i class="fas fa-chart-bar"></i> Dashboard';
+                if (fabKanban) fabKanban.style.display = 'block';
             }
+        }
+        // ============================================================
+        // ABA AGENDAMENTOS
+        // ============================================================
+        let agendamentosVisible = false;
+
+                   // ============================================================
+        // ABRIR AGENDAMENTOS EM NOVA ABA
+        // ============================================================
+        function toggleAgendamentosTab() {
+            // Detecta se já está numa aba só de agendamento
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAgendamentoTab = urlParams.get('view') === 'agendamentos';
+
+            if (!isAgendamentoTab) {
+                // Está no Kanban → abre nova aba com agendamentos
+                abrirAgendamentosEmNovaAba();
+                return;
+            }
+
+            // Se já está na aba de agendamentos, fecha (volta para o Kanban)
+            window.close();
+            // Se não conseguir fechar (aba do navegador), volta para o Kanban na mesma aba
+            setTimeout(() => {
+                voltarParaKanban();
+            }, 100);
+        }
+
+        function abrirAgendamentosEmNovaAba() {
+            const url = `${window.location.origin}${window.location.pathname}?view=agendamentos`;
+            window.open(url, '_blank');
+        }
+
+        function voltarParaKanban() {
+            const kanbanWrapper = document.getElementById('kanbanWrapper');
+            const dashboardTab = document.getElementById('dashboardTab');
+            const agendamentosTab = document.getElementById('agendamentosTab');
+            const btnAgend = document.getElementById('agendamentosTabBtn');
+            const btnDash = document.getElementById('dashboardTabBtn');
+            const fabKanban = document.getElementById('fabContainer');
+            const fabAgend = document.getElementById('fabAgendamentos');
+
+            // Fecha dashboard se estiver aberto
+            if (dashboardVisible) {
+                dashboardVisible = false;
+                dashboardTab.classList.remove('active');
+                btnDash.classList.remove('active');
+                btnDash.innerHTML = '<i class="fas fa-chart-bar"></i> Dashboard';
+            }
+
+            // Fecha agendamentos
+            agendamentosVisible = false;
+            agendamentosTab.classList.remove('active');
+            if (btnAgend) btnAgend.classList.remove('active');
+            if (fabAgend) fabAgend.style.display = 'none';
+            if (fabKanban) fabKanban.style.display = 'block';
+            kanbanWrapper.style.display = 'block';
+
+            // Remove o parâmetro "view" da URL
+            const url = new URL(window.location);
+            url.searchParams.delete('view');
+            window.history.replaceState({}, '', url);
+        }
+
+        // ============================================================
+        // REGRAS DE NEGÓCIO - CLASSIFICAÇÃO DE LOJAS
+        // ============================================================
+        function getHoje() {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            return hoje;
+        }
+
+        function parseData(str) {
+            if (!str) return null;
+            // Aceita tanto "2026-09-15" quanto "15/09/2026"
+            if (str.includes('-')) {
+                const [y, m, d] = str.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                dt.setHours(0, 0, 0, 0);
+                return dt;
+            }
+            return null;
+        }
+
+        function diffDias(dataISO) {
+            if (!dataISO) return null;
+            const dt = parseData(dataISO);
+            if (!dt) return null;
+            const hoje = getHoje();
+            const diff = Math.round((dt - hoje) / (1000 * 60 * 60 * 24));
+            return diff;
+        }
+
+        function classificarLoja(card) {
+            // Retorna: 'aguardando' | 'backlog' | 'hoje' | 'amanha' | 'semana' | 'futuro' | 'atrasada' | 'no_kanban'
+            
+            // Backlog tem prioridade
+            if (card.em_backlog === true) {
+                return 'backlog';
+            }
+            
+            // Sem data = aguardando
+            if (!card.data_agendada) {
+                return 'aguardando';
+            }
+            
+            const diff = diffDias(card.data_agendada);
+            if (diff === null) return 'aguardando';
+            
+            // Data passou e não foi concluída = atrasada
+            if (diff < 0 && card.status !== 'concluida') {
+                return 'atrasada';
+            }
+            
+            // Hoje
+            if (diff === 0) return 'hoje';
+            
+            // Amanhã
+            if (diff === 1) return 'amanha';
+            
+            // Esta semana (2 a 7 dias)
+            if (diff >= 2 && diff <= 7) return 'semana';
+            
+            // Futuro
+            if (diff > 7) return 'futuro';
+            
+            // Se chegou aqui, já está no kanban (concluída ou passada)
+            return 'no_kanban';
+        }
+
+        // ============================================================
+        // RENDER AGENDAMENTOS
+        // ============================================================
+        function renderAgendamentos() {
+            const container = document.getElementById('agendSectionsContainer');
+            if (!container) return;
+
+            // Filtra lojas que estão no kanban (não aparecem em agendamentos) — exceto hoje/atrasadas que queremos mostrar
+            const lojas = initialCards.slice();
+
+            const buckets = {
+                aguardando: [],
+                backlog: [],
+                atrasada: [],
+                hoje: [],
+                amanha: [],
+                semana: [],
+                futuro: []
+            };
+
+            lojas.forEach(card => {
+                const classe = classificarLoja(card);
+                if (buckets[classe]) {
+                    buckets[classe].push(card);
+                }
+            });
+
+            // Ordena cada bucket
+            buckets.aguardando.sort((a, b) => (a.loja || '').localeCompare(b.loja || ''));
+            buckets.backlog.sort((a, b) => (a.data_backlog || '').localeCompare(b.data_backlog || ''));
+            buckets.atrasada.sort((a, b) => (a.data_agendada || '').localeCompare(b.data_agendada || ''));
+            buckets.hoje.sort((a, b) => (a.loja || '').localeCompare(b.loja || ''));
+            buckets.amanha.sort((a, b) => (a.loja || '').localeCompare(b.loja || ''));
+            buckets.semana.sort((a, b) => (a.data_agendada || '').localeCompare(b.data_agendada || ''));
+            buckets.futuro.sort((a, b) => (a.data_agendada || '').localeCompare(b.data_agendada || ''));
+
+            // Atualiza contadores
+            document.getElementById('agendCountAtrasada').textContent = buckets.atrasada.length;
+            document.getElementById('agendCountAguardando').textContent = buckets.aguardando.length;
+            document.getElementById('agendCountBacklog').textContent = buckets.backlog.length;
+            document.getElementById('agendCountHoje').textContent = buckets.hoje.length;
+            document.getElementById('agendCountAmanha').textContent = buckets.amanha.length;
+            document.getElementById('agendCountSemana').textContent = buckets.semana.length;
+            document.getElementById('agendCountFuturo').textContent = buckets.futuro.length;
+
+            // Atualiza badge no topo
+            atualizarBadgeAgendamentos();
+
+            // Renderiza seções
+            let html = '';
+
+            // 🔴 ATRASADAS (aparece primeiro, urgente)
+            if (buckets.atrasada.length > 0) {
+                html += renderAgendSection('atrasada', '⚠️ Atrasadas', 'fa-exclamation-triangle', buckets.atrasada);
+            }
+
+            // 🔵 AGUARDANDO DATA
+            if (buckets.aguardando.length > 0) {
+                html += renderAgendSection('aguardando', '🔵 Aguardando Data', 'fa-clock', buckets.aguardando);
+            }
+
+            // 🔴 BACKLOG
+            if (buckets.backlog.length > 0) {
+                html += renderAgendSection('backlog', '🔴 Backlog', 'fa-archive', buckets.backlog);
+            }
+
+            // 🟡 HOJE
+            if (buckets.hoje.length > 0) {
+                html += renderAgendSection('hoje', '🟡 Hoje', 'fa-calendar-day', buckets.hoje);
+            }
+
+            // 🟠 AMANHÃ
+            if (buckets.amanha.length > 0) {
+                html += renderAgendSection('amanha', '🟠 Amanhã', 'fa-calendar-plus', buckets.amanha);
+            }
+
+            // 🟢 ESTA SEMANA
+            if (buckets.semana.length > 0) {
+                html += renderAgendSection('semana', '🟢 Esta Semana', 'fa-calendar-week', buckets.semana);
+            }
+
+            // ⚪ FUTURO
+            if (buckets.futuro.length > 0) {
+                html += renderAgendSection('futuro', '⚪ Futuro', 'fa-calendar', buckets.futuro);
+            }
+
+            // Se tudo vazio
+            if (!html) {
+                html = `<div class="agend-empty">
+                    <i class="fas fa-check-circle" style="font-size:32px;color:#34d399;display:block;margin-bottom:8px;"></i>
+                    <p>Nenhuma loja agendada no momento</p>
+                    <p style="font-size:11px;margin-top:4px;opacity:0.7;">Todas as lojas estão no Kanban ou concluídas</p>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderAgendSection(sectionId, titulo, icone, lojas) {
+            let cardsHtml = lojas.map(card => renderAgendCard(card, sectionId)).join('');
+            
+            return `
+                <div class="agend-section" id="agend-section-${sectionId}">
+                    <div class="agend-section-header ${sectionId}">
+                        <h3><i class="fas ${icone}"></i> ${titulo}</h3>
+                        <span class="count">${lojas.length}</span>
+                    </div>
+                    <div class="agend-grid">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAgendCard(card, secao) {
+            const cidadeUF = `${card.cidade || ''}${card.uf ? ` / ${card.uf}` : ''}`;
+            const pdvs = pdvsPorLoja[card.id] || [];
+            const totalPdvs = pdvs.length;
+            const responsavel = card.responsavel && card.responsavel !== 'Não atribuído' ? card.responsavel : 'Sem responsável';
+
+            // Data formatada
+            let dataBadge = '';
+            if (card.data_agendada) {
+                const dt = parseData(card.data_agendada);
+                if (dt) {
+                    const dia = String(dt.getDate()).padStart(2, '0');
+                    const mes = dt.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
+                    const classes = secao === 'atrasada' ? 'sem-data' : '';
+                    dataBadge = `
+                        <div class="data-badge ${classes}">
+                            <div class="dia">${dia}</div>
+                            <div class="mes">${mes}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                dataBadge = `
+                    <div class="data-badge sem-data">
+                        <div class="dia">—</div>
+                        <div class="mes">sem data</div>
+                    </div>
+                `;
+            }
+
+            // Alerta de atraso
+            let alertaAtraso = '';
+            if (secao === 'atrasada' && card.data_agendada) {
+                const diff = diffDias(card.data_agendada);
+                const diasAtraso = Math.abs(diff);
+                alertaAtraso = `<span class="alerta-atraso"><i class="fas fa-exclamation-triangle"></i> ${diasAtraso} ${diasAtraso === 1 ? 'dia' : 'dias'} atrasada</span>`;
+            }
+
+            // Motivo do backlog
+            let motivoBacklog = '';
+            if (card.em_backlog && card.motivo_backlog) {
+                motivoBacklog = `<div class="motivo-backlog"><i class="fas fa-info-circle"></i> ${card.motivo_backlog}</div>`;
+            }
+
+            // Ações baseadas na seção
+            let acoesHtml = '';
+
+            if (secao === 'aguardando') {
+                acoesHtml = `
+                    <button class="btn-acao primary" onclick="definirDataAgendamento('${card.id}')">
+                        <i class="fas fa-calendar-plus"></i> Definir Data
+                    </button>
+                    <button class="btn-acao danger" onclick="moverParaBacklog('${card.id}')">
+                        <i class="fas fa-archive"></i> Backlog
+                    </button>
+                `;
+            } else if (secao === 'backlog') {
+                acoesHtml = `
+                    <button class="btn-acao success" onclick="reativarDoBacklog('${card.id}')">
+                        <i class="fas fa-redo"></i> Reativar
+                    </button>
+                `;
+            } else if (secao === 'atrasada') {
+                acoesHtml = `
+                    <button class="btn-acao warning" onclick="anteciparParaHoje('${card.id}')">
+                        <i class="fas fa-bolt"></i> Antecipar p/ Hoje
+                    </button>
+                    <button class="btn-acao info" onclick="definirDataAgendamento('${card.id}')">
+                        <i class="fas fa-calendar-edit"></i> Nova Data
+                    </button>
+                    <button class="btn-acao danger" onclick="moverParaBacklog('${card.id}')">
+                        <i class="fas fa-archive"></i> Backlog
+                    </button>
+                `;
+            } else if (secao === 'hoje') {
+                acoesHtml = `
+                    <button class="btn-acao success" onclick="verNoKanban('${card.id}')">
+                        <i class="fas fa-eye"></i> Ver no Kanban
+                    </button>
+                `;
+            } else if (secao === 'amanha' || secao === 'semana' || secao === 'futuro') {
+                acoesHtml = `
+                    <button class="btn-acao warning" onclick="anteciparParaHoje('${card.id}')">
+                        <i class="fas fa-bolt"></i> Antecipar
+                    </button>
+                    <button class="btn-acao info" onclick="definirDataAgendamento('${card.id}')">
+                        <i class="fas fa-edit"></i> Alterar Data
+                    </button>
+                    <button class="btn-acao danger" onclick="moverParaBacklog('${card.id}')">
+                        <i class="fas fa-archive"></i> Backlog
+                    </button>
+                `;
+            }
+
+            return `
+                <div class="agend-card ${secao}">
+                    ${dataBadge}
+                    <div class="info-loja">
+                        <div class="nome">
+                            ${card.loja}
+                            ${alertaAtraso}
+                        </div>
+                        <div class="detalhes">
+                            <span><i class="fas fa-map-marker-alt"></i>${cidadeUF || 'Sem localização'}</span>
+                            <span><i class="fas fa-server"></i>${totalPdvs} PDVs</span>
+                            <span><i class="fas fa-user"></i>${responsavel}</span>
+                        </div>
+                        ${motivoBacklog}
+                    </div>
+                    <div class="acoes">
+                        ${acoesHtml}
+                        <button class="agend-menu-btn" onclick="toggleAgendMenu(event, '${card.id}')" title="Mais opções">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+     <div class="agend-menu-dropdown" id="agend-menu-${card.id}" onclick="event.stopPropagation();">
+                        <button class="agend-menu-item" onclick="event.preventDefault(); event.stopPropagation(); fecharTodosAgendMenus(); abrirEditCard('${card.id}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="agend-menu-item danger" onclick="event.preventDefault(); event.stopPropagation(); fecharTodosAgendMenus(); removerAgendamento('${card.id}')">
+                            <i class="fas fa-trash"></i> Remover
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================================
+        // MENU 3 PONTINHOS DOS CARDS DE AGENDAMENTO
+        // ============================================================
+        function toggleAgendMenu(event, cardId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const menu = document.getElementById(`agend-menu-${cardId}`);
+            const isActive = menu && menu.classList.contains('active');
+            
+            // Fecha TODOS os menus primeiro
+            document.querySelectorAll('.agend-menu-dropdown.active').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Se o menu clicado NÃO estava aberto, abre ele
+            if (menu && !isActive) {
+                menu.classList.add('active');
+            }
+        }
+ 
+            function fecharTodosAgendMenus() {
+            document.querySelectorAll('.agend-menu-dropdown.active').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
+
+         // Fecha menus ao clicar fora
+        document.addEventListener('click', function(e) {
+            // Se clicou DENTRO de um menu ou no botão, não faz nada
+            if (e.target.closest('.agend-menu-dropdown') || e.target.closest('.agend-menu-btn')) {
+                return;
+            }
+            // Fecha todos os menus abertos
+            document.querySelectorAll('.agend-menu-dropdown.active').forEach(el => {
+                el.classList.remove('active');
+            });
+        });
+
+        // ============================================================
+        // REMOVER AGENDAMENTO
+        // ============================================================
+        async function removerAgendamento(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) {
+                showNotification('❌ Loja não encontrada!');
+                return;
+            }
+
+            if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'gerente') {
+                showNotification('⛔ Apenas Administradores e Gerentes podem remover lojas!');
+                return;
+            }
+
+            if (!confirm(`🗑️ Deseja realmente EXCLUIR a loja "${card.loja}"?\n\nEssa ação não pode ser desfeita.`)) {
+                return;
+            }
+
+            try {
+                await autenticarSupabase();
+                
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .delete()
+                        .eq('id', cardId);
+                    
+                    if (error) {
+                        console.error('Erro ao excluir:', error);
+                        showNotification('❌ Erro ao excluir: ' + error.message);
+                        return;
+                    }
+                    
+                    await supabaseClient
+                        .from('pdvs')
+                        .delete()
+                        .eq('loja_id', cardId);
+                }
+
+                initialCards = initialCards.filter(c => c.id !== cardId);
+                delete pdvsPorLoja[cardId];
+
+                renderAgendamentos();
+                renderCards();
+                atualizarMetricasPainel();
+                atualizarDashboard();
+                atualizarBadgeAgendamentos();
+
+                showNotification(`🗑️ ${card.loja} excluída com sucesso!`);
+                addNotificacao(`🗑️ Loja ${card.loja} foi excluída por ${currentUser?.nome || 'Sistema'}`, 'warning');
+
+            } catch (e) {
+                console.error('Erro:', e);
+                showNotification('❌ Erro ao excluir loja');
+            }
+        }
+
+        // ============================================================
+        // BADGE DE AGENDAMENTOS NO TOPO
+        // ============================================================
+        function atualizarBadgeAgendamentos() {
+            const badge = document.getElementById('badgeAgendamentos');
+            const btn = document.getElementById('agendamentosTabBtn');
+            if (!badge || !btn) return;
+
+            const hoje = getHoje();
+            let contHoje = 0;
+            let contTotal = 0;
+
+            initialCards.forEach(card => {
+                if (card.em_backlog === true) {
+                    contTotal++;
+                    return;
+                }
+                if (!card.data_agendada) {
+                    contTotal++;
+                    return;
+                }
+                const diff = diffDias(card.data_agendada);
+                if (diff === 0 && card.status !== 'concluida') {
+                    contHoje++;
+                }
+                if (diff !== null && diff >= 0 && card.status !== 'concluida') {
+                    contTotal++;
+                }
+                if (diff !== null && diff < 0 && card.status !== 'concluida') {
+                    contTotal++; // atrasada
+                }
+            });
+
+            // Mostra contador total
+            if (contTotal > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = contTotal;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Alerta se tem lojas para hoje
+            if (contHoje > 0) {
+                btn.classList.add('alerta-hoje');
+            } else {
+                btn.classList.remove('alerta-hoje');
+            }
+        }
+
+        // ============================================================
+        // AÇÕES DOS CARDS
+        // ============================================================
+        async function definirDataAgendamento(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) return;
+
+            const valorAtual = card.data_agendada || new Date().toISOString().split('T')[0];
+            const novaData = prompt(`📅 Definir data de agendamento para ${card.loja}:\n(Formato: AAAA-MM-DD)`, valorAtual);
+            
+            if (novaData === null) return;
+            
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(novaData)) {
+                showNotification('❌ Formato inválido. Use AAAA-MM-DD (ex: 2026-09-20)');
+                return;
+            }
+
+            try {
+                await autenticarSupabase();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            data_agendada: novaData,
+                            em_backlog: false,
+                            motivo_backlog: null,
+                            data_backlog: null
+                        })
+                        .eq('id', cardId);
+                    if (error) {
+                        showNotification('❌ Erro ao salvar: ' + error.message);
+                        return;
+                    }
+                }
+                card.data_agendada = novaData;
+                card.data = formatarDataBR(novaData);
+                card.em_backlog = false;
+                card.motivo_backlog = null;
+                card.data_backlog = null;
+
+                renderAgendamentos();
+                renderCards();
+                atualizarMetricasPainel();
+                showNotification(`✅ ${card.loja} agendada para ${formatarDataBR(novaData)}`);
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Erro ao definir data');
+            }
+        }
+
+        async function anteciparParaHoje(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) return;
+            if (!confirm(`⚡ Antecipar ${card.loja} para HOJE?`)) return;
+
+            const hoje = new Date().toISOString().split('T')[0];
+            try {
+                await autenticarSupabase();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            data_agendada: hoje,
+                            em_backlog: false,
+                            motivo_backlog: null,
+                            data_backlog: null
+                        })
+                        .eq('id', cardId);
+                    if (error) {
+                        showNotification('❌ Erro: ' + error.message);
+                        return;
+                    }
+                }
+                card.data_agendada = hoje;
+                card.data = formatarDataBR(hoje);
+                card.em_backlog = false;
+                card.motivo_backlog = null;
+                card.data_backlog = null;
+
+                renderAgendamentos();
+                renderCards();
+                atualizarMetricasPainel();
+                showNotification(`⚡ ${card.loja} antecipada para hoje!`);
+                addNotificacao(`⚡ ${card.loja} foi antecipada para hoje por ${currentUser?.nome || 'Sistema'}`, 'warning');
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Erro ao antecipar');
+            }
+        }
+
+        async function moverParaBacklog(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) return;
+
+            const motivo = prompt(`📦 Mover ${card.loja} para BACKLOG.\n\nInforme o motivo:`);
+            if (motivo === null) return;
+            if (!motivo.trim()) {
+                showNotification('❌ Motivo é obrigatório');
+                return;
+            }
+
+            try {
+                await autenticarSupabase();
+                const agora = new Date().toISOString();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            em_backlog: true,
+                            motivo_backlog: motivo.trim(),
+                            data_backlog: agora
+                        })
+                        .eq('id', cardId);
+                    if (error) {
+                        showNotification('❌ Erro: ' + error.message);
+                        return;
+                    }
+                }
+                card.em_backlog = true;
+                card.motivo_backlog = motivo.trim();
+                card.data_backlog = agora;
+
+                renderAgendamentos();
+                renderCards();
+                atualizarMetricasPainel();
+                showNotification(`📦 ${card.loja} movida para backlog`);
+                addNotificacao(`📦 ${card.loja} foi para backlog: ${motivo.trim()}`, 'warning');
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Erro ao mover para backlog');
+            }
+        }
+
+        async function reativarDoBacklog(cardId) {
+            const card = initialCards.find(c => c.id === cardId);
+            if (!card) return;
+
+            const valorAtual = new Date().toISOString().split('T')[0];
+            const novaData = prompt(`🔄 Reativar ${card.loja}.\n\nInforme a nova data (AAAA-MM-DD):`, valorAtual);
+            if (novaData === null) return;
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(novaData)) {
+                showNotification('❌ Formato inválido. Use AAAA-MM-DD');
+                return;
+            }
+
+            try {
+                await autenticarSupabase();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ 
+                            em_backlog: false,
+                            motivo_backlog: null,
+                            data_backlog: null,
+                            data_agendada: novaData
+                        })
+                        .eq('id', cardId);
+                    if (error) {
+                        showNotification('❌ Erro: ' + error.message);
+                        return;
+                    }
+                }
+                card.em_backlog = false;
+                card.motivo_backlog = null;
+                card.data_backlog = null;
+                card.data_agendada = novaData;
+                card.data = formatarDataBR(novaData);
+
+                renderAgendamentos();
+                renderCards();
+                atualizarMetricasPainel();
+                showNotification(`✅ ${card.loja} reativada para ${formatarDataBR(novaData)}`);
+                addNotificacao(`✅ ${card.loja} foi reativada do backlog`, 'success');
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Erro ao reativar');
+            }
+        }
+
+        function verNoKanban(cardId) {
+            // Fecha agendamentos
+            agendamentosVisible = false;
+            document.getElementById('agendamentosTab').classList.remove('active');
+            document.getElementById('agendamentosTabBtn').classList.remove('active');
+            document.getElementById('kanbanWrapper').style.display = 'block';
+
+            // Aguarda renderização e destaca o card
+            setTimeout(() => {
+                const cardEl = document.querySelector(`.kanban-card[data-id="${cardId}"]`);
+                if (cardEl) {
+                    cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    cardEl.style.boxShadow = '0 0 0 3px #f472b6, 0 8px 30px rgba(211, 41, 118, 0.5)';
+                    setTimeout(() => {
+                        cardEl.style.boxShadow = '';
+                    }, 3000);
+                } else {
+                    showNotification('ℹ️ Loja ainda não está visível no Kanban');
+                }
+            }, 300);
+        }
+
+        function scrollToAgendSection(sectionId) {
+            const el = document.getElementById(`agend-section-${sectionId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                showNotification('ℹ️ Nenhuma loja nesta categoria');
+            }
+        }
+
+        // ============================================================
+        // EXPORTAR EXCEL DE AGENDAMENTOS
+        // ============================================================
+        function exportarAgendamentosExcel() {
+            if (typeof XLSX === 'undefined') {
+                showNotification('❌ Biblioteca XLSX não carregada');
+                return;
+            }
+
+            try {
+                const prioridadeOrdem = {
+                    'atrasada': 1,
+                    'hoje': 2,
+                    'amanha': 3,
+                    'semana': 4,
+                    'futuro': 5,
+                    'aguardando': 6,
+                    'backlog': 7
+                };
+                const prioridadeLabel = {
+                    'atrasada': '🔴 ATRASADA',
+                    'hoje': '🟡 HOJE',
+                    'amanha': '🟠 AMANHÃ',
+                    'semana': '🟢 ESTA SEMANA',
+                    'futuro': '⚪ FUTURO',
+                    'aguardando': '🔵 AGUARDANDO DATA',
+                    'backlog': '🔴 BACKLOG'
+                };
+
+                const linhas = initialCards
+                    .map(card => {
+                        const classe = classificarLoja(card);
+                        if (classe === 'no_kanban') return null;
+
+                        const pdvs = pdvsPorLoja[card.id] || [];
+                        const diff = card.data_agendada ? diffDias(card.data_agendada) : null;
+                        const diasAtraso = diff !== null && diff < 0 ? Math.abs(diff) : '';
+
+                        return {
+                            '_ordem': prioridadeOrdem[classe] || 99,
+                            'Prioridade': prioridadeLabel[classe] || classe,
+                            'Data Agendada': card.data_agendada ? formatarDataBRCompleta(card.data_agendada) : '',
+                            'Loja': card.loja || '',
+                            'Cidade': card.cidade || '',
+                            'UF': card.uf || '',
+                            'Regional': card.regional || '',
+                            'PDVs': pdvs.length,
+                            'Responsável': card.responsavel && card.responsavel !== 'Não atribuído' ? card.responsavel : '',
+                            'Status': card.status || '',
+                            'Dias de Atraso': diasAtraso,
+                            'Motivo Backlog': card.motivo_backlog || '',
+                            'Observações': card.descricao || ''
+                        };
+                    })
+                    .filter(x => x !== null)
+                    .sort((a, b) => {
+                        if (a._ordem !== b._ordem) return a._ordem - b._ordem;
+                        return (a['Data Agendada'] || '').localeCompare(b['Data Agendada'] || '');
+                    })
+                    .map(({ _ordem, ...rest }) => rest);
+
+                if (linhas.length === 0) {
+                    showNotification('ℹ️ Nenhum agendamento para exportar');
+                    return;
+                }
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(linhas);
+
+                // Larguras das colunas
+                ws['!cols'] = [
+                    { wch: 20 }, // Prioridade
+                    { wch: 14 }, // Data Agendada
+                    { wch: 14 }, // Loja
+                    { wch: 18 }, // Cidade
+                    { wch: 6 },  // UF
+                    { wch: 16 }, // Regional
+                    { wch: 8 },  // PDVs
+                    { wch: 22 }, // Responsável
+                    { wch: 14 }, // Status
+                    { wch: 14 }, // Dias Atraso
+                    { wch: 30 }, // Motivo
+                    { wch: 40 }  // Observações
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, 'Agendamentos');
+
+                const fileName = `ROCC_Agendamentos_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showNotification(`📊 Excel exportado: ${fileName}`);
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Erro ao gerar Excel');
+            }
+        }
+
+        function formatarDataBRCompleta(isoDate) {
+            if (!isoDate) return '';
+            const [ano, mes, dia] = isoDate.split('-');
+            return `${dia}/${mes}/${ano}`;
         }
 
         function atualizarDashboard() {
@@ -3031,7 +4573,8 @@
             const select = document.getElementById('responsibleFilter');
             const currentValue = select.value;
             select.innerHTML = '<option value="">Todos</option>';
-            const responsaveis = [...new Set(initialCards.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
+            const cardsVisiveis = initialCards.filter(deveAparecerNoKanban);
+            const responsaveis = [...new Set(cardsVisiveis.map(c => c.responsavel))].filter(r => r && r !== 'Não atribuído');
             responsaveis.forEach(r => {
                 const option = document.createElement('option');
                 option.value = r;
@@ -3049,7 +4592,8 @@
             if (!select) return;
             const currentValue = select.value;
             select.innerHTML = '<option value="">Todas UF</option>';
-            const ufs = [...new Set(initialCards.map(c => c.uf))].filter(uf => uf && uf.trim() !== '').sort();
+            const cardsVisiveis = initialCards.filter(deveAparecerNoKanban);
+            const ufs = [...new Set(cardsVisiveis.map(c => c.uf))].filter(uf => uf && uf.trim() !== '').sort();
             ufs.forEach(uf => {
                 const option = document.createElement('option');
                 option.value = uf;
@@ -3097,7 +4641,43 @@
         }
 
         function togglePanel() {
-            document.getElementById('bottomPanel').classList.toggle('collapsed');
+            const panel = document.getElementById('bottomPanel');
+            const textEl = document.getElementById('togglePanelText');
+            const isCollapsed = panel.classList.contains('collapsed');
+
+            if (isCollapsed) {
+                panel.classList.remove('collapsed');
+                panel.classList.add('expanded');
+                if (textEl) textEl.textContent = 'Recolher';
+                // Salva preferência
+                try { localStorage.setItem('rocc_panel_state', 'expanded'); } catch(e) {}
+            } else {
+                panel.classList.add('collapsed');
+                panel.classList.remove('expanded');
+                if (textEl) textEl.textContent = 'Expandir';
+                try { localStorage.setItem('rocc_panel_state', 'collapsed'); } catch(e) {}
+            }
+        }
+
+        // Restaura estado do painel ao carregar
+        function restaurarPainelState() {
+            try {
+                const state = localStorage.getItem('rocc_panel_state');
+                const panel = document.getElementById('bottomPanel');
+                const textEl = document.getElementById('togglePanelText');
+                if (!panel) return;
+                
+                if (state === 'collapsed') {
+                    panel.classList.add('collapsed');
+                    panel.classList.remove('expanded');
+                    if (textEl) textEl.textContent = 'Expandir';
+                } else {
+                    // Padrão: expandido
+                    panel.classList.remove('collapsed');
+                    panel.classList.add('expanded');
+                    if (textEl) textEl.textContent = 'Recolher';
+                }
+            } catch(e) {}
         }
 
         function showQuickAction() {
@@ -3122,6 +4702,30 @@
             populateResponsavelSelects();
         }
 
+        // ============================================================
+        // NOVO AGENDAMENTO (chamado da aba Agendamentos)
+        // ============================================================
+        function abrirNovoAgendamento() {
+            if (isMonitor()) { 
+                showNotification('⛔ Monitoramento é apenas para visualização!'); 
+                return; 
+            }
+            
+            // Abre o modal (usa o mesmo openAddCardModal)
+            openAddCardModal('agendada');
+            
+            // Pequeno ajuste: campo data vazio por padrão (usuário decide)
+            setTimeout(() => {
+                document.getElementById('newLojaData').value = '';
+                
+                // Foca no primeiro campo
+                const numField = document.getElementById('newLojaNumero');
+                if (numField) numField.focus();
+                
+                // Dica visual no topo do modal
+                showNotification('💡 Preencha os dados. Se não definir data, a loja fica em "Aguardando Data"');
+            }, 100);
+        }
         function closeAddCardModal() {
             document.getElementById('addCardModal').classList.remove('active');
             document.body.style.overflow = '';
@@ -3757,6 +5361,7 @@
                 renderCards();
                 showNotification(`🗑️ ${card.loja} excluída!`);
                 atualizarMetricasPainel(); atualizarDashboard();
+                                      atualizarBadgeAgendamentos();
                 addNotificacao(`🗑️ Loja ${card.loja} foi excluída por ${currentUser?.nome || 'Sistema'}`, 'warning');
             }
         }
@@ -4104,6 +5709,7 @@
 
             if (savedUser) {
                 try {
+                    const isAgendamentoView = params.get('view') === 'agendamentos';
                     const user = JSON.parse(savedUser);
                     currentUser = user;
                     document.getElementById('loginScreen').style.display = 'none';
@@ -4111,11 +5717,32 @@
                     document.getElementById('userNameDisplay').textContent = user.nome;
                     aplicarModoUsuario(user);
 
-                    carregarTudo();
-                    carregarCoresSalvas();
-                    aplicarCores();
-                    iniciarInstallApp();
-                    showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+                    carregarTudo().then(() => {
+                        carregarCoresSalvas();
+                        aplicarCores();
+                        iniciarInstallApp();
+                        showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
+                        
+                        // Se é aba de agendamentos, abre a aba após carregar
+                        if (isAgendamentoView) {
+                            setTimeout(() => {
+                                const kanbanWrapper = document.getElementById('kanbanWrapper');
+                                const agendamentosTab = document.getElementById('agendamentosTab');
+                                const btnAgend = document.getElementById('agendamentosTabBtn');
+                                const fabKanban = document.getElementById('fabContainer');
+                                const fabAgend = document.getElementById('fabAgendamentos');
+                                
+                                if (kanbanWrapper) kanbanWrapper.style.display = 'none';
+                                if (agendamentosTab) agendamentosTab.classList.add('active');
+                                if (btnAgend) btnAgend.classList.add('active');
+                                if (fabKanban) fabKanban.style.display = 'none';
+                                if (fabAgend) fabAgend.style.display = 'block';
+                                
+                                agendamentosVisible = true;
+                                renderAgendamentos();
+                            }, 500);
+                        }
+                    });
                 } catch (e) { console.warn('Sessão inválida', e); }
             }
 
@@ -4159,8 +5786,10 @@
                     }
                 });
             }
-        });
 
+            // Restaura estado do painel inferior
+            restaurarPainelState();
+        });
         // ============================================================
         // ASSINATURA
         // ============================================================
@@ -4552,12 +6181,13 @@
         function atualizarMetricasPainel() {
             if (isModoTecnico) return;
             
-            const total = initialCards.length;
-            const execucao = initialCards.filter(c => c.status === 'execucao').length;
-            const concluidas = initialCards.filter(c => c.status === 'concluida').length;
+           const cardsVisiveis = initialCards.filter(deveAparecerNoKanban);
+            const total = cardsVisiveis.length;
+            const execucao = cardsVisiveis.filter(c => c.status === 'execucao').length;
+            const concluidas = cardsVisiveis.filter(c => c.status === 'concluida').length;
             const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
 
-            const tecnicos = new Set(initialCards.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
+            const tecnicos = new Set(cardsVisiveis.map(c => c.responsavel).filter(r => r && r !== 'Não atribuído'));
             const numTecnicos = tecnicos.size || 1;
             const produtividade = total > 0 ? (total / numTecnicos).toFixed(1) : 0;
 
@@ -4574,7 +6204,7 @@
             document.getElementById('totalLojasDisplay').textContent = total;
             document.getElementById('concluidasDisplay').textContent = concluidas;
 
-            const tickets = initialCards.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
+            const tickets = cardsVisiveis.filter(c => c.status === 'execucao' || c.status === 'bloqueada');
             document.getElementById('ticketCount').textContent = tickets.length;
             const ticketList = document.getElementById('ticketList');
             if (tickets.length === 0) {
@@ -4588,7 +6218,7 @@
                 `).join('');
             }
 
-            const activities = [...initialCards].reverse().slice(0, 3);
+            const activities = [...cardsVisiveis].reverse().slice(0, 3);
             const activityList = document.getElementById('activityList');
             if (activities.length === 0) {
                 activityList.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Nenhuma atividade recente</div>';
@@ -4694,6 +6324,22 @@
         window.removeChecklistItem = removeChecklistItem;
         window.renderChecklistTecnico = renderChecklistTecnico;
         window.toggleChecklistItemTecnico = toggleChecklistItemTecnico;
+        window.toggleAgendamentosTab = toggleAgendamentosTab;
+       window.renderAgendamentos = renderAgendamentos;
+       window.atualizarBadgeAgendamentos = atualizarBadgeAgendamentos;
+       window.definirDataAgendamento = definirDataAgendamento;
+       window.anteciparParaHoje = anteciparParaHoje;
+       window.moverParaBacklog = moverParaBacklog;
+       window.reativarDoBacklog = reativarDoBacklog;
+       window.verNoKanban = verNoKanban;
+       window.scrollToAgendSection = scrollToAgendSection;
+       window.exportarAgendamentosExcel = exportarAgendamentosExcel;
+       window.classificarLoja = classificarLoja;
+       window.abrirNovoAgendamento = abrirNovoAgendamento;
+       window.abrirAgendamentosEmNovaAba = abrirAgendamentosEmNovaAba;
+       window.voltarParaKanban = voltarParaKanban;
+       window.restaurarPainelState = restaurarPainelState;
+       window.fecharTodosAgendMenus = fecharTodosAgendMenus;
     </script>
 </body>
 </html>
