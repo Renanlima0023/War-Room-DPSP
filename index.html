@@ -4,11 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>ROCC · Roll Out Control Center</title>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://iwomsbgytjkvssgjynie.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://ui-avatars.com" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --cor-primaria: #043554;
@@ -127,8 +133,25 @@
         .login-box .login-footer { text-align: center; margin-top: 16px; font-size: 12px; color: var(--cor-texto-claro); }
 
         #appContent { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
-        .modo-tecnico .bottom-panel, .modo-tecnico .fab { display: none !important; }
+         .modo-tecnico .bottom-panel, 
+        .modo-tecnico .fab { display: none !important; }
         .modo-tecnico .kanban-column { min-width: 180px !important; }
+        
+        /* 🔥 ESCONDE TUDO DO BACKOFFICE NO MODO TÉCNICO */
+        .modo-tecnico #mainHeader { display: none !important; }
+        .modo-tecnico #kanbanWrapper { display: none !important; }
+        .modo-tecnico #dashboardTab { display: none !important; }
+        .modo-tecnico #agendamentosTab { display: none !important; }
+        .modo-tecnico #notificationsDropdown { display: none !important; }
+        .modo-tecnico #fabContainer { display: none !important; }
+        .modo-tecnico #fabAgendamentos { display: none !important; }
+        .modo-tecnico .btn-dashboard-tab { display: none !important; }
+        .modo-tecnico .btn-agendamentos-tab { display: none !important; }
+        .modo-tecnico .btn-fullscreen { display: none !important; }
+        .modo-tecnico .install-prompt { display: none !important; }
+        .modo-tecnico .btn-config { display: none !important; }
+        .modo-tecnico .btn-export { display: none !important; }
+        .modo-tecnico .btn-sync { display: none !important; }
 
         .kanban-card { cursor: grab; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border-left: 6px solid transparent; position: relative; user-select: none; border-radius: 12px; padding: 14px 16px !important; background: linear-gradient(145deg, var(--cor-card), #0a1f33); box-shadow: 0 2px 8px rgba(0,0,0,0.3); touch-action: none; }
         .kanban-card:active { cursor: grabbing; }
@@ -1041,6 +1064,50 @@
         .edit-card-modal .btn-save-edit:disabled { opacity: 0.6; cursor: not-allowed; }
         .edit-card-modal .form-group .field-hint { font-size: 10px; color: var(--cor-texto-claro); opacity: 0.7; margin-top: 2px; }
         @media (max-width: 640px) { .edit-card-modal .form-row { grid-template-columns: 1fr; } }
+        /* ===== TELA DE LOADING ===== */
+        #loadingScreen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, var(--cor-card), var(--cor-fundo));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            gap: 24px;
+            transition: opacity 0.4s ease;
+        }
+        #loadingScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-logo {
+            max-height: 70px;
+            width: auto;
+            object-fit: contain;
+            animation: loadingPulse 1.8s ease-in-out infinite;
+        }
+        .loading-spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(93, 48, 165, 0.2);
+            border-top-color: var(--cor-secundaria);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        .loading-text {
+            color: var(--cor-texto-claro);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes loadingPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.97); }
+        }
     </style>
 </head>
 <body>
@@ -1325,7 +1392,17 @@
     </div>
     <div id="tecnicoChecklistList"></div>
 </div>
-                    <div><h4 class="text-sm font-medium text-slate-400 mb-2"><i class="fas fa-comment mr-1"></i> Observações</h4><div class="dark-input w-full px-3 py-2 rounded-lg text-sm min-h-[50px]" id="tecnicoObservacoes">Instalação em andamento. Cliente aguardando finalização.</div></div>
+                    <div>
+    <div class="flex justify-between items-center mb-2">
+        <h4 class="text-sm font-medium text-slate-400"><i class="fas fa-comment mr-1"></i> Observações</h4>
+        <span class="text-[10px] text-slate-500" id="tecnicoObservacoesStatus"></span>
+    </div>
+    <textarea 
+        class="dark-input w-full px-3 py-2 rounded-lg text-sm min-h-[80px] resize-y" 
+        id="tecnicoObservacoes" 
+        placeholder="Digite aqui informações sobre o atendimento..."
+        rows="4"></textarea>
+</div>
                 </div>
                 <div class="store-footer">
                     <button class="btn-rat-tecnico hide-for-monitor" onclick="abrirAssinaturaTecnico()"><i class="fas fa-pen-fancy"></i> Assinar e Gerar RAT</button>
@@ -1887,6 +1964,17 @@
         </div>
     </div>
 
+    <!-- TELA DE LOADING -->
+    <div id="loadingScreen">
+        <img src="https://iwomsbgytjkvssgjynie.supabase.co/storage/v1/object/sign/logo/LOGOS-01.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jYmJlY2M2My00ODAyLTQ0ZDgtYWExYi1jNmU2OTg3ODliZDYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJsb2dvL0xPR09TLTAxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI5Mjc5MTAsImV4cCI6MTg0NTk5OTkxMH0.kI0uv2J4VbL9driOucDGywUrn7IlFUJPfUR09mUcYGE" 
+             alt="Engemon IT" 
+             class="loading-logo" 
+             onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('afterbegin','<h1 style=\'color:#fff;font-size:32px;font-weight:700;\'>ENGEMON IT</h1>')" />
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Carregando sistema...</p>
+    </div>
+
+
     <script>
         // ============================================================
         // TELA CHEIA - FULLSCREEN
@@ -2300,7 +2388,7 @@
                     user = USERS.find(u => u.email === email && u.senha === senha);
                 }
 
-                if (user) {
+                    if (user) {
                     currentUser = user;
                     sessionStorage.setItem('rocc_user', JSON.stringify(user));
                     document.getElementById('loginScreen').style.display = 'none';
@@ -2336,6 +2424,8 @@
                     if ('Notification' in window && Notification.permission === 'default') {
                         Notification.requestPermission();
                     }
+                    
+                    esconderLoadingScreen();
                 } else {
                     errorEl.textContent = '❌ E-mail ou senha inválidos!';
                     btn.disabled = false;
@@ -5462,6 +5552,33 @@ function renderCards() {
                 document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Entrar';
             }
         }
+        // ============================================================
+        // TELA DE LOADING                    ← 🎯 COLE ISSO AQUI
+        // ============================================================
+        function esconderLoadingScreen() {
+            const loading = document.getElementById('loadingScreen');
+            if (loading) {
+                loading.classList.add('hidden');
+                setTimeout(() => {
+                    if (loading.parentElement) loading.remove();
+                }, 500);
+            }
+        }
+
+        function mostrarLoadingScreen() {
+            let loading = document.getElementById('loadingScreen');
+            if (!loading) {
+                loading = document.createElement('div');
+                loading.id = 'loadingScreen';
+                loading.innerHTML = `
+                    <img src="https://iwomsbgytjkvssgjynie.supabase.co/storage/v1/object/sign/logo/LOGOS-01.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jYmJlY2M2My00ODAyLTQ0ZDgtYWExYi1jNmU2OTg3ODliZDYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJsb2dvL0xPR09TLTAxLnBuZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODI5Mjc5MTAsImV4cCI6MTg0NTk5OTkxMH0.kI0uv2J4VbL9driOucDGywUrn7IlFUJPfUR09mUcYGE" alt="Engemon IT" class="loading-logo" />
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">Carregando sistema...</p>
+                `;
+                document.body.appendChild(loading);
+            }
+            loading.classList.remove('hidden');
+        }
 
         // ============================================================
         // RESET SENHA
@@ -5513,17 +5630,34 @@ function renderCards() {
             tecnicoLojaData = { loja, token };
             isModoTecnico = true;
             
+            // 🔥 Aplica classe modo-tecnico
             document.getElementById('appContent').classList.add('modo-tecnico');
+            document.body.classList.add('modo-tecnico');
             
-            document.getElementById('kanbanWrapper').style.display = 'none';
+            // 🔥 ESCONDE TUDO DO BACKOFFICE
+            const elementosParaEsconder = [
+                'mainHeader',
+                'kanbanWrapper',
+                'dashboardTab',
+                'agendamentosTab',
+                'notificationsDropdown',
+                'fabContainer',
+                'fabAgendamentos'
+            ];
+            elementosParaEsconder.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            
+            // 🔥 MOSTRA A TELA DE IDENTIFICAÇÃO DO TÉCNICO
             document.getElementById('tecnicoView').style.display = 'none';
             document.getElementById('identificacaoTecnico').style.display = 'flex';
             document.getElementById('appContent').style.display = 'flex';
             
-            const dashboardBtn = document.getElementById('dashboardTabBtn');
-            if (dashboardBtn) dashboardBtn.style.display = 'none';
-            const configBtn = document.getElementById('configBtn');
-            if (configBtn) configBtn.style.display = 'none';
+            // 🔥 Esconde botões específicos do header (por garantia)
+            document.querySelectorAll('.btn-dashboard-tab, .btn-agendamentos-tab, .btn-fullscreen, .btn-config, .btn-export, .btn-sync, .install-prompt').forEach(btn => {
+                btn.style.display = 'none';
+            });
             
             document.getElementById('tecnicoCardTitle').textContent = loja.loja;
             document.getElementById('tecnicoCardId').textContent = loja.id;
@@ -5539,20 +5673,31 @@ function renderCards() {
             console.log('🔓 Modo Técnico ativado para:', loja.loja);
         }
 
-        function identificarTecnico() {
+
+             function identificarTecnico() {
             const nome = document.getElementById('tecnicoNomeInput').value.trim();
             const errorEl = document.getElementById('erroIdentificacao');
             if (!nome || nome.length < 3) {
                 errorEl.textContent = '❌ Digite seu nome completo (mínimo 3 caracteres)';
                 return;
             }
+            
             tecnicoIdentificado = nome;
             errorEl.textContent = '';
+            
+            // Esconde a tela de identificação
             document.getElementById('identificacaoTecnico').style.display = 'none';
+            
+            // Mostra a tela do técnico
             document.getElementById('tecnicoView').style.display = 'block';
+            
+            // Preenche os nomes
             document.getElementById('tecnicoNomeExibido').textContent = nome;
             document.getElementById('assinaturaTecnicoNomeExibido').textContent = nome;
+            
+            // Carrega os dados da loja
             carregarDadosTecnico();
+            
             showNotification(`👷 Bem-vindo, ${nome}!`);
         }
 
@@ -5580,12 +5725,85 @@ function renderCards() {
                     </div>
                 `).join('');
             }
+
+        // ============================================================
+        // SALVAR OBSERVAÇÃO DO TÉCNICO
+        // ============================================================
+        async function salvarObservacaoTecnico() {
+            if (!tecnicoLojaData) return;
+            
+            const loja = tecnicoLojaData.loja;
+            const card = initialCards.find(c => c.id === loja.id);
+            if (!card) return;
+            
+            const obsEl = document.getElementById('tecnicoObservacoes');
+            const statusEl = document.getElementById('tecnicoObservacoesStatus');
+            if (!obsEl) return;
+            
+            const novaDescricao = obsEl.value.trim();
+            
+            // Se não mudou, não faz nada
+            if (card.descricao === novaDescricao) return;
+            
+            // Atualiza local
+            card.descricao = novaDescricao;
+            loja.descricao = novaDescricao;
+            
+            // Feedback visual "Salvando..."
+            if (statusEl) {
+                statusEl.textContent = '⏳ Salvando...';
+                statusEl.className = 'text-[10px] text-slate-400';
+            }
+            
+            try {
+                await autenticarSupabase();
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('lojas')
+                        .update({ descricao: novaDescricao })
+                        .eq('id', card.id);
+                    
+                    if (error) {
+                        console.error('Erro ao salvar observação:', error);
+                        if (statusEl) {
+                            statusEl.textContent = '❌ Erro ao salvar';
+                            statusEl.className = 'text-[10px] text-red-400';
+                        }
+                        return;
+                    }
+                }
+                
+                // Feedback visual "Salvo"
+                if (statusEl) {
+                    statusEl.textContent = '✓ Salvo';
+                    statusEl.className = 'text-[10px] text-emerald-400';
+                    setTimeout(() => {
+                        if (statusEl) statusEl.textContent = '';
+                    }, 3000);
+                }
+                
+                console.log('✅ Observação salva:', novaDescricao);
+                
+            } catch (e) {
+                console.error('Erro:', e);
+                if (statusEl) {
+                    statusEl.textContent = '❌ Erro de conexão';
+                    statusEl.className = 'text-[10px] text-red-400';
+                }
+            }
+        }
             
             // ============ CHECKLIST ============
             renderChecklistTecnico();
             
-            // ============ OBSERVAÇÕES ============
-            document.getElementById('tecnicoObservacoes').textContent = loja.descricao || 'Sem observações';
+                   // ============ OBSERVAÇÕES ============
+            const obsEl = document.getElementById('tecnicoObservacoes');
+            if (obsEl) {
+                obsEl.value = loja.descricao || '';
+                // Adiciona listener para salvar automaticamente
+                obsEl.removeEventListener('blur', salvarObservacaoTecnico);
+                obsEl.addEventListener('blur', salvarObservacaoTecnico);
+            }
         }
 
         // ============================================================
@@ -5700,13 +5918,25 @@ function renderCards() {
             const lojaId = params.get('loja');
             const savedUser = sessionStorage.getItem('rocc_user');
 
+            // ============================================================
+            // CASO 1: TÉCNICO com token (link compartilhado)
+            // ============================================================
             if (token && lojaId) {
-                carregarTudo().then(() => ativarModoTecnico(lojaId, token));
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContent').style.display = 'flex';
+                
+                carregarTudo().then(() => {
+                    ativarModoTecnico(lojaId, token);
+                    esconderLoadingScreen();  // 🔥 ESCONDE AQUI
+                }).catch(() => {
+                    esconderLoadingScreen();
+                });
                 return;
             }
 
+            // ============================================================
+            // CASO 2: Usuário com sessão salva
+            // ============================================================
             if (savedUser) {
                 try {
                     const isAgendamentoView = params.get('view') === 'agendamentos';
@@ -5717,35 +5947,59 @@ function renderCards() {
                     document.getElementById('userNameDisplay').textContent = user.nome;
                     aplicarModoUsuario(user);
 
+                    // Se é aba de agendamentos, ESCONDE o Kanban antes de carregar
+                    if (isAgendamentoView) {
+                        const kanbanWrapper = document.getElementById('kanbanWrapper');
+                        const agendamentosTab = document.getElementById('agendamentosTab');
+                        const btnAgend = document.getElementById('agendamentosTabBtn');
+                        const fabKanban = document.getElementById('fabContainer');
+                        const fabAgend = document.getElementById('fabAgendamentos');
+                        
+                        if (kanbanWrapper) kanbanWrapper.style.display = 'none';
+                        if (agendamentosTab) agendamentosTab.classList.add('active');
+                        if (btnAgend) btnAgend.classList.add('active');
+                        if (fabKanban) fabKanban.style.display = 'none';
+                        if (fabAgend) fabAgend.style.display = 'block';
+                        
+                        agendamentosVisible = true;
+                    }
+
                     carregarTudo().then(() => {
                         carregarCoresSalvas();
                         aplicarCores();
                         iniciarInstallApp();
                         showNotification(`👋 Bem-vindo de volta, ${user.nome}!`);
                         
-                        // Se é aba de agendamentos, abre a aba após carregar
                         if (isAgendamentoView) {
-                            setTimeout(() => {
-                                const kanbanWrapper = document.getElementById('kanbanWrapper');
-                                const agendamentosTab = document.getElementById('agendamentosTab');
-                                const btnAgend = document.getElementById('agendamentosTabBtn');
-                                const fabKanban = document.getElementById('fabContainer');
-                                const fabAgend = document.getElementById('fabAgendamentos');
-                                
-                                if (kanbanWrapper) kanbanWrapper.style.display = 'none';
-                                if (agendamentosTab) agendamentosTab.classList.add('active');
-                                if (btnAgend) btnAgend.classList.add('active');
-                                if (fabKanban) fabKanban.style.display = 'none';
-                                if (fabAgend) fabAgend.style.display = 'block';
-                                
-                                agendamentosVisible = true;
-                                renderAgendamentos();
-                            }, 500);
+                            renderAgendamentos();
                         }
+                        
+                        esconderLoadingScreen();  // 🔥 ESCONDE AQUI
+                    }).catch((err) => {
+                        console.warn('Erro ao carregar:', err);
+                        esconderLoadingScreen();  // 🔥 ESCONDE MESMO COM ERRO
                     });
-                } catch (e) { console.warn('Sessão inválida', e); }
+                } catch (e) { 
+                    console.warn('Sessão inválida', e);
+                    sessionStorage.removeItem('rocc_user');
+                    document.getElementById('loginScreen').style.display = 'flex';
+                    esconderLoadingScreen();  // 🔥 ESCONDE
+                }
+            } else {
+                // ============================================================
+                // CASO 3: Sem sessão (primeira vez / após logout)
+                // ============================================================
+                console.log('📍 Sem sessão salva — mostrando tela de login');
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('appContent').style.display = 'none';
+                
+                // 🔥 ESCONDE A TELA DE LOADING AQUI!
+                setTimeout(() => esconderLoadingScreen(), 300);
             }
 
+            // ============================================================
+            // EVENT LISTENERS
+            // ============================================================
             document.getElementById('loginBtn').addEventListener('click', function(e) {
                 e.preventDefault();
                 handleLogin();
