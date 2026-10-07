@@ -9260,12 +9260,39 @@ async function carregarBaseStorage() {
         }
         
         console.log('📥 Carregando base do Supabase...');
-        const { data, error } = await supabaseClient
-            .from('base_lojas')
-            .select('*')
-            .order('sigla', { ascending: true });
+  // 🔥 Lê TODAS as lojas paginando de 1000 em 1000
+// (Supabase tem limite padrão de 1000 linhas por request)
+let todosDados = [];
+let paginaAtual = 0;
+const TAMANHO_PAGINA = 1000;
+
+while (true) {
+    const de = paginaAtual * TAMANHO_PAGINA;
+    const ate = de + TAMANHO_PAGINA - 1;
+    
+    const { data: lote, error } = await supabaseClient
+        .from('base_lojas')
+        .select('*')
+        .order('sigla', { ascending: true })
+        .range(de, ate);
+    
+    if (error) {
+        console.error('❌ Erro ao ler base_lojas (página ' + paginaAtual + '):', error);
+        break;
+    }
+    
+    if (!lote || lote.length === 0) break;
+    
+    todosDados = todosDados.concat(lote);
+    console.log(`📦 Página ${paginaAtual + 1}: ${lote.length} lojas (total: ${todosDados.length})`);
+    
+    if (lote.length < TAMANHO_PAGINA) break;  // última página
+    paginaAtual++;
+}
+
+const data = todosDados;
         
-        if (error) {
+        
             console.error('❌ Erro ao ler base_lojas:', error);
             console.warn('⚠️ Caindo pro localStorage...');
             return carregarBaseLocalStorage();
