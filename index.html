@@ -10205,7 +10205,7 @@ async function salvarLojaBase() {
 // ============================================================
 //  EXCLUIR LOJA(S)
 // ============================================================
-function excluirLojaBase(sigla) {
+async function excluirLojaBase(sigla) {
     if (typeof currentRole !== 'undefined' && currentRole === 'visualizador') {
         showNotification('⛔ Visualizadores não podem excluir.');
         return;
@@ -10223,7 +10223,7 @@ function excluirLojaBase(sigla) {
     }
 }
 
-function excluirSelecionadas() {
+async function excluirSelecionadas() {
     if (typeof currentRole !== 'undefined' && currentRole === 'visualizador') {
         showNotification('⛔ Visualizadores não podem excluir.');
         return;
