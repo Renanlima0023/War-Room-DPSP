@@ -9292,11 +9292,7 @@ while (true) {
 
 const data = todosDados;
         
-        
-            console.error('❌ Erro ao ler base_lojas:', error);
-            console.warn('⚠️ Caindo pro localStorage...');
-            return carregarBaseLocalStorage();
-        }
+     
         
         if (!data || data.length === 0) {
             console.warn('⚠️ base_lojas vazia no Supabase, usando localStorage');
