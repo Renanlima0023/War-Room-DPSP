@@ -8348,6 +8348,12 @@ function openAddCardModal(status) {
             const token = params.get('token');
             const lojaId = params.get('loja');
             const savedUser = sessionStorage.getItem('rocc_user');
+            // 🔥 Inicializa o Supabase IMEDIATAMENTE no carregamento
+    // (senão o carregarBaseStorage roda antes do cliente estar pronto)
+    if (typeof iniciarSupabase === 'function') {
+        iniciarSupabase();
+        console.log('🔌 Supabase inicializado no carregamento:', !!supabaseClient);
+    }
 
             // ============================================================
             // CASO 1: TÉCNICO com token (link compartilhado)
@@ -9233,9 +9239,24 @@ let baseSelectedIds = new Set();
 async function carregarBaseStorage() {
     // 1. Tentar Supabase primeiro
     try {
+        // 🔥 Se o cliente ainda não existe, tenta inicializar
         if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-            console.warn('⚠️ Supabase não conectado, usando localStorage');
-            return carregarBaseLocalStorage();
+            console.warn('⚠️ Supabase ainda não inicializado — tentando inicializar...');
+            if (typeof iniciarSupabase === 'function') {
+                iniciarSupabase();
+            }
+            for (let tentativa = 1; tentativa <= 3; tentativa++) {
+                if (supabaseClient) break;
+                await new Promise(r => setTimeout(r, 500));
+                if (typeof iniciarSupabase === 'function') {
+                    iniciarSupabase();
+                }
+                console.log(`🔄 Tentativa ${tentativa}: supabaseClient = ${!!supabaseClient}`);
+            }
+            if (!supabaseClient) {
+                console.warn('⚠️ Supabase não conectou após 3 tentativas — usando localStorage');
+                return carregarBaseLocalStorage();
+            }
         }
         
         console.log('📥 Carregando base do Supabase...');
@@ -9257,9 +9278,8 @@ async function carregarBaseStorage() {
         
         console.log(`✅ ${data.length} lojas carregadas do Supabase`);
         
-        // Normaliza os dados (Supabase → formato local)
         return data.map(d => ({
-            id: d.sigla,                    // ⚠️ usa sigla como id (compatível com o resto do código)
+            id: d.sigla,
             sigla: d.sigla,
             lojas: d.lojas,
             bandeira: d.bandeira,
@@ -9280,11 +9300,9 @@ async function carregarBaseStorage() {
         
     } catch (e) {
         console.error('❌ Erro inesperado ao carregar do Supabase:', e);
-        console.warn('⚠️ Caindo pro localStorage...');
         return carregarBaseLocalStorage();
     }
 }
-
 // Função interna (a antiga, mantida como fallback)
 function carregarBaseLocalStorage() {
     try {
