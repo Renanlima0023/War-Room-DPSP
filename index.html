@@ -9291,7 +9291,12 @@ while (true) {
 }
 
 const data = todosDados;
-        
+
+                if (error) {
+            console.error('❌ Erro ao ler base_lojas:', error);
+            console.warn('⚠️ Caindo pro localStorage...');
+            return carregarBaseLocalStorage();
+        }
      
         
         if (!data || data.length === 0) {
