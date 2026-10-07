@@ -9322,7 +9322,7 @@ function salvarBaseStorage() {
 // ============================================================
 //  NAVEGAÇÃO — ABRIR / FECHAR ABA BASE
 // ============================================================
-function toggleBaseTab() {
+async function toggleBaseTab() {
     const kanbanWrapper = document.getElementById('kanbanWrapper');
     const dashboardTab = document.getElementById('dashboardTab');
     const agendamentosTab = document.getElementById('agendamentosTab');
@@ -10264,6 +10264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         atualizarBadgeBase();
         if (baseVisible) atualizarBaseTudo();
     }, 500);
+});
 
 // ============================================================
 //  CONFIRMAÇÃO DA LOJA (Agendamento) — ROCC v47
