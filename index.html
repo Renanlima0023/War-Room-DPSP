@@ -9349,18 +9349,92 @@ function carregarBaseLocalStorage() {
     }
 }
 
-function salvarBaseStorage() {
+// ============================================================
+//  🆕 C1.2 — SALVA A BASE NO SUPABASE (upsert em lotes)
+//  Também mantém backup no localStorage
+// ============================================================
+async function salvarBaseStorage() {
     try {
+        // 1. Prepara os dados no formato do Supabase
         const paraSalvar = baseData.map(d => ({
-            ...d,
-            dataDpsp: d.dataDpsp ? d.dataDpsp.toISOString() : null,
-            dataAutorizacao: d.dataAutorizacao ? d.dataAutorizacao.toISOString() : null
-        }));
-        localStorage.setItem('rocc_base_lojas', JSON.stringify(paraSalvar));
+            sigla: String(d.sigla || '').toUpperCase().trim(),
+            lojas: d.lojas || null,
+            bandeira: d.bandeira || null,
+            cidade: d.cidade || null,
+            uf: d.uf || null,
+            pdvs_total: parseInt(d.pdvsTotal) || 0,
+            previsto: parseInt(d.previsto) || 0,
+            realizado: parseInt(d.realizado) || 0,
+            autorizacao: d.autorizacao || null,
+            data_autorizacao: d.dataAutorizacao 
+                ? (d.dataAutorizacao.toISOString 
+                    ? d.dataAutorizacao.toISOString().slice(0, 10) 
+                    : String(d.dataAutorizacao).slice(0, 10))
+                : null,
+            data_dpsp: d.dataDpsp 
+                ? (d.dataDpsp.toISOString 
+                    ? d.dataDpsp.toISOString().slice(0, 10) 
+                    : String(d.dataDpsp).slice(0, 10))
+                : null,
+            status: d.status || null,
+            termo: d.termo || null,
+            observacao: d.observacao || null,
+            confirmacao: d.confirmacao || 'NAO_ENVIADO'
+        })).filter(l => l.sigla);
+        
+        // 2. Backup no localStorage PRIMEIRO (garantia)
+        try {
+            localStorage.setItem('rocc_base_lojas', JSON.stringify(baseData.map(d => ({
+                ...d,
+                dataDpsp: d.dataDpsp instanceof Date ? d.dataDpsp.toISOString() : d.dataDpsp,
+                dataAutorizacao: d.dataAutorizacao instanceof Date ? d.dataAutorizacao.toISOString() : d.dataAutorizacao
+            }))));
+        } catch (e) {
+            console.warn('⚠️ Falha no backup localStorage (não crítico):', e);
+        }
+        
+        // 3. Se Supabase não está disponível, para aqui (só localStorage)
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+            console.warn('⚠️ Supabase indisponível, salvou só no localStorage');
+            return true;
+        }
+        
+        // 4. Upsert no Supabase em lotes de 100
+        console.log(`💾 Salvando ${paraSalvar.length} lojas no Supabase...`);
+        const LOTE = 100;
+        let sucesso = 0;
+        let erros = 0;
+        
+        for (let i = 0; i < paraSalvar.length; i += LOTE) {
+            const lote = paraSalvar.slice(i, i + LOTE);
+            const inicio = i + 1;
+            const fim = Math.min(i + LOTE, paraSalvar.length);
+            
+            const { error } = await supabaseClient
+                .from('base_lojas')
+                .upsert(lote, { onConflict: 'sigla' });
+            
+            if (error) {
+                console.error(`❌ Erro no lote ${inicio}-${fim}:`, error);
+                erros += lote.length;
+            } else {
+                sucesso += lote.length;
+                console.log(`✅ Lote ${inicio}-${fim} salvo (${sucesso} acumulado)`);
+            }
+        }
+        
+        console.log(`💾 Supabase: ${sucesso} salvos, ${erros} erros`);
+        
+        // 5. Se houve erros, avisa
+        if (erros > 0) {
+            showNotification(`⚠️ ${sucesso} lojas salvas, ${erros} com erro`);
+        }
+        
         return true;
+        
     } catch (e) {
-        console.error('Erro ao salvar base:', e);
-        showNotification('❌ Erro ao salvar base. Verifique o espaço do navegador.');
+        console.error('❌ Erro ao salvar base:', e);
+        showNotification('❌ Erro ao salvar base: ' + (e.message || ''));
         return false;
     }
 }
@@ -9548,7 +9622,7 @@ function registrarListenerUploadBase() {
 registrarListenerUploadBase();
 document.addEventListener('DOMContentLoaded', registrarListenerUploadBase);
 
-function processarUploadBase(file) {
+async function processarUploadBase(file) {
     showNotification('⏳ Lendo planilha...');
     const reader = new FileReader();
     reader.onload = function(ev) {
@@ -9602,7 +9676,7 @@ function processarUploadBase(file) {
                 }
             });
 
-            if (salvarBaseStorage()) {
+            if (await salvarBaseStorage()) {
                 atualizarBaseTudo();
                 showNotification(`📂 Upload OK: ${adicionadas} nova(s), ${atualizadas} atualizada(s)`);
                 addNotificacao(`📂 Planilha processada: ${adicionadas} nova(s), ${atualizadas} atualizada(s)`, 'info');
@@ -10062,7 +10136,7 @@ function fecharModalBaseLoja() {
     document.body.style.overflow = '';
 }
 
-function salvarLojaBase() {
+async function salvarLojaBase() {
     const editId = document.getElementById('baseLojaEditId').value;
     const sigla = document.getElementById('baseLojaSigla').value.trim().toUpperCase();
     const bandeira = document.getElementById('baseLojaBandeira').value;
@@ -10122,7 +10196,7 @@ function salvarLojaBase() {
         showNotification(`✅ Loja ${sigla} adicionada.`);
     }
 
-    if (salvarBaseStorage()) {
+    if (await salvarBaseStorage()) {
         fecharModalBaseLoja();
         atualizarBaseTudo();
     }
@@ -10142,7 +10216,7 @@ function excluirLojaBase(sigla) {
 
     baseData = baseData.filter(d => d.sigla.toUpperCase() !== sigla.toUpperCase());
     baseSelectedIds.delete(sigla.toUpperCase());
-    if (salvarBaseStorage()) {
+    if (await salvarBaseStorage()) {
         showNotification(`🗑️ Loja ${sigla} excluída.`);
         atualizarBaseTudo();
         atualizarBulkActions();
@@ -10160,7 +10234,7 @@ function excluirSelecionadas() {
 
     baseData = baseData.filter(d => !baseSelectedIds.has(d.sigla.toUpperCase()));
     baseSelectedIds.clear();
-    if (salvarBaseStorage()) {
+    if (await salvarBaseStorage()) {
         showNotification(`🗑️ ${n} loja(s) excluída(s).`);
         atualizarBaseTudo();
         atualizarBulkActions();
