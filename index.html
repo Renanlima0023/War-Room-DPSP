@@ -10662,13 +10662,15 @@ async function sincronizarLojaComKanban(loja, forcarCriacao = false) {
         // Cria novo
         if (!_podeCriarCard()) return null;
 
-        console.log('➕ Criando novo card para:', loja.sigla);
-           const lojaData = {
-           nome: nomeLoja,
-           codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
-            responsavel_id: usuario ? usuario.id : null,
-             responsavel_nome: usuario ? usuario.nome : null,
-            status: 'agendada',
+       console.log('➕ Criando novo card para:', loja.sigla);
+        const nomeLoja = loja.lojas || loja.sigla;
+        const usuario = null;
+        const lojaData = {
+            nome: nomeLoja,
+            codigo: `LJ-${String(Math.floor(1000 + Math.random() * 9000))}`,
+            responsavel_id: null,
+            responsavel_nome: null,
+            status: 'agendada'
             regional: '',
             cidade: loja.cidade || '',
             uf: loja.uf || '',
