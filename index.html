@@ -10259,12 +10259,11 @@ window.exportarBaseCruzamento = exportarBaseCruzamento;
 
 // Carrega base do localStorage ao iniciar
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-setTimeout(async () => {
-    baseData = await carregarBaseStorage();   // ← await
-    atualizarBadgeBase();
-    if (baseVisible) atualizarBaseTudo();
-}, 500);
+    setTimeout(async () => {
+        baseData = await carregarBaseStorage();
+        atualizarBadgeBase();
+        if (baseVisible) atualizarBaseTudo();
+    }, 500);
 
 // ============================================================
 //  CONFIRMAÇÃO DA LOJA (Agendamento) — ROCC v47
