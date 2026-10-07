@@ -9227,16 +9227,75 @@ let baseSelectedIds = new Set();
 // ============================================================
 //  PERSISTÊNCIA BASE (localStorage)
 // ============================================================
-function carregarBaseStorage() {
+// ============================================================
+//  🆕 C1.1 — LÊ A BASE DO SUPABASE (com fallback pra localStorage)
+// ============================================================
+async function carregarBaseStorage() {
+    // 1. Tentar Supabase primeiro
+    try {
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+            console.warn('⚠️ Supabase não conectado, usando localStorage');
+            return carregarBaseLocalStorage();
+        }
+        
+        console.log('📥 Carregando base do Supabase...');
+        const { data, error } = await supabaseClient
+            .from('base_lojas')
+            .select('*')
+            .order('sigla', { ascending: true });
+        
+        if (error) {
+            console.error('❌ Erro ao ler base_lojas:', error);
+            console.warn('⚠️ Caindo pro localStorage...');
+            return carregarBaseLocalStorage();
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('⚠️ base_lojas vazia no Supabase, usando localStorage');
+            return carregarBaseLocalStorage();
+        }
+        
+        console.log(`✅ ${data.length} lojas carregadas do Supabase`);
+        
+        // Normaliza os dados (Supabase → formato local)
+        return data.map(d => ({
+            id: d.sigla,                    // ⚠️ usa sigla como id (compatível com o resto do código)
+            sigla: d.sigla,
+            lojas: d.lojas,
+            bandeira: d.bandeira,
+            cidade: d.cidade,
+            uf: d.uf,
+            pdvsTotal: d.pdvs_total || 0,
+            previsto: d.previsto || 0,
+            realizado: d.realizado || 0,
+            autorizacao: d.autorizacao,
+            dataAutorizacao: d.data_autorizacao ? new Date(d.data_autorizacao) : null,
+            dataDpsp: d.data_dpsp ? new Date(d.data_dpsp) : null,
+            status: d.status,
+            termo: d.termo,
+            observacao: d.observacao,
+            confirmacao: d.confirmacao || 'NAO_ENVIADO',
+            _origemSupabase: true
+        }));
+        
+    } catch (e) {
+        console.error('❌ Erro inesperado ao carregar do Supabase:', e);
+        console.warn('⚠️ Caindo pro localStorage...');
+        return carregarBaseLocalStorage();
+    }
+}
+
+// Função interna (a antiga, mantida como fallback)
+function carregarBaseLocalStorage() {
     try {
         const raw = localStorage.getItem('rocc_base_lojas');
         if (!raw) return [];
         const dados = JSON.parse(raw);
-        // Rehidrata datas
         return dados.map(d => ({
             ...d,
             dataDpsp: d.dataDpsp ? new Date(d.dataDpsp) : null,
-            dataAutorizacao: d.dataAutorizacao ? new Date(d.dataAutorizacao) : null
+            dataAutorizacao: d.dataAutorizacao ? new Date(d.dataAutorizacao) : null,
+            _origemSupabase: false
         }));
     } catch (e) {
         console.warn('Erro ao carregar base do localStorage:', e);
@@ -9305,7 +9364,7 @@ function toggleBaseTab() {
         btn.classList.add('active');
         if (fabKanban) fabKanban.style.display = 'none';
         if (fabAgend) fabAgend.style.display = 'none';
-        baseData = carregarBaseStorage();
+        baseData = await carregarBaseStorage();
         atualizarBaseTudo();
         atualizarBadgeBase();
     } else {
@@ -10201,11 +10260,11 @@ window.exportarBaseCruzamento = exportarBaseCruzamento;
 // Carrega base do localStorage ao iniciar
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
-        baseData = carregarBaseStorage();
-        atualizarBadgeBase();
-        if (baseVisible) atualizarBaseTudo();
-    }, 500);
-});
+setTimeout(async () => {
+    baseData = await carregarBaseStorage();   // ← await
+    atualizarBadgeBase();
+    if (baseVisible) atualizarBaseTudo();
+}, 500);
 
 // ============================================================
 //  CONFIRMAÇÃO DA LOJA (Agendamento) — ROCC v47
@@ -13343,7 +13402,7 @@ if (btnModo) {
 // ============================================================
 //  TOGGLE DA ABA STATUS
 // ============================================================
-function toggleStatusTab() {
+async function toggleStatusTab() {
     const kanbanWrapper = document.getElementById('kanbanWrapper');
     const dashboardTab = document.getElementById('dashboardTab');
     const agendamentosTab = document.getElementById('agendamentosTab');
@@ -13398,12 +13457,12 @@ function toggleStatusTab() {
         StatusTab.carregarDecisoes();
         StatusTab.snapshotAutomatico();
 
-        if (typeof carregarBaseStorage === 'function') {
-            const baseCarregada = carregarBaseStorage();
-            if (typeof baseData !== 'undefined' && baseData.length === 0 && baseCarregada.length > 0) {
-                baseData = baseCarregada;
-            }
-        }
+if (typeof carregarBaseStorage === 'function') {
+    const baseCarregada = await carregarBaseStorage();   // ← await
+    if (typeof baseData !== 'undefined' && baseData.length === 0 && baseCarregada.length > 0) {
+        baseData = baseCarregada;
+    }
+}
 
         StatusTab.render();
     }
