@@ -10208,13 +10208,51 @@ async function excluirLojaBase(sigla) {
     if (!loja) return;
     if (!confirm(`Excluir a loja "${loja.sigla} — ${loja.lojas || ''}"?\n\nEssa ação não pode ser desfeita.`)) return;
 
+    // 🔥 DELETA DIRETO NO SUPABASE (por SIGLA, case-insensitive)
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        try {
+            console.log('🗑️ Deletando no Supabase:', sigla);
+            
+            const { error, data } = await supabaseClient
+                .from('base_lojas')
+                .delete()
+                .eq('sigla', sigla.toUpperCase())
+                .select();
+            
+            if (error) {
+                console.error('❌ Erro ao excluir no Supabase:', error);
+                showNotification('❌ Erro: ' + error.message);
+                return;
+            }
+            
+            console.log('✅ Deletado no Supabase:', data);
+            
+            if (!data || data.length === 0) {
+                console.warn('⚠️ Nenhuma linha deletada — verifique se a SIGLA existe');
+                showNotification('⚠️ A loja não foi encontrada no Supabase (sigla: ' + sigla + ')');
+            }
+        } catch (e) {
+            console.error('❌ Exceção:', e);
+            showNotification('❌ Erro: ' + e.message);
+            return;
+        }
+    } else {
+        console.warn('⚠️ Supabase indisponível');
+    }
+
+    // Remove da memória
     baseData = baseData.filter(d => d.sigla.toUpperCase() !== sigla.toUpperCase());
     baseSelectedIds.delete(sigla.toUpperCase());
-    if (await salvarBaseStorage()) {
-        showNotification(`🗑️ Loja ${sigla} excluída.`);
-        atualizarBaseTudo();
-        atualizarBulkActions();
-    }
+
+    // Atualiza localStorage
+    try {
+        localStorage.setItem('rocc_base_lojas', JSON.stringify(baseData));
+    } catch (e) {}
+
+    showNotification(`🗑️ Loja ${sigla} excluída.`);
+    atualizarBaseTudo();
+    atualizarBulkActions();
+}
 }
 
 async function excluirSelecionadas() {
