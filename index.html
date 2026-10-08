@@ -1797,7 +1797,98 @@
      ABA STATUS — ROCC (Status Diário + Executivo)
      Adiciona apenas. Não altera nada existente.
      ============================================================ -->
-<style id="rocc-status-css">
+<style id="rocc-share-css">
+.btn-compartilhar-tab {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+.btn-compartilhar-tab:hover {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: #22c55e;
+    transform: scale(1.02);
+}
+.btn-compartilhar-tab:active {
+    transform: scale(0.98);
+}
+#shareModal .modal-content {
+    max-width: 620px;
+}
+.share-token-display {
+    background: #041a2e;
+    border: 1.5px solid rgba(34, 197, 94, 0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #22c55e;
+    word-break: break-all;
+    position: relative;
+}
+.share-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #22c55e;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.share-copy-btn:hover {
+    background: rgba(34, 197, 94, 0.4);
+    color: #fff;
+}
+.share-opcoes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.share-opcao {
+    background: rgba(255,255,255,0.03);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+.share-opcao:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.05);
+}
+.share-opcao.ativo {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+.share-opcao .titulo {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+.share-opcao .sub {
+    font-size: 10px;
+    color: #8aa4c8;
+}
+</style>
+
+        
+<style id="rocc-status-css">        
 /* Botão no header */
 .btn-status-tab {
     background: rgba(0, 159, 223, 0.15);
@@ -2762,7 +2853,9 @@
     <i class="fas fa-database"></i> Base
     <span class="badge-base" id="badgeBase" style="display:none;">0</span>
 </button>
-
+<button class="btn-compartilhar-tab" onclick="abrirModalCompartilhar()" id="compartilharBtn" title="Gerar link público">
+    <i class="fas fa-share-alt"></i> Compartilhar
+</button>
 <!-- 🆕 ABA STATUS -->
 <button class="btn-status-tab" onclick="toggleStatusTab()" id="statusTabBtn">
     <i class="fas fa-chart-line"></i> Status
